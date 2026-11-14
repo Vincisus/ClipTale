@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TiktokFactory — Modalità Leggera</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+<header>
+<h1>TiktokFactory — Modalità Leggera</h1>
+<p>Generazione narrativa rapida con checkpoint e recupero</p>
+</header>
+
+<main>
+<section class="controls">
+<button id="probe">Testa una scena</button>
+<button id="run" disabled>Esegui modalità leggera</button>
+<div class="progress-container">
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+<p class="progress-text" id="progress-text">0%</p>
+<p class="current-step" id="current-step">In attesa</p>
+</div>
+</section>
+
+<details>
+<summary>Console log</summary>
+<div class="log" id="log"></div>
+</details>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const probeBtn = document.getElementById("probe");
+  const runBtn = document.getElementById("run");
+  const status = document.getElementById("status") || document.getElementById("current-step");
+  const log = document.getElementById("log");
+  const progressFill = document.getElementById("progress-fill");
+  const progressText = document.getElementById("progress-text");
+
+  function addLog(text) {
+    const line = document.createElement("div");
+    line.className = "line";
+    line.textContent = text;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function updateProgress(job) {
+    progressFill.style.width = (job.progress || 0) + "%";
+    progressText.textContent = (job.progress || 0) + "%";
+    if (status) status.textContent = job.current_step || "In attesa";
+  }
+
+  probeBtn.addEventListener("click", async () => {
+    try {
+      const projects = await fetch("/api/lean/projects").then(r => r.json());
+      if (!projects.projects.length) {
+        addLog("Nessun progetto pronto. Esegui prima la generazione completa.");
+        return;
+      }
+      const project = projects.projects.find(p => p.ready);
+      if (!project) {
+        addLog("Nessun progetto con piano completo.");
+        return;
+      }
+
+      const modelsRes = await fetch("/api/lean/models").then(r => r.json());
+      if (!modelsRes.models.length) {
+        addLog("LM Studio non raggiungibile. Verifica che il server sia attivo su localhost:1234");
+        return;
+      }
+
+      const model = modelsRes.models[0];
+      const response = await fetch("/api/lean/projects/" + project.id + "/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, mode: "probe" })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Errore");
+      addLog("Probe avviato: " + data.job_id);
+
+      const interval = setInterval(async () => {
+        try {
+          const jobRes = await fetch("/api/lean/jobs/" + data.job_id).then(r => r.json());
+          updateProgress(jobRes);
+          if (jobRes.status === "completed" || jobRes.status === "failed") {
+            clearInterval(interval);
+            runBtn.disabled = false;
+            addLog("Probe completato: " + jobRes.status);
+          }
+        } catch(e) {
+          addLog("Errore polling: " + e.message);
+        }
+      }, 1500);
+
+    } catch(error) {
+      status.textContent = "Errore";
+      addLog("Errore: " + error.message);
+    }
+  });
+
+  runBtn.addEventListener("click", async () => {
+    try {
+      const projects = await fetch("/api/lean/projects").then(r => r.json());
+      const project = projects.projects.find(p => p.ready && p.probe_model);
+      if (!project) {
+        addLog("Esegui prima il test di una scena.");
+        return;
+      }
+
+      const response = await fetch("/api/lean/projects/" + project.id + "/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: project.probe_model, mode: "resume" })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Errore");
+      addLog("Run avviato: " + data.job_id);
+
+      const interval = setInterval(async () => {
+        try {
+          const jobRes = await fetch("/api/lean/jobs/" + data.job_id).then(r => r.json());
+          updateProgress(jobRes);
+          if (jobRes.status === "completed" || jobRes.status === "failed") {
+            clearInterval(interval);
+            addLog("Run completato: " + jobRes.status);
+            if (jobRes.result && jobRes.result.script_url) {
+              addLog("Script: " + jobRes.result.script_url);
+            }
+          }
+        } catch(e) {
+          addLog("Errore polling: " + e.message);
+        }
+      }, 1500);
+
+    } catch(error) {
+      status.textContent = "Errore";
+      addLog("Errore: " + error.message);
+    }
+  });
+
+  // Load projects
+  fetch("/api/lean/projects").then(r => r.json()).then(d => {
+    if (d.busy) {
+      probeBtn.disabled = true;
+      runBtn.disabled = true;
+    } else {
+      const hasProbe = d.projects.some(p => p.ready && p.probe_model);
+      runBtn.disabled = !hasProbe;
+    }
+  });
+});
+</script>
+</div>
+</body>
+</html>

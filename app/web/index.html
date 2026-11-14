@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TiktokFactory — Console</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+<header>
+<h1>TiktokFactory</h1>
+<p>Generatore storie AI con video, audio e sottotitoli — divise in episodi</p>
+</header>
+
+<main>
+<section class="controls">
+<button id="generate" disabled>Genera nuovo progetto</button>
+<div class="progress-container">
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+<p class="progress-text" id="progress-text">0%</p>
+<p class="current-step" id="current-step">In attesa</p>
+</div>
+</section>
+
+<details>
+<summary>Console log</summary>
+<div class="log" id="log"></div>
+</details>
+</main>
+
+<script src="/static/chat.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  fetch("/api/projects").then(r => r.json()).then(d => {
+    if (d.busy) document.getElementById("generate").disabled = true;
+    else document.getElementById("generate").disabled = false;
+  });
+});
+</script>
+</div>
+</body>
+</html>
