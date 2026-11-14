@@ -3,40 +3,290 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TiktokFactory — Console</title>
-<link rel="stylesheet" href="/static/style.css">
+<title>TiktokFactory — Console Unica</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; }
+  
+  .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+  
+  header { text-align: center; padding: 30px 0; border-bottom: 1px solid #333; }
+  header h1 { font-size: 28px; color: #ffd166; margin-bottom: 8px; }
+  header p { color: #aaa; font-size: 14px; }
+  
+  .section { margin: 25px 0; padding: 20px; background: #232340; border-radius: 12px; border: 1px solid #333; }
+  .section h2 { font-size: 18px; color: #ffd166; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+  
+  textarea { width: 100%; min-height: 80px; padding: 12px; background: #1a1a2e; border: 1px solid #444; border-radius: 8px; color: #e0e0e0; font-size: 14px; resize: vertical; }
+  textarea:focus { outline: none; border-color: #ffd166; }
+  
+  .form-row { display: flex; gap: 15px; margin: 12px 0; flex-wrap: wrap; }
+  .form-group { flex: 1; min-width: 200px; }
+  .form-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 5px; }
+  .form-group input, .form-group select { width: 100%; padding: 8px 12px; background: #1a1a2e; border: 1px solid #444; border-radius: 6px; color: #e0e0e0; font-size: 14px; }
+  
+  button { padding: 12px 24px; background: #ffd166; color: #1a1a2e; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  button:hover:not(:disabled) { opacity: 0.9; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  .btn-row { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+  .btn-small { padding: 6px 14px; font-size: 13px; background: #4a4a6a; color: #e0e0e0; }
+  .btn-small:hover:not(:disabled) { background: #5a5a7a; }
+  
+  .progress-container { margin: 15px 0; }
+  .progress-bar { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #ffd166, #ff6b6b); width: 0%; transition: width 0.3s; }
+  .progress-text { font-size: 14px; color: #aaa; margin-top: 8px; text-align: center; }
+  .current-step { font-size: 14px; color: #ffd166; margin-top: 5px; text-align: center; min-height: 20px; }
+  
+  .log { background: #1a1a2e; border: 1px solid #333; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+  .log .line { padding: 4px 0; border-bottom: 1px solid #2a2a38; }
+  
+  .project-list { margin-top: 15px; }
+  .project-card { background: #2a2a45; border: 1px solid #444; border-radius: 8px; padding: 16px; margin-bottom: 10px; }
+  .project-card h3 { color: #ffd166; font-size: 16px; margin-bottom: 8px; }
+  .project-card p { color: #aaa; font-size: 13px; margin-bottom: 8px; }
+  .project-card .status { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .status.active { background: #ffd166; color: #1a1a2e; }
+  .status.completed { background: #4ecf7a; color: #1a1a2e; }
+  .status.failed { background: #ff6b6b; color: white; }
+  
+  .results { margin-top: 15px; padding: 15px; background: #1a1a2e; border-radius: 8px; border: 1px solid #333; }
+  .results h3 { color: #4ecf7a; margin-bottom: 10px; }
+  .results ul { list-style: none; padding: 0; }
+  .results li { padding: 8px 0; border-bottom: 1px solid #2a2a38; display: flex; justify-content: space-between; align-items: center; }
+  .results a { color: #ffd166; text-decoration: none; }
+  .results a:hover { text-decoration: underline; }
+  
+  .hidden { display: none; }
+</style>
 </head>
 <body>
-<div class="app">
+<div class="container">
 <header>
 <h1>TiktokFactory</h1>
-<p>Generatore storie AI con video, audio e sottotitoli — divise in episodi</p>
+<p>Generatore storie AI con video, audio e sottotitoli — divise in episodi TikTok</p>
 </header>
 
-<main>
-<section class="controls">
-<button id="generate" disabled>Genera nuovo progetto</button>
-<div class="progress-container">
-<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-<p class="progress-text" id="progress-text">0%</p>
-<p class="current-step" id="current-step">In attesa</p>
+<!-- SEZIONE CREAZIONE PROGETTO -->
+<div class="section" id="create-section">
+<h2>🎬 Crea Nuovo Progetto</h2>
+<textarea id="theme" placeholder="Descrivi il tema della storia... Es: Un thriller psicologico sulla tradimento in una clinica privata"></textarea>
+
+<div class="form-row">
+  <div class="form-group">
+    <label>Durata (minuti)</label>
+    <select id="duration">
+      <option value="10">10 minuti</option>
+      <option value="12" selected>12 minuti</option>
+      <option value="15">15 minuti</option>
+      <option value="20">20 minuti</option>
+      <option value="30">30 minuti</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Parti TikTok</label>
+    <select id="clips">
+      <option value="3">3 parti</option>
+      <option value="4" selected>4 parti</option>
+      <option value="5">5 parti</option>
+    </select>
+  </div>
 </div>
-</section>
 
-<details>
-<summary>Console log</summary>
+<div class="btn-row">
+  <button id="create-btn" disabled>Genera Nuovo Progetto</button>
+</div>
+
+<div class="progress-container hidden" id="progress-section">
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <p class="progress-text" id="progress-text">0%</p>
+  <p class="current-step" id="current-step">In attesa</p>
+</div>
+</div>
+
+<!-- SEZIONE PROGETTI SALVATI -->
+<div class="section">
+<h2>📁 Progetti Salvati</h2>
+<div class="project-list" id="project-list">
+  <p style="color: #aaa;">Caricamento progetti...</p>
+</div>
+</div>
+
+<!-- SEZIONE LOG -->
+<div class="section">
+<h2>📋 Console Log</h2>
 <div class="log" id="log"></div>
-</details>
-</main>
+</div>
 
-<script src="/static/chat.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  fetch("/api/projects").then(r => r.json()).then(d => {
-    if (d.busy) document.getElementById("generate").disabled = true;
-    else document.getElementById("generate").disabled = false;
-  });
+const createBtn = document.getElementById("create-btn");
+const progressSection = document.getElementById("progress-section");
+const progressFill = document.getElementById("progress-fill");
+const progressText = document.getElementById("progress-text");
+const currentStep = document.getElementById("current-step");
+const logDiv = document.getElementById("log");
+const projectList = document.getElementById("project-list");
+
+function addLog(text) {
+  const line = document.createElement("div");
+  line.className = "line";
+  line.textContent = text;
+  logDiv.appendChild(line);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function updateProgress(job) {
+  progressFill.style.width = (job.progress || 0) + "%";
+  progressText.textContent = (job.progress || 0) + "%";
+  currentStep.textContent = job.current_step || "In attesa";
+}
+
+async function fetchAPI(path, options = {}) {
+  try {
+    const res = await fetch(path, { ...options, headers: { "Content-Type": "application/json" } });
+    return { status: res.status, data: await res.json() };
+  } catch(e) {
+    throw new Error("API error: " + e.message);
+  }
+}
+
+// Carica progetti
+async function loadProjects() {
+  try {
+    const { data } = await fetchAPI("/api/projects");
+    if (data.busy) {
+      createBtn.disabled = true;
+      addLog("⚠️ Un lavoro è già attivo");
+    } else {
+      createBtn.disabled = false;
+    }
+    
+    if (!data.projects || data.projects.length === 0) {
+      projectList.innerHTML = "<p style='color: #aaa;'>Nessun progetto salvato. Crea un nuovo progetto!</p>";
+      return;
+    }
+    
+    projectList.innerHTML = "";
+    data.projects.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "project-card";
+      
+      let statusClass = p.ready ? "active" : "failed";
+      let statusText = p.ready ? "In attesa o attivo" : "Completato o fallito";
+      
+      card.innerHTML = `
+        <h3>${p.id}</h3>
+        <p><span class="status ${statusClass}">${statusText}</span></p>
+        <div class="btn-row">
+          ${p.ready ? `<button class="btn-small" data-resume="${p.id}">Riprendi scrittura</button>` : ""}
+          <a href="/api/projects/${p.id}/script/download" class="btn-small">📄 Script</a>
+          <a href="/api/projects/${p.id}/storyboard/download" class="btn-small">🎬 Storyboard</a>
+        </div>
+      `;
+      projectList.appendChild(card);
+    });
+  } catch(e) {
+    addLog("Errore caricamento progetti: " + e.message);
+  }
+}
+
+// Crea progetto
+createBtn.addEventListener("click", async () => {
+  const theme = document.getElementById("theme").value.trim();
+  if (!theme) {
+    alert("Inserisci un tema!");
+    return;
+  }
+  
+  createBtn.disabled = true;
+  progressSection.classList.remove("hidden");
+  addLog("Avvio generazione nuovo progetto...");
+  
+  try {
+    const duration = parseInt(document.getElementById("duration").value);
+    const clips = parseInt(document.getElementById("clips").value);
+    
+    const { data } = await fetchAPI("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        message: theme,
+        series: "nuova_storia",
+        duration_minutes: duration,
+        tiktok_clips: clips
+      })
+    });
+    
+    addLog("Job avviato: " + data.job_id);
+    
+    const interval = setInterval(async () => {
+      try {
+        const jobRes = await fetchAPI("/api/jobs/" + data.job_id);
+        updateProgress(jobRes.data);
+        
+        if (jobRes.data.logs) {
+          jobRes.data.logs.forEach(l => addLog(l));
+        }
+        
+        if (jobRes.data.status === "completed") {
+          clearInterval(interval);
+          createBtn.disabled = false;
+          addLog("✅ Generazione completata!");
+          loadProjects();
+        }
+        
+        if (jobRes.data.status === "failed") {
+          clearInterval(interval);
+          createBtn.disabled = false;
+          addLog("❌ Errore: " + jobRes.data.error);
+        }
+      } catch(e) {
+        addLog("Errore polling: " + e.message);
+      }
+    }, 1500);
+    
+  } catch(e) {
+    createBtn.disabled = false;
+    progressSection.classList.add("hidden");
+    addLog("Errore creazione: " + e.message);
+  }
 });
+
+// Gestione click progetti
+projectList.addEventListener("click", async (e) => {
+  if (e.target.dataset.resume) {
+    const projectId = e.target.dataset.resume;
+    const confirm = window.confirm("Riprendi il progetto " + projectId + "?");
+    if (!confirm) return;
+    
+    try {
+      const { data } = await fetchAPI("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message: "Riprendi scrittura dal checkpoint", project_id: projectId })
+      });
+      addLog("Ripresa avviata: " + data.job_id);
+      
+      const interval = setInterval(async () => {
+        try {
+          const jobRes = await fetchAPI("/api/jobs/" + data.job_id);
+          updateProgress(jobRes.data);
+          if (jobRes.data.status === "completed") {
+            clearInterval(interval);
+            addLog("✅ Ripresa completata!");
+            loadProjects();
+          }
+        } catch(e) {
+          addLog("Errore polling: " + e.message);
+        }
+      }, 1500);
+    } catch(e) {
+      addLog("Errore ripresa: " + e.message);
+    }
+  }
+});
+
+// Avvio
+loadProjects();
 </script>
 </div>
 </body>
