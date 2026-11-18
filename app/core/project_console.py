@@ -1,1 +1,1 @@
-<codice Python completo e valido, 8380 caratteri>
+<inizia con: import asyncio — contenuto Python integrale, 8380 caratteri>

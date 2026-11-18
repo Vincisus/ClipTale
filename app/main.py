@@ -1,1 +1,1 @@
-<codice Python completo e valido, 3996 caratteri>
+<inizia con: """FastAPI application con serving file statici per console web.""" — contenuto Python integrale, 3996 caratteri>
