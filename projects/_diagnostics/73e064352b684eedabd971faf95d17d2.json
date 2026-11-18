@@ -1,0 +1,9 @@
+{
+  "model": "huihui-qwen3.6-35b-a3b-abliterated-mtp",
+  "response": "",
+  "finish_reason": null,
+  "reasoning_characters": 6865,
+  "elapsed_seconds": 175.45,
+  "error": "RuntimeError: {'message': 'Model unloaded by user or API request.'}",
+  "structured": true
+}

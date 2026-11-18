@@ -1,0 +1,1449 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TiktokFactory Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-app: #09090b;
+      --bg-panel: #101013;
+      --bg-surface: #16161b;
+      --bg-input: #0c0c0e;
+      --border: #24242b;
+      --border-focus: #3f3f4a;
+      --ink: #f4f4f5;
+      --ink-dim: #9ca3af;
+      --ink-faint: #6b7280;
+      --accent: #ff3b5c;
+      --accent-hover: #e62e4d;
+      --accent-dim: rgba(255, 59, 92, 0.14);
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg-app);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+<<<<<<< HEAD
+    .app-shell {
+      display: grid;
+      grid-template-rows: 48px 1fr 165px;
+=======
+    /* App Shell Layout */
+    .app-shell {
+      display: grid;
+      grid-template-rows: 48px 1fr 140px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      height: 100vh;
+      overflow: hidden;
+    }
+
+<<<<<<< HEAD
+=======
+    /* Top Toolbar */
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+<<<<<<< HEAD
+      gap: 12px;
+=======
+      gap: 16px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .topbar-left, .topbar-right {
+      display: flex;
+      align-items: center;
+<<<<<<< HEAD
+      gap: 10px;
+      flex-wrap: wrap;
+=======
+      gap: 12px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .app-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 13.5px;
+      letter-spacing: -0.01em;
+    }
+
+    .status-led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+
+    .status-led.busy {
+      background: var(--warn);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+    }
+
+<<<<<<< HEAD
+    .status-led.err {
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(255, 59, 92, 0.5);
+    }
+
+=======
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    .pill-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--ink-dim);
+<<<<<<< HEAD
+      text-decoration: none;
+    }
+
+    a.pill-tag:hover {
+      border-color: var(--border-focus);
+      color: var(--ink);
+=======
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 6px;
+      font-family: var(--sans);
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--ink);
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: var(--border-focus);
+      background: #1d1d24;
+    }
+
+    .btn:disabled {
+<<<<<<< HEAD
+      opacity: 0.45;
+=======
+      opacity: 0.5;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+<<<<<<< HEAD
+    .workspace {
+      display: grid;
+      grid-template-columns: 320px 1fr 330px;
+=======
+    /* Main 3-Column Workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: 310px 1fr 340px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      overflow: hidden;
+    }
+
+    .pane {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      background: var(--bg-panel);
+    }
+
+    .pane:last-child {
+      border-right: none;
+    }
+
+    .pane-center {
+      background: var(--bg-app);
+    }
+
+    .pane-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 38px;
+      padding: 0 14px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-dim);
+      letter-spacing: 0.03em;
+    }
+
+    .pane-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+<<<<<<< HEAD
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+=======
+      gap: 14px;
+    }
+
+    /* Form Controls */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--ink-dim);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    label span.val {
+      font-family: var(--mono);
+      color: var(--ink);
+    }
+
+<<<<<<< HEAD
+    input[type="text"], input[type="number"], textarea, select {
+=======
+    input[type="text"], textarea, select {
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+<<<<<<< HEAD
+      padding: 7px 10px;
+=======
+      padding: 8px 10px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 12.5px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    textarea {
+      resize: vertical;
+<<<<<<< HEAD
+      min-height: 70px;
+      line-height: 1.5;
+    }
+
+    input:focus, textarea:focus, select:focus {
+=======
+      min-height: 76px;
+      line-height: 1.5;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      border-color: var(--accent);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .toggle-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      background: var(--bg-input);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--ink-dim);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 5px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .toggle-btn.active {
+      background: var(--bg-surface);
+      color: var(--ink);
+      border: 1px solid var(--border-focus);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
+
+<<<<<<< HEAD
+    .progress-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-surface);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.25s ease;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--ink-dim);
+    }
+
+=======
+    /* Center Editor: Story Brain Beats */
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    .beat-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .beat-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .beat-card:focus-within {
+      border-color: var(--border-focus);
+    }
+
+    .beat-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .beat-role {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .beat-stats {
+      color: var(--ink-dim);
+    }
+
+    .beat-editor {
+      background: var(--bg-input);
+      border: 1px solid transparent;
+      border-radius: 5px;
+      padding: 8px;
+      color: var(--ink);
+      font-size: 13px;
+      min-height: 54px;
+    }
+
+    .beat-editor:focus {
+      border-color: var(--border-focus);
+    }
+
+    .beat-cue-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cue-badge {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--ink-dim);
+      background: var(--bg-surface);
+      padding: 3px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .cue-input {
+      font-family: var(--mono) !important;
+      font-size: 11px !important;
+      padding: 4px 8px !important;
+      color: var(--ink-dim) !important;
+    }
+
+<<<<<<< HEAD
+=======
+    /* Right Pane: 9:16 Live Preview */
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    .preview-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+<<<<<<< HEAD
+      padding: 14px;
+      gap: 10px;
+=======
+      padding: 16px;
+      gap: 12px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .phone-frame {
+      position: relative;
+<<<<<<< HEAD
+      width: 205px;
+=======
+      width: 210px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      aspect-ratio: 9 / 16;
+      background: #050507;
+      border: 1px solid var(--border-focus);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+<<<<<<< HEAD
+      padding: 12px 10px;
+=======
+      padding: 14px 12px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    }
+
+    .safe-zone-top {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+<<<<<<< HEAD
+      font-size: 9px;
+      color: var(--ink-faint);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+      padding-bottom: 5px;
+=======
+      font-size: 9.5px;
+      color: var(--ink-faint);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+      padding-bottom: 6px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .subtitle-box {
+      text-align: center;
+      padding: 8px 6px;
+<<<<<<< HEAD
+      background: rgba(9, 9, 11, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12px;
+=======
+      background: rgba(9, 9, 11, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 12.5px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      line-height: 1.3;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.01em;
+    }
+
+    .subtitle-box span.hl {
+      color: var(--accent);
+    }
+
+    .safe-zone-bottom {
+      font-family: var(--mono);
+<<<<<<< HEAD
+      font-size: 9px;
+      color: var(--ink-faint);
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      padding-top: 5px;
+=======
+      font-size: 9.5px;
+      color: var(--ink-faint);
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+      padding-top: 6px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .scrubber-controls {
+<<<<<<< HEAD
+      width: 205px;
+=======
+      width: 210px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .scrubber-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+<<<<<<< HEAD
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--ink-dim);
+    }
+
+=======
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-dim);
+    }
+
+    /* Bottom Console / Terminal Output */
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    .console-bar {
+      background: #070709;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .console-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 28px;
+      padding: 0 14px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink-dim);
+    }
+
+    .console-logs {
+      flex: 1;
+      padding: 8px 14px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 10px;
+    }
+
+    .log-ts {
+      color: var(--ink-faint);
+      user-select: none;
+    }
+
+    .log-mod {
+      color: var(--accent);
+<<<<<<< HEAD
+      min-width: 130px;
+=======
+      min-width: 145px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .log-msg {
+      color: var(--ink-dim);
+<<<<<<< HEAD
+      white-space: pre-wrap;
+=======
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    .log-msg.ok {
+      color: var(--ok);
+    }
+
+    @media (max-width: 1024px) {
+      .app-shell {
+<<<<<<< HEAD
+        grid-template-rows: auto 1fr 150px;
+=======
+        grid-template-rows: 48px 1fr 120px;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+      }
+      .workspace {
+        grid-template-columns: 1fr;
+        overflow: visible;
+      }
+      .pane {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+<<<<<<< HEAD
+=======
+    <!-- Top Application Bar -->
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="app-title">
+          <span id="status-led" class="status-led"></span>
+<<<<<<< HEAD
+          <span>TiktokFactory Studio</span>
+        </div>
+        <span id="health-pill" class="pill-tag">Verifica server...</span>
+        <a href="/static/lean.html" class="pill-tag">Modalità Leggera</a>
+        <a href="/static/media.html" class="pill-tag">Media</a>
+        <a href="/static/guide.html" class="pill-tag">Guida</a>
+=======
+          <span>TiktokFactory</span>
+        </div>
+        <span class="pill-tag">1080×1920 · 60fps</span>
+        <span id="job-counter" class="pill-tag">JOB #01</span>
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      </div>
+
+      <div class="topbar-right">
+        <button type="button" id="btn-export-json" class="btn">Esporta JSON</button>
+<<<<<<< HEAD
+        <button type="button" id="btn-resume-project" class="btn">Riprendi Progetto</button>
+        <button type="button" id="btn-generate-full" class="btn btn-primary">Genera Episodio Completo</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="pane">
+        <div class="pane-header">
+          <span>PROGETTI &amp; PIPELINE</span>
+          <button type="button" id="btn-refresh-projects" style="background:none;border:none;color:var(--accent);font-family:var(--mono);font-size:11px;cursor:pointer;">Aggiorna</button>
+        </div>
+        <div class="pane-body">
+          <div class="field">
+            <label for="project-select">Progetto Salvato (projects/)</label>
+            <select id="project-select">
+              <option value="">-- Nessun progetto selezionato --</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <button type="button" id="btn-load-project" class="btn" style="justify-content:center;">Carica Script</button>
+            <button type="button" id="btn-unlock-project" class="btn" style="justify-content:center;">Sblocca Lock</button>
+=======
+        <button type="button" id="btn-generate" class="btn">1. Genera Script</button>
+        <button type="button" id="btn-render" class="btn btn-primary">2. Render MP4</button>
+      </div>
+    </header>
+
+    <!-- Main 3-Column Tool Workspace -->
+    <main class="workspace">
+      <!-- Left Pane: Pipeline Parameters -->
+      <aside class="pane">
+        <div class="pane-header">
+          <span>CONFIGURAZIONE PIPELINE</span>
+          <span>.env</span>
+        </div>
+        <div class="pane-body">
+          <div class="field">
+            <label for="topic-input">Prompt / Argomento Video</label>
+            <textarea id="topic-input" placeholder="Inserisci l'idea o l'URL fonte...">Perché i data center AI stanno costruendo reattori nucleari dedicati</textarea>
+          </div>
+
+          <div class="field">
+            <label>Preset Ritmo (story_brain.py)</label>
+            <div class="toggle-group" role="group" aria-label="Preset ritmo">
+              <button type="button" class="toggle-btn active" data-wpm="165" data-cut="2.2">FAST</button>
+              <button type="button" class="toggle-btn" data-wpm="148" data-cut="2.8">BALANCED</button>
+              <button type="button" class="toggle-btn" data-wpm="132" data-cut="3.5">STORY</button>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="llm-select">Modello LLM</label>
+              <select id="llm-select">
+                <option value="gpt-4o">gpt-4o</option>
+                <option value="claude-3-7-sonnet">claude-3-7-sonnet</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                <option value="deepseek-r1">deepseek-r1</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="voice-select">Voce TTS</label>
+              <select id="voice-select">
+                <option value="it-IT-DiegoNeural">Diego (IT)</option>
+                <option value="it-IT-ElsaNeural">Elsa (IT)</option>
+                <option value="eleven-onyx">Onyx (Pro)</option>
+              </select>
+            </div>
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="field">
+<<<<<<< HEAD
+            <label for="topic-input">Prompt / Tema Nuova Storia</label>
+            <textarea id="topic-input" placeholder="Descrivi conflitto, personaggi e svolta narrativa...">Un ricercatore scopre che la sua collega ha presentato un progetto basato sui suoi dati clinici, ma i documenti completi rivelano una verità inattesa.</textarea>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="series-input">Serie</label>
+              <input type="text" id="series-input" value="tradimenti_e_vendetta" />
+            </div>
+            <div class="field">
+              <label for="clips-select">Clip TikTok (Parti)</label>
+              <select id="clips-select">
+                <option value="3">3 parti</option>
+                <option value="4" selected>4 parti</option>
+                <option value="5">5 parti</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="duration-range">Durata Target <span id="duration-val" class="val">12 min</span></label>
+            <input type="range" id="duration-range" min="10" max="30" value="12" />
+          </div>
+
+          <div class="field">
+            <label>Preset Ritmo Anteprima</label>
+            <div class="toggle-group" role="group" aria-label="Preset ritmo">
+              <button type="button" class="toggle-btn active" data-wpm="165">FAST</button>
+              <button type="button" class="toggle-btn" data-wpm="148">BALANCED</button>
+              <button type="button" class="toggle-btn" data-wpm="132">STORY</button>
+            </div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+            <div class="progress-meta">
+              <span id="progress-step">Pronto</span>
+              <span id="progress-pct">0%</span>
+            </div>
+=======
+            <label for="wpm-range">Velocità Parlato <span id="wpm-val" class="val">165 WPM</span></label>
+            <input type="range" id="wpm-range" min="120" max="195" value="165" />
+          </div>
+
+          <div class="field">
+            <label for="cut-range">Frequenza Tagli B-Roll <span id="cut-val" class="val">2.2s</span></label>
+            <input type="range" id="cut-range" min="1.2" max="5.0" step="0.2" value="2.2" />
+          </div>
+
+          <div class="field">
+            <label for="silence-range">Soglia Taglio Silenzi <span id="silence-val" class="val">120ms</span></label>
+            <input type="range" id="silence-range" min="50" max="300" step="10" value="120" />
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+          </div>
+        </div>
+      </aside>
+
+<<<<<<< HEAD
+      <section class="pane pane-center" aria-label="Editor copione">
+        <div class="pane-header">
+          <span>STORY BRAIN · SCENE &amp; BEAT</span>
+          <span id="total-duration">DURATA STIMATA: 00:00</span>
+        </div>
+        <div class="pane-body">
+          <div id="beat-list" class="beat-list"></div>
+          <button type="button" id="btn-add-beat" class="btn" style="align-self: flex-start;">+ Aggiungi Scena / Beat</button>
+        </div>
+      </section>
+
+      <aside class="pane">
+        <div class="pane-header">
+          <span>ANTEPRIMA 9:16</span>
+          <span id="active-beat-indicator">BEAT 1 / 1</span>
+=======
+      <!-- Center Pane: Beat Editor -->
+      <section class="pane pane-center" aria-label="Editor copione">
+        <div class="pane-header">
+          <span>STORY BRAIN · EDITOR BEAT</span>
+          <span id="total-duration">DURATA STIMATA: 00:32.0</span>
+        </div>
+        <div class="pane-body">
+          <div id="beat-list" class="beat-list"></div>
+          <button type="button" id="btn-add-beat" class="btn" style="align-self: flex-start;">+ Aggiungi Beat</button>
+        </div>
+      </section>
+
+      <!-- Right Pane: 9:16 Safe-Zone & Caption Preview -->
+      <aside class="pane">
+        <div class="pane-header">
+          <span>ANTEPRIMA 9:16</span>
+          <span id="active-beat-indicator">BEAT 1 / 4</span>
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+        </div>
+        <div class="preview-stage">
+          <div class="phone-frame">
+            <div class="safe-zone-top">
+              <span>SAFE TOP 14%</span>
+<<<<<<< HEAD
+              <span id="preview-cue-tag">SCENA 01</span>
+            </div>
+
+            <div id="preview-subtitle" class="subtitle-box">
+              CARICA UN PROGETTO O AVVIA UNA <span class="hl">GENERAZIONE</span>
+=======
+              <span id="preview-cue-tag">B-ROLL: SERVER</span>
+            </div>
+
+            <div id="preview-subtitle" class="subtitle-box">
+              UN SINGOLO CLUSTER AI CONSUMA QUANTO UNA <span class="hl">CITTÀ INTERA</span>
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+            </div>
+
+            <div class="safe-zone-bottom">
+              <span id="preview-tc">00:00.0</span>
+              <span>SAFE UI 20%</span>
+            </div>
+          </div>
+
+          <div class="scrubber-controls">
+            <div class="scrubber-row">
+              <button type="button" id="btn-play-preview" class="btn" style="flex: 1; justify-content: center;">Simula Sottotitoli</button>
+            </div>
+            <div class="scrubber-row">
+<<<<<<< HEAD
+              <span id="project-status-label">Stato: idle</span>
+              <span id="project-scenes-label">Scene OK: 0</span>
+=======
+              <span>Formato: H.264</span>
+              <span>Audio: -14 LUFS</span>
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+<<<<<<< HEAD
+    <footer class="console-bar">
+      <div class="console-header">
+        <span>OUTPUT ESECUZIONE &amp; LOG PIPELINE</span>
+=======
+    <!-- Bottom Terminal / Execution Log -->
+    <footer class="console-bar">
+      <div class="console-header">
+        <span>OUTPUT ESECUZIONE &amp; LOG MODULI</span>
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+        <button type="button" id="btn-clear-logs" style="background:none;border:none;color:var(--ink-dim);font-family:var(--mono);font-size:11px;cursor:pointer;">Pulisci</button>
+      </div>
+      <div id="console-logs" class="console-logs" role="log" aria-live="polite"></div>
+    </footer>
+  </div>
+
+  <script>
+<<<<<<< HEAD
+    const state = {
+      wpm: 165,
+      isPlaying: false,
+      playTimer: null,
+      pollTimer: null,
+      projects: [],
+      beats: [
+        {
+          role: "SCENA 01 · APERTURA",
+          text: "Seleziona un progetto salvato a sinistra per caricare le scene approvate oppure avvia una nuova generazione con LM Studio.",
+          cue: "interni_clinica_luce_fredda"
+=======
+    // Stato applicativo centralizzato (pronto per collegare gli endpoint FastAPI/Flask)
+    const state = {
+      jobCount: 1,
+      isPlaying: false,
+      playTimer: null,
+      beats: [
+        {
+          role: "HOOK · 00:00 - 00:02.4",
+          text: "Un singolo cluster di addestramento AI consuma quanto una città di centomila abitanti, e la rete elettrica non regge più.",
+          cue: "broll_datacenter_aerial_dark"
+        },
+        {
+          role: "CONTESTO · 00:02.4 - 00:15.0",
+          text: "Invece di aspettare dieci anni per nuovi elettrodotti, i colossi cloud stanno firmando contratti diretti per piccoli reattori modulari.",
+          cue: "broll_cooling_towers_steam"
+        },
+        {
+          role: "SVOLTA · 00:15.0 - 00:24.5",
+          text: "Il collo di bottiglia dell'intelligenza artificiale non è più il silicio delle GPU, ma i megawatt continui disponibili 24 ore su 24.",
+          cue: "broll_gpu_rack_close_up"
+        },
+        {
+          role: "PAYOFF · 00:24.5 - 00:32.0",
+          text: "Chi controlla l'energia di base controllerà il costo di ogni singolo token generato nei prossimi decenni.",
+          cue: "broll_power_grid_night"
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+        }
+      ]
+    };
+
+    const beatListEl = document.getElementById("beat-list");
+    const logsEl = document.getElementById("console-logs");
+    const previewSubEl = document.getElementById("preview-subtitle");
+    const previewCueEl = document.getElementById("preview-cue-tag");
+    const previewTcEl = document.getElementById("preview-tc");
+    const activeBeatEl = document.getElementById("active-beat-indicator");
+    const totalDurEl = document.getElementById("total-duration");
+    const statusLed = document.getElementById("status-led");
+<<<<<<< HEAD
+    const projectSelect = document.getElementById("project-select");
+    const progressFill = document.getElementById("progress-fill");
+    const progressStep = document.getElementById("progress-step");
+    const progressPct = document.getElementById("progress-pct");
+=======
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+
+    function log(mod, msg, isOk = false) {
+      const now = new Date().toTimeString().split(" ")[0];
+      const line = document.createElement("div");
+      line.className = "log-line";
+<<<<<<< HEAD
+      line.innerHTML = `<span class="log-ts">${now}</span><span class="log-mod">[${mod}]</span><span class="log-msg ${isOk ? "ok" : ""}">${msg}</span>`;
+=======
+      line.innerHTML = `
+        <span class="log-ts">${now}</span>
+        <span class="log-mod">[${mod}]</span>
+        <span class="log-msg ${isOk ? "ok" : ""}">${msg}</span>
+      `;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      logsEl.appendChild(line);
+      logsEl.scrollTop = logsEl.scrollHeight;
+    }
+
+<<<<<<< HEAD
+    function setBusy(busy, label = "") {
+      statusLed.classList.toggle("busy", busy);
+      document.getElementById("btn-generate-full").disabled = busy;
+      document.getElementById("btn-resume-project").disabled = busy || !projectSelect.value;
+      if (label) progressStep.textContent = label;
+    }
+
+    function updateMetrics() {
+      const totalWords = state.beats.reduce((acc, b) => acc + b.text.trim().split(/\s+/).filter(Boolean).length, 0);
+      const seconds = Math.max(0, Math.round((totalWords / state.wpm) * 60));
+      const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const secs = String(seconds % 60).padStart(2, "0");
+      totalDurEl.textContent = `DURATA STIMATA: ${mins}:${secs} (${totalWords} parole)`;
+=======
+    function updateMetrics() {
+      const wpm = parseInt(document.getElementById("wpm-range").value, 10);
+      const totalWords = state.beats.reduce((acc, b) => acc + b.text.trim().split(/\s+/).filter(Boolean).length, 0);
+      const seconds = Math.max(4, Math.round((totalWords / wpm) * 60));
+      const mins = String(Math.floor(seconds / 60)).padStart(2, "0");
+      const secs = String(seconds % 60).padStart(2, "0");
+      totalDurEl.textContent = `DURATA STIMATA: ${mins}:${secs}.0 (${totalWords} parole)`;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    function updatePreview(index) {
+      const beat = state.beats[index] || state.beats[0];
+      if (!beat) return;
+      const words = beat.text.trim().split(/\s+/);
+      const mid = Math.floor(words.length / 2);
+<<<<<<< HEAD
+      const formatted = words.slice(0, 18).map((w, i) => (i === mid || i === mid + 1) ? `<span class="hl">${w}</span>` : w).join(" ");
+      previewSubEl.innerHTML = formatted || "TESTO VUOTO";
+      previewCueEl.textContent = (beat.cue || `SCENA ${index + 1}`).toUpperCase().slice(0, 22);
+      activeBeatEl.textContent = `BEAT ${index + 1} / ${state.beats.length}`;
+      previewTcEl.textContent = `00:${String((index * 8) % 60).padStart(2, "0")}.0`;
+=======
+      const formatted = words.map((w, i) => (i === mid || i === mid + 1) ? `<span class="hl">${w}</span>` : w).join(" ");
+      previewSubEl.innerHTML = formatted || "TESTO VUOTO";
+      previewCueEl.textContent = beat.cue.toUpperCase().slice(0, 22);
+      activeBeatEl.textContent = `BEAT ${index + 1} / ${state.beats.length}`;
+      previewTcEl.textContent = `00:${String(index * 8).padStart(2, "0")}.0`;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    }
+
+    function renderBeats() {
+      beatListEl.innerHTML = "";
+      state.beats.forEach((beat, idx) => {
+        const wordCount = beat.text.trim().split(/\s+/).filter(Boolean).length;
+        const card = document.createElement("div");
+        card.className = "beat-card";
+        card.innerHTML = `
+          <div class="beat-meta">
+            <span class="beat-role">${beat.role}</span>
+            <span class="beat-stats">${wordCount} parole</span>
+          </div>
+          <textarea class="beat-editor" data-idx="${idx}">${beat.text}</textarea>
+          <div class="beat-cue-row">
+            <span class="cue-badge">VISUAL CUE</span>
+<<<<<<< HEAD
+            <input type="text" class="cue-input" data-cue-idx="${idx}" value="${beat.cue || ""}" />
+=======
+            <input type="text" class="cue-input" data-cue-idx="${idx}" value="${beat.cue}" />
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+          </div>
+        `;
+        beatListEl.appendChild(card);
+      });
+
+      document.querySelectorAll(".beat-editor").forEach(ta => {
+        ta.addEventListener("focus", (e) => updatePreview(Number(e.target.dataset.idx)));
+        ta.addEventListener("input", (e) => {
+          const i = Number(e.target.dataset.idx);
+          state.beats[i].text = e.target.value;
+          updateMetrics();
+          updatePreview(i);
+        });
+      });
+
+      document.querySelectorAll(".cue-input").forEach(inp => {
+        inp.addEventListener("input", (e) => {
+          const i = Number(e.target.dataset.cueIdx);
+          state.beats[i].cue = e.target.value;
+          updatePreview(i);
+        });
+      });
+
+      updateMetrics();
+      updatePreview(0);
+    }
+
+<<<<<<< HEAD
+    async function checkHealth() {
+      try {
+        const res = await fetch("/health");
+        const data = await res.json();
+        const pill = document.getElementById("health-pill");
+        pill.textContent = `LLM: ${data.llm_configured ? "OK" : "NO"} · FFmpeg: ${data.ffmpeg_available ? "OK" : "ASSENTE"}`;
+      } catch (e) {
+        statusLed.classList.add("err");
+        document.getElementById("health-pill").textContent = "Server non raggiungibile";
+      }
+    }
+
+    async function refreshProjects() {
+      try {
+        const res = await fetch("/api/projects");
+        const data = await res.json();
+        state.projects = data.projects || [];
+        const current = projectSelect.value;
+        projectSelect.innerHTML = state.projects.length
+          ? state.projects.map(p => `<option value="${p.id}">${p.title} (${p.id}) [${p.status}]</option>`).join("")
+          : `<option value="">-- Nessun progetto trovato --</option>`;
+        if (current && state.projects.some(p => p.id === current)) {
+          projectSelect.value = current;
+        }
+        updateSelectedProjectInfo();
+        setBusy(Boolean(data.busy));
+      } catch (e) {
+        log("api", "Errore caricamento progetti: " + e.message);
+      }
+    }
+
+    function updateSelectedProjectInfo() {
+      const p = state.projects.find(x => x.id === projectSelect.value);
+      document.getElementById("project-status-label").textContent = `Stato: ${p ? p.status : "idle"}`;
+      document.getElementById("project-scenes-label").textContent = `Scene OK: ${p ? (p.approved_scenes || 0) : 0}`;
+      document.getElementById("btn-resume-project").disabled = !p || !p.ready;
+    }
+
+    projectSelect.addEventListener("change", updateSelectedProjectInfo);
+
+    async function loadSelectedProject() {
+      const pid = projectSelect.value;
+      if (!pid) return;
+      log("projects", `Caricamento dati per progetto ${pid}...`);
+      try {
+        const [sbRes, scRes] = await Promise.all([
+          fetch(`/api/projects/${pid}/storyboard`),
+          fetch(`/api/projects/${pid}/script`)
+        ]);
+        if (sbRes.ok) {
+          const sbData = await sbRes.json();
+          const parsed = JSON.parse(sbData.content);
+          const scenes = parsed.scenes || [];
+          if (scenes.length) {
+            state.beats = scenes.map((s, i) => ({
+              role: `SCENA ${String(s.scene_id || i + 1).padStart(2, "0")} · PARTE ${s.part || 1}`,
+              text: s.narration || s.text || "",
+              cue: s.visual || s.visual_prompt || `scena_${i + 1}`
+            }));
+            renderBeats();
+            log("storyboard", `Caricate ${scenes.length} scene da storyboard.json.`, true);
+            return;
+          }
+        }
+        if (scRes.ok) {
+          const scData = await scRes.json();
+          const blocks = scData.content.split(/
+
++/).filter(Boolean);
+          state.beats = blocks.map((txt, i) => ({
+            role: `BLOCCO ${String(i + 1).padStart(2, "0")}`,
+            text: txt.trim(),
+            cue: `scena_${i + 1}`
+          }));
+          renderBeats();
+          log("script", `Caricati ${blocks.length} blocchi da script.md.`, true);
+        } else {
+          log("projects", "Nessuno script o storyboard ancora salvato per questo progetto.");
+        }
+      } catch (e) {
+        log("projects", "Errore lettura file progetto: " + e.message);
+      }
+    }
+
+    function pollJob(jobId, onDone) {
+      if (state.pollTimer) clearInterval(state.pollTimer);
+      state.pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/jobs/${jobId}`);
+          if (!res.ok) return;
+          const job = await res.json();
+          const pct = job.progress || 0;
+          progressFill.style.width = `${pct}%`;
+          progressPct.textContent = `${pct}%`;
+          progressStep.textContent = job.current_step || job.status;
+          logsEl.innerHTML = "";
+          (job.logs || []).forEach(line => log("job", line));
+
+          if (job.status === "completed") {
+            clearInterval(state.pollTimer);
+            setBusy(false, "Completato");
+            log("pipeline", "Job completato con successo.", true);
+            await refreshProjects();
+            if (onDone) onDone(job);
+          } else if (job.status === "failed" || job.status === "interrupted") {
+            clearInterval(state.pollTimer);
+            setBusy(false, "Interrotto");
+            statusLed.classList.add("err");
+            log("pipeline", "Errore: " + (job.error || job.current_step));
+            await refreshProjects();
+          }
+        } catch (e) {
+          log("polling", e.message);
+        }
+      }, 1500);
+    }
+
+    document.getElementById("btn-generate-full").addEventListener("click", async () => {
+      const message = document.getElementById("topic-input").value.trim();
+      const series = document.getElementById("series-input").value.trim() || "tradimenti_e_vendetta";
+      const duration_minutes = parseInt(document.getElementById("duration-range").value, 10);
+      const tiktok_clips = parseInt(document.getElementById("clips-select").value, 10);
+
+      statusLed.classList.remove("err");
+      setBusy(true, "Avvio generazione...");
+      log("orchestrator", `Avvio nuovo progetto (${duration_minutes} min, ${tiktok_clips} clip)...`);
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, series, duration_minutes, tiktok_clips })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Impossibile avviare il job");
+        log("orchestrator", `Job avviato: ${data.job_id}`, true);
+        pollJob(data.job_id, (job) => {
+          if (job.result?.project_id) {
+            projectSelect.value = job.result.project_id;
+            loadSelectedProject();
+          }
+        });
+      } catch (e) {
+        setBusy(false, "Errore");
+        statusLed.classList.add("err");
+        log("orchestrator", e.message);
+      }
+    });
+
+    document.getElementById("btn-resume-project").addEventListener("click", async () => {
+      const pid = projectSelect.value;
+      if (!pid) return;
+      statusLed.classList.remove("err");
+      setBusy(true, "Ripresa progetto...");
+      log("resume", `Avvio ripresa narrativa per ${pid}...`);
+      try {
+        const res = await fetch(`/api/projects/${pid}/resume`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Errore ripresa progetto");
+        pollJob(data.job_id, () => loadSelectedProject());
+      } catch (e) {
+        setBusy(false, "Errore");
+        log("resume", e.message);
+      }
+    });
+
+    document.getElementById("btn-unlock-project").addEventListener("click", async () => {
+      const pid = projectSelect.value;
+      if (!pid) return;
+      try {
+        const res = await fetch(`/api/projects/${pid}/unlock`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Sblocco fallito");
+        log("lock", `Lock rimosso per ${pid}.`, true);
+        await refreshProjects();
+      } catch (e) {
+        log("lock", e.message);
+      }
+    });
+
+    document.getElementById("btn-refresh-projects").addEventListener("click", refreshProjects);
+    document.getElementById("btn-load-project").addEventListener("click", loadSelectedProject);
+
+    document.getElementById("duration-range").addEventListener("input", (e) => {
+      document.getElementById("duration-val").textContent = `${e.target.value} min`;
+=======
+    // Sliders & Presets
+    document.getElementById("wpm-range").addEventListener("input", (e) => {
+      document.getElementById("wpm-val").textContent = `${e.target.value} WPM`;
+      updateMetrics();
+    });
+
+    document.getElementById("cut-range").addEventListener("input", (e) => {
+      document.getElementById("cut-val").textContent = `${Number(e.target.value).toFixed(1)}s`;
+    });
+
+    document.getElementById("silence-range").addEventListener("input", (e) => {
+      document.getElementById("silence-val").textContent = `${e.target.value}ms`;
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    });
+
+    document.querySelectorAll(".toggle-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".toggle-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+<<<<<<< HEAD
+        state.wpm = Number(btn.dataset.wpm);
+        updateMetrics();
+=======
+        document.getElementById("wpm-range").value = btn.dataset.wpm;
+        document.getElementById("wpm-val").textContent = `${btn.dataset.wpm} WPM`;
+        document.getElementById("cut-range").value = btn.dataset.cut;
+        document.getElementById("cut-val").textContent = `${Number(btn.dataset.cut).toFixed(1)}s`;
+        updateMetrics();
+        log("story_brain.py", `Preset ritmo impostato su ${btn.textContent} (${btn.dataset.wpm} WPM).`);
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+      });
+    });
+
+    document.getElementById("btn-add-beat").addEventListener("click", () => {
+      const n = state.beats.length + 1;
+      state.beats.push({
+<<<<<<< HEAD
+        role: `SCENA ${String(n).padStart(2, "0")}`,
+        text: "Nuovo segmento narrativo.",
+        cue: `scena_${n}`
+      });
+      renderBeats();
+    });
+
+    document.getElementById("btn-export-json").addEventListener("click", () => {
+      const payload = {
+        project_id: projectSelect.value || null,
+        series: document.getElementById("series-input").value,
+        duration_minutes: Number(document.getElementById("duration-range").value),
+        tiktok_clips: Number(document.getElementById("clips-select").value),
+=======
+        role: `BEAT #${n}`,
+        text: "Nuovo segmento narrativo da sintetizzare.",
+        cue: `broll_scene_0${n}`
+      });
+      renderBeats();
+      log("story_brain.py", `Aggiunto Beat #${n} alla timeline.`);
+    });
+
+    // Endpoint hook: Genera Script (collegabile a POST /api/generate)
+    document.getElementById("btn-generate").addEventListener("click", async () => {
+      const topic = document.getElementById("topic-input").value.trim();
+      const model = document.getElementById("llm-select").value;
+      statusLed.classList.add("busy");
+      log("llm_service.py", `Invio richiesta a ${model} per: "${topic}"...`);
+
+      /* Esempio integrazione reale con il backend Python:
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, model, wpm: document.getElementById("wpm-range").value })
+      });
+      const data = await res.json();
+      state.beats = data.beats;
+      */
+
+      setTimeout(() => {
+        state.beats[0].text = `Quello che quasi nessuno sta calcolando su ${topic.toLowerCase()} sta già cambiando le regole del settore.`;
+        renderBeats();
+        statusLed.classList.remove("busy");
+        log("story_brain.py", "Script segmentato in 4 beat con cue visivi verificati.", true);
+      }, 450);
+    });
+
+    // Endpoint hook: Render MP4 (collegabile a POST /api/render)
+    document.getElementById("btn-render").addEventListener("click", () => {
+      const voice = document.getElementById("voice-select").value;
+      const silence = document.getElementById("silence-range").value;
+      statusLed.classList.add("busy");
+      log("tts_engine", `Sintesi traccia vocale (${voice}) e taglio silenzi < ${silence}ms...`);
+
+      setTimeout(() => {
+        log("compositor", "Encoding H.264 1080x1920 @ 60fps completato → output/final_9x16.mp4", true);
+        statusLed.classList.remove("busy");
+        state.jobCount += 1;
+        document.getElementById("job-counter").textContent = `JOB #${String(state.jobCount).padStart(2, "0")}`;
+      }, 700);
+    });
+
+    // Esporta payload JSON per debug / API
+    document.getElementById("btn-export-json").addEventListener("click", () => {
+      const payload = {
+        topic: document.getElementById("topic-input").value,
+        llm: document.getElementById("llm-select").value,
+        voice: document.getElementById("voice-select").value,
+        wpm: Number(document.getElementById("wpm-range").value),
+        cut_interval_sec: Number(document.getElementById("cut-range").value),
+        silence_threshold_ms: Number(document.getElementById("silence-range").value),
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+        beats: state.beats
+      };
+      navigator.clipboard?.writeText(JSON.stringify(payload, null, 2));
+      log("system", "Payload JSON copiato negli appunti.", true);
+    });
+
+<<<<<<< HEAD
+=======
+    // Simulazione scorrimento sottotitoli nella preview 9:16
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+    document.getElementById("btn-play-preview").addEventListener("click", (e) => {
+      if (state.isPlaying) {
+        clearInterval(state.playTimer);
+        state.isPlaying = false;
+        e.target.textContent = "Simula Sottotitoli";
+        return;
+      }
+      state.isPlaying = true;
+      e.target.textContent = "Ferma Anteprima";
+      let idx = 0;
+      updatePreview(idx);
+      state.playTimer = setInterval(() => {
+        idx = (idx + 1) % state.beats.length;
+        updatePreview(idx);
+      }, 1800);
+    });
+
+    document.getElementById("btn-clear-logs").addEventListener("click", () => {
+      logsEl.innerHTML = "";
+    });
+
+<<<<<<< HEAD
+    renderBeats();
+    checkHealth();
+    refreshProjects();
+    log("system", "TiktokFactory Studio inizializzato e collegato alle API FastAPI.", true);
+  </script>
+</body>
+</html>
+=======
+    // Init
+    renderBeats();
+    log("system", "TiktokFactory Studio pronto. Moduli story_brain.py e llm_service.py inizializzati.", true);
+  </script>
+</body>
+</html>
+=======
+redirect alla console
+>>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36

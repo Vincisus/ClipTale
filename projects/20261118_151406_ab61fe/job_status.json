@@ -1,0 +1,16 @@
+{
+  "id": "7dd0f4702cb544ec9f84e702c62031f4",
+  "status": "failed",
+  "progress": 12,
+  "current_step": "Interrotto: RuntimeError: RuntimeError: Limite token raggiunto: risposta incompleta, non utilizzata.. Diagnostica: projects\\_diagnostics\\0147dea71c084a36ac090dddc68b8360.json",
+  "logs": [
+    "[15:14:06] Creazione progetto",
+    "[15:14:06] Pianificazione e revisione concept",
+    "[15:14:06] Generazione concept",
+    "[15:19:02] Interrotto: RuntimeError: RuntimeError: Limite token raggiunto: risposta incompleta, non utilizzata.. Diagnostica: projects\\_diagnostics\\0147dea71c084a36ac090dddc68b8360.json"
+  ],
+  "result": null,
+  "error": "RuntimeError: RuntimeError: Limite token raggiunto: risposta incompleta, non utilizzata.. Diagnostica: projects\\_diagnostics\\0147dea71c084a36ac090dddc68b8360.json",
+  "created_at": "2026-11-18T15:14:06.187119",
+  "project_dir": "projects\\20261118_151406_ab61fe"
+}

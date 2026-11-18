@@ -1,0 +1,19 @@
+{
+  "id": "9c1c40680bb845be919216df2ce0dd95",
+  "status": "running",
+  "progress": 22,
+  "current_step": "Generazione structure",
+  "logs": [
+    "[18:32:03] Creazione progetto",
+    "[18:32:03] Pianificazione e revisione concept",
+    "[18:32:03] Generazione concept",
+    "[18:35:52] Correzione concept 1/2",
+    "[18:39:26] Revisione concept, versione 2",
+    "[18:40:49] Pianificazione e revisione struttura",
+    "[18:40:49] Generazione structure"
+  ],
+  "result": null,
+  "error": null,
+  "created_at": "2026-11-14T18:32:03.474788",
+  "project_dir": "projects\\20261114_183203_24146c"
+}

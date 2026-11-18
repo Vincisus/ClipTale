@@ -1,0 +1,37 @@
+{
+  "id": "8d858113cd5f49cc9bc3f737bf21a61a",
+  "project_id": "20261118_154718_4cd8ad",
+<<<<<<< HEAD
+  "status": "interrupted",
+  "progress": 10,
+  "current_step": "Server arrestato: scene approvate conservate",
+=======
+  "status": "running",
+  "progress": 10,
+  "current_step": "Scena 3/9: scrittura e revisione, tentativo 1/3",
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+  "logs": [
+    "[19:18:14] Ripresa dal piano salvato; scrittura e storyboard",
+    "[19:18:14] Scena 1: recuperata approvazione salvata",
+    "[19:18:14] Scena 2: recuperata approvazione salvata",
+    "[19:18:14] Scena 3/9: pianificazione fatti",
+    "[19:18:14] Scena 3: ricostruzione coerente scheda 1/3",
+    "[19:43:06] Scena 3: verifica eventi e conoscenze, versione 1",
+<<<<<<< HEAD
+    "[19:54:14] Scena 3/9: scrittura e revisione, tentativo 1/3",
+    "[20:11:43] Scena 4/9: pianificazione fatti",
+    "[20:11:43] Scena 4: ricostruzione coerente scheda 1/3",
+    "[20:29:04] Scena 4: ricostruzione coerente scheda 2/3",
+    "[20:47:12] Scena 4: verifica eventi e conoscenze, versione 2",
+    "[20:54:38] Scena 4/9: scrittura e revisione, tentativo 1/3",
+    "[21:11:33] Scena 5/9: pianificazione fatti",
+    "[21:11:33] Scena 5: ricostruzione coerente scheda 1/3",
+    "[21:22:21] Server arrestato: scene approvate conservate"
+=======
+    "[19:54:14] Scena 3/9: scrittura e revisione, tentativo 1/3"
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+  ],
+  "result": null,
+  "error": null,
+  "created_at": "2026-11-18T18:18:14.875167+00:00"
+}

@@ -1,0 +1,7 @@
+<<<<<<< HEAD
+
+=======
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+motion_comic_dark:
+  prompt_prefix: "Cinematic 2D animated illustration, moody domestic thriller, soft shadows, muted colors, clean composition, vertical 9:16"
+  negative_prompt: "text, watermark, extra limbs, distorted face, low quality"

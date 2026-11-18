@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "issues": [
+    "Riferimento a un evento o conoscenza inesistente: {'field': 'knowledge_before', 'index': 2}"
+  ]
+}

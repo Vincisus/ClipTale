@@ -1,0 +1,127 @@
+<<<<<<< HEAD
+
+=======
+<<<<<<< HEAD
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TiktokFactory — Produzione</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="app">
+<header>
+<h1>Produzione Multimediale</h1>
+<p>Voce, video, sottotitoli e clip TikTok</p>
+</header>
+
+<main>
+<section class="controls">
+<button id="generate" disabled>Genera tutto (voce + video + sottotitoli)</button>
+<div class="progress-container">
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+<p class="progress-text" id="progress-text">0%</p>
+<p class="current-step" id="current-step">In attesa</p>
+</div>
+</section>
+
+<details>
+<summary>Console log</summary>
+<div class="log" id="log"></div>
+</details>
+</main>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const button = document.getElementById("generate");
+  const status = document.getElementById("current-step");
+  const log = document.getElementById("log");
+  const progressFill = document.getElementById("progress-fill");
+  const progressText = document.getElementById("progress-text");
+
+  function addLog(text) {
+    const line = document.createElement("div");
+    line.className = "line";
+    line.textContent = text;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function updateProgress(job) {
+    progressFill.style.width = (job.progress || 0) + "%";
+    progressText.textContent = (job.progress || 0) + "%";
+    if (status) status.textContent = job.current_step || "In attesa";
+  }
+
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    status.textContent = "Avvio...";
+    log.innerHTML = "";
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: "Genera il prossimo video completo",
+          series: "tradimenti_e_vendetta",
+          duration_minutes: 12,
+          tiktok_clips: 4
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Errore durante l'avvio");
+
+      addLog("Job avviato: " + data.job_id);
+
+      const interval = setInterval(async () => {
+        try {
+          const statusResponse = await fetch("/api/jobs/" + data.job_id).then(r => r.json());
+          updateProgress(statusResponse);
+          log.innerHTML = "";
+          (statusResponse.logs || []).forEach(addLog);
+
+          if (statusResponse.status === "completed") {
+            clearInterval(interval);
+            button.disabled = false;
+            addLog("Video YouTube: " + (statusResponse.result?.youtube_video || "non disponibile"));
+            addLog("Clip TikTok generate: " + (statusResponse.result?.tiktok_clips?.length || 0));
+          }
+
+          if (statusResponse.status === "failed") {
+            clearInterval(interval);
+            button.disabled = false;
+            status.textContent = "Errore";
+            addLog("Errore: " + statusResponse.error);
+          }
+        } catch(e) {
+          addLog("Errore polling: " + e.message);
+        }
+      }, 1500);
+
+    } catch(error) {
+      status.textContent = "Errore";
+      addLog("Errore: " + error.message);
+      button.disabled = false;
+    }
+  });
+
+  fetch("/api/projects").then(r => r.json()).then(d => {
+    if (d.busy) button.disabled = true;
+    else button.disabled = false;
+  });
+});
+</script>
+</div>
+</body>
+</html>
+<<<<<<< HEAD
+=======
+=======
+redirect alla console
+>>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36

@@ -1,0 +1,9 @@
+{
+  "model": "huihui-qwen3.6-35b-a3b-abliterated-mtp",
+  "response": "{\"ok\": true, \"issues\": []}",
+  "finish_reason": "stop",
+  "reasoning_characters": 16272,
+  "elapsed_seconds": 221.34,
+  "error": null,
+  "structured": true
+}

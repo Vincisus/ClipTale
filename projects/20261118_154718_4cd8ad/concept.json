@@ -1,0 +1,30 @@
+{
+  "title": "Il Segreto nel Caffè",
+  "logline": "In prima persona, racconto come la mia vita quotidiana si trasforma quando un dettaglio apparentemente insignificante – il caffè – rivela che mio marito mi tradisce con una collega.",
+  "conflict": "All'inizio credo che i ritorni a casa tardi e il cappotto appeso alla chiodiera siano solo il peso delle riunioni e la stanchezza del progetto. La verità è che Marco sta avendo una relazione con Giulia, sua collega di reparto: le 'serate in ufficio' sono cene e caffè condivisi, non ore davanti allo schermo.",
+  "turning_point": "La scoperta avviene grazie a un thermos dimenticato nel vano portaoggetti dell'auto. Contiene fondi di un caffè specifico tostato a mano, quello che si compra solo alla macchinetta dell'ufficio di Giulia. Accanto al thermos, una bustina sigillata con la scritta 'Per M.' in calligrafia di lei e uno scontrino che mostra due caffè pagati lo stesso giorno in cui Marco ha dichiarato di lavorare fino a tardi. La prova è tangibile: il caffè stesso, la sua preparazione artigianale e la traccia scritta non possono essere confusi con le solite pause aziendali.",
+  "resolution": "Decido di non fare scene ma di riorganizzare la vita concreta: vendo l'auto di famiglia per coprire una parte del mutuo, mantengo l'appartamento dividendo gli spazi e accetto un trasferimento in ufficio più vicino a casa. Il costo personale è la perdita della routine condivisa e il sacrificio economico immediato, ma guadagno indipendenza senza distruggere la prova, che lascio sul tavolo della cucina come monito silenzioso.",
+  "moral": "Le verità più grandi non si nascondono nei gesti eclatanti, ma negli oggetti quotidiani che smettono di mentire quando li osserviamo con attenzione.",
+  "setting": "Appartamento in periferia urbana, ufficio moderno a due isolati da casa, caffè di quartiere e auto familiare. Luoghi reali, percorribili e legati alla routine quotidiana.",
+  "visual_style": "Luce naturale diffusa",
+  "characters": [
+    {
+      "id": "1",
+      "name": "Chiara",
+      "role": "Protagonista/moglie",
+      "appearance": "Donna di trentotto anni, capelli castani raccolti in modo pratico, sguardo attento, indossa sempre cardigan di lana grezza e scarpe comode."
+    },
+    {
+      "id": "2",
+      "name": "Marco",
+      "role": "Marito/traditore",
+      "appearance": "Uomo di quarant'anni, corporatura slanciata ma con spalle leggermente incurvate dalla stanchezza, volto lineare, porta occhiali senza montatura e orologio analogico."
+    },
+    {
+      "id": "3",
+      "name": "Giulia",
+      "role": "Collega/amante",
+      "appearance": "Donna di trentasei anni, capelli biondi corti e mossi, stile minimalista, indossa camicie di lino color crema e collane sottili in argento."
+    }
+  ]
+}

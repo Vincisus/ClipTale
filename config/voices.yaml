@@ -1,0 +1,10 @@
+<<<<<<< HEAD
+
+=======
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+default: it-IT-ElsaNeural
+options:
+  - it-IT-ElsaNeural
+  - it-IT-GiuseppeNeural
+  - it-IT-DiegoNeural
+  - it-IT-ElsaNeural

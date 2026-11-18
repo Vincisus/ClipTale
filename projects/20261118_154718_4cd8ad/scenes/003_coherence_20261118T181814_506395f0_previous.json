@@ -1,0 +1,34 @@
+{
+  "scene_id": 3,
+  "part": 1,
+  "pov_id": "1",
+  "location": "Cucina dell'appartamento / Vano auto",
+  "characters_present": [
+    "1",
+    "2",
+    "3"
+  ],
+  "facts": [
+    "Chiara osserva il thermos, la bustina 'Per M.' e lo scontrino disposti sul tavolo della cucina.",
+    "Confronta le prove raccolte con l'apparenza quotidiana e scarta definitivamente la spiegazione della semplice stanchezza.",
+    "Decide di non fare scene e avvia la vendita dell'auto di famiglia per coprire una parte del mutuo.",
+    "Riorganizza gli spazi dell'appartamento, mantenendo la residenza ma separando le routine quotidiane.",
+    "Accetta il trasferimento in ufficio a due isolati da casa, consolidando l'indipendenza economica e pratica.",
+    "Lascia il caffè sul tavolo della cucina come monito silenzioso, chiudendo il conflitto di Part 1."
+  ],
+  "knowledge_before": [
+    "I fondi nel thermos provengono da un caffè specifico tostato a mano, venduto solo alla macchinetta dell'ufficio di Giulia.",
+    "La bustina 'Per M.' è stata lasciata da Giulia e conferma la sua presenza concreta negli orari di Marco.",
+    "Lo scontrino prova che i due caffè sono stati consumati il giorno in cui Marco ha dichiarato di lavorare fino a tardi.",
+    "Il dubbio si cristallizza: le serate in ufficio non sono ore davanti allo schermo, ma cene e caffè condivisi con la collega."
+  ],
+  "knowledge_after": [
+    "La verità emerge dagli oggetti quotidiani che smettono di mentire quando osservati con attenzione.",
+    "Chiara ha riorganizzato la vita concreta: auto venduta, appartamento mantenuto e trasferimento in ufficio accettato.",
+    "Il conflitto si chiude con la nuova organizzazione quotidiana, senza distruzione delle prove."
+  ],
+  "withhold": [
+    "La reazione diretta di Marco alla decisione e il nuovo equilibrio con Giulia non sono ancora visibili."
+  ],
+  "visual": "Luce naturale diffusa sul tavolo della cucina; primo piano sugli oggetti (thermos, bustina, scontrino) che passano dall'apparenza alla prova tangibile."
+}

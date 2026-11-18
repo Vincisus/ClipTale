@@ -1,0 +1,68 @@
+{
+  "card": {
+    "scene_id": 3,
+    "part": 1,
+    "pov_id": "1",
+    "location": "Tavolo della cucina / Appartamento in periferia urbana",
+    "characters_present": ["Chiara"],
+    "facts": [
+      "Osservazione concreta delle prove (thermos con fondi tostati a mano, bustina 'Per M.', scontrino) disposte sul tavolo della cucina.",
+      "Valutazione pratica della vendita dell'auto per il mutuo, del mantenimento dell'appartamento con spazi divisi e del trasferimento lavorativo a due isolati da casa.",
+      "Appropriazione definitiva delle prove come monito silenzioso: il caffè e la bustina restano sul tavolo senza essere distrutti o archiviati."
+    ],
+    "knowledge_before": [
+      "I dubbi sui ritardi di Marco sono concreti: i fondi nel thermos e la bustina 'Per M.' confermano la presenza di Giulia negli orari del marito.",
+      "Le prove raccolte separano l'apparenza della stanchezza dalla realtà della relazione nascosta."
+    ],
+    "knowledge_after": [
+      "La decisione di non fare scene cristallizza il dubbio in certezza operativa.",
+      "L'auto viene venduta per coprire parte del mutuo, l'appartamento mantiene gli spazi divisi e Chiara accetta un trasferimento in ufficio a due isolati da casa.",
+      "Le prove (thermos, bustina 'Per M.', scontrino) restano sul tavolo della cucina come monito silenzioso."
+    ],
+    "withhold": [
+      "La reazione concreta di Marco alla futura riorganizzazione degli spazi e del budget familiare.",
+      "Il dettaglio esatto del trasferimento lavorativo che garantisce l'indipendenza economica immediata senza frantumare la routine quotidiana."
+    ],
+    "visual": "Luce naturale diffusa sul tavolo della cucina; i dettagli del caffè e della bustina appaiono nitidi e tangibili."
+  },
+  "support": [
+    {
+      "field": "knowledge_after",
+      "index": 0,
+      "sources": [
+        {"field": "facts", "index": 2},
+        {"field": "knowledge_before", "index": 0}
+      ]
+    },
+    {
+      "field": "knowledge_after",
+      "index": 1,
+      "sources": [
+        {"field": "facts", "index": 1},
+        {"field": "previous_facts", "index": 6}
+      ]
+    },
+    {
+      "field": "knowledge_after",
+      "index": 2,
+      "sources": [
+        {"field": "facts", "index": 0},
+        {"field": "knowledge_before", "index": 1}
+      ]
+    },
+    {
+      "field": "withhold",
+      "index": 0,
+      "sources": [
+        {"field": "previous_facts", "index": 4}
+      ]
+    },
+    {
+      "field": "withhold",
+      "index": 1,
+      "sources": [
+        {"field": "facts", "index": 1}
+      ]
+    }
+  ]
+}

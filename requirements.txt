@@ -1,0 +1,15 @@
+<<<<<<< HEAD
+
+=======
+>>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+fastapi>=0.115.6
+uvicorn[standard]>=0.34.0
+pydantic>=2.10.4
+pydantic-settings>=2.7.1
+httpx>=0.28.1
+PyYAML>=6.0.2
+python-dotenv>=1.0.1
+pyttsx3>=2.90
+moviepy==2.1.2
+pillow>=9.2,<11
+pytest>=8.3.4

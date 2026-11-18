@@ -1,0 +1,88 @@
+{
+  "card": {
+    "scene_id": 4,
+    "part": 2,
+    "pov_id": "1",
+    "location": "Vano portaoggetti dell'auto di famiglia",
+    "characters_present": [
+      "1",
+      "2",
+      "3"
+    ],
+    "facts": [
+      "Chiara esamina lo spazio accanto al thermos nel vano portaoggetti.",
+      "Individua una bustina sigillata e legge la scritta 'Per M.' nella calligrafia di Giulia (citazione diretta).",
+      "Trova lo scontrino sotto il thermos e verifica la data dei due caffè acquistati.",
+      "Confronta la data dello scontrino con i giorni in cui Marco ha dichiarato di lavorare fino a tardi.",
+      "Accetta che le serate in ufficio sono cene e caffè condivisi con Giulia, non ore davanti allo schermo (appropriazione della prova)."
+    ],
+    "knowledge_before": [
+      "Ha trovato il thermos con fondi di caffè specifici nel vano portaoggetti dell'auto.",
+      "Attribuisce i ritardi di Marco alla stanchezza del progetto e alle riunioni, scartando altre spiegazioni.",
+      "Sa che Giulia è sua collega di reparto e usa la macchinetta dell'ufficio."
+    ],
+    "knowledge_after": [
+      "La bustina 'Per M.' è stata lasciata da Giulia e conferma la sua presenza concreta negli orari di Marco.",
+      "Lo scontrino prova che i due caffè sono stati consumati il giorno in cui Marco ha dichiarato di lavorare fino a tardi.",
+      "Il dubbio si cristallizza: le serate in ufficio non sono ore davanti allo schermo, ma cene e caffè condivisi con la collega."
+    ],
+    "withhold": [
+      "La conferma definitiva che i ritardi di Marco nascondono una relazione concreta con Giulia."
+    ],
+    "visual": "Luce naturale diffusa sul vano portaoggetti; primo piano sulla bustina sigillata e sullo scontrino."
+  },
+  "support": [
+    {
+      "field": "knowledge_after",
+      "index": 0,
+      "sources": [
+        {
+          "field": "facts",
+          "index": 1
+        }
+      ]
+    },
+    {
+      "field": "knowledge_after",
+      "index": 1,
+      "sources": [
+        {
+          "field": "facts",
+          "index": 2
+        },
+        {
+          "field": "facts",
+          "index": 3
+        }
+      ]
+    },
+    {
+      "field": "knowledge_after",
+      "index": 2,
+      "sources": [
+        {
+          "field": "facts",
+          "index": 4
+        },
+        {
+          "field": "knowledge_before",
+          "index": 1
+        }
+      ]
+    },
+    {
+      "field": "withhold",
+      "index": 0,
+      "sources": [
+        {
+          "field": "facts",
+          "index": 4
+        },
+        {
+          "field": "knowledge_before",
+          "index": 2
+        }
+      ]
+    }
+  ]
+}

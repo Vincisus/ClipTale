@@ -1,0 +1,29 @@
+{
+  "scene_id": 2,
+  "part": 1,
+  "pov_id": "1",
+  "location": "Auto familiare / Appartamento periferia urbana",
+  "characters_present": [
+    "1"
+  ],
+  "facts": [
+    "Chiara individua il thermos nel vano portaoggetti e ne riconosce i fondi di caffè specifici.",
+    "Estrae la bustina sigillata accanto al thermos e legge la scritta 'Per M.' in calligrafia di Giulia.",
+    "Trova lo scontrino sotto il thermos e verifica che due caffè sono stati pagati nello stesso giorno dei ritardi di Marco.",
+    "Confronta le prove raccolte con l'apparenza quotidiana (cappotto, orari) e scarta la spiegazione della semplice stanchezza."
+  ],
+  "knowledge_before": [
+    "I fondi nel thermos sono di un caffè specifico tostato a mano, venduto solo alla macchinetta dell'ufficio di Giulia.",
+    "La presenza del caffè avvia un dubbio concreto che separa l'apparenza dalla realtà dei ritardi di Marco."
+  ],
+  "knowledge_after": [
+    "La bustina 'Per M.' è stata lasciata da Giulia e conferma la sua presenza concreta negli orari di Marco.",
+    "Lo scontrino prova che i due caffè sono stati consumati il giorno in cui Marco ha dichiarato di lavorare fino a tardi.",
+    "Il dubbio si cristallizza: le serate in ufficio non sono ore davanti allo schermo, ma cene e caffè condivisi con la collega."
+  ],
+  "withhold": [
+    "La decisione di Chiara sulla vendita dell'auto e sul trasferimento rimane sospesa fino alla conclusione della parte.",
+    "Il cappotto appeso alla chiodiera resta come prova tangibile del tradimento senza essere rimosso o contestato."
+  ],
+  "visual": "Luce naturale diffusa che illumina il vano portaoggetti e i dettagli degli oggetti quotidiani (thermos, bustina, scontrino). La camera si muove in primo piano sui dettagli per distinguere citazione grafica (calligrafia) da appropriazione materiale (scontrino). Solo il segmento 3 chiuderà la parte con la riconfigurazione concreta. Il conflitto si risolve senza scene, mantenendo i personaggi validi: Chiara (protagonista attiva), Giulia e Marco (riferiti tramite le prove tangibili). Le letture e le conversazioni non avvengono; solo l'esame diretto degli oggetti genera conoscenza. Fatti e sospetti sono separati: le prove materiali costituiscono fatti certi, mentre la ricostruzione delle serate in ufficio rimane un sospetto cristallizzato ma non ancora trasformato in azione definitiva. Citazione e appropriazione sono distinte: la calligrafia 'Per M.' è citazione grafica di Giulia, lo scontrino è appropriazione materiale del pagamento condiviso. Una sola azione centrale (l'esame sequenziale) con passaggi necessari espliciti; il segmento 3 conclude la parte senza aggiungere eventi ridondanti. Personaggi della scena validati: solo Chiara agisce fisicamente; Giulia e Marco sono confermati come soggetti delle prove, evitando personaggi non validi o fuori contesto."
+}

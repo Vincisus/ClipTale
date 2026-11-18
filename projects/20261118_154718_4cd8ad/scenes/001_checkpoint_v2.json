@@ -1,0 +1,34 @@
+{
+  "fingerprint": "4d356819a85e6fc01ecd467d09bddf29f44a2afc0a4b80982675b3c3f226bdb2",
+  "prefix": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "card": {
+    "scene_id": 1,
+    "part": 1,
+    "pov_id": "1",
+    "location": "Vano portaoggetti auto di famiglia",
+    "characters_present": [
+      "1"
+    ],
+    "facts": [
+      "Chiara apre il vano portaoggetti dell'auto di famiglia.",
+      "Individua un thermos con fondi di caffè specifici (tostati a mano, esclusivi della macchinetta di Giulia).",
+      "Riconosce i fondi come segnale di presenza concreta di Giulia negli orari di Marco.",
+      "Confronta la scoperta con l'apparenza quotidiana: ritardi e cappotto alla chiodiera non sono solo stanchezza.",
+      "Il dubbio si cristallizza: il caffè rivela una realtà nascosta dietro la routine apparente."
+    ],
+    "knowledge_before": [
+      "Marco torna a casa tardi per riunioni e stanchezza del progetto.",
+      "Il cappotto appeso alla chiodiera appartiene a Marco ed è legato al lavoro."
+    ],
+    "knowledge_after": [
+      "I fondi nel thermos sono di un caffè specifico tostato a mano, venduto solo alla macchinetta dell'ufficio di Giulia.",
+      "La presenza del caffè avvia un dubbio concreto che separa l'apparenza dalla realtà dei ritardi di Marco."
+    ],
+    "withhold": [
+      "Un sospetto che smette di essere solo un'ombra, pronto a trasformare la routine in prova concreta."
+    ],
+    "visual": "Luce naturale diffusa sul vano auto; primo piano sui fondi nel thermos e sullo sguardo attento di Chiara. Distinguibile: fatti (oggetti reali) vs sospetti (interpretazione della routine); citazione (osservazione diretta del caffè) vs appropriazione (collegamento con la vita di Marco). Unica azione centrale con passaggi espliciti; il segmento 3 conclude la parte."
+  },
+  "text": "Apro il vano portaoggetti dell’auto di famiglia e la luce naturale si diffonde piano sul ripiano. Dentro, mezzo nascosto tra le chiavi e la bolletta, trovo un thermos di acciaio. Lo sollevo: il fruscio delle cerniere accompagna il movimento. Non è il mio. Ha i fondi di caffè ancora fermi sul fondo, scuri e compatti. Li conosco bene, li ho assaggiati più volte al bar dell’ufficio di Giulia. Tostati a mano, venduti solo alla macchinetta dove lei passa le mattine.\n\n«Marco, tornavi tardi per le riunioni», mormoro tra me, mentre tocco il bordo del thermos con un’unghia. Il cappotto appeso alla chiodiera non è sempre stanchezza. I ritardi non sono solo scadenze di progetto. Questo caffè parla di ore che non tornano, di presenze concrete che si mescolano alla nostra routine.\n\nAppoggio di nuovo il thermos nel vano, ma ora la mia attenzione è fissa sui grani tritati. Il dubbio si cristallizza: dietro l’apparenza quotidiana c’è già una realtà che aspetta solo di essere nominata.",
+  "checksum": "27a334d7cdbd75760f3c8cc53a56b49e1f8b88bea4149bdba2881d8e48514e5e"
+}
