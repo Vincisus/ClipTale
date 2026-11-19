@@ -254,11 +254,15 @@ async def upload_youtube(path, title, description, tags, privacy="private", log=
 
 
 def tiktok_chunks(size):
-    """Regole TikTok: blocchi da 5 a 64 MB (l'ultimo fino a 128 MB); sotto i 5 MB un solo blocco."""
-    if size <= 5 * MB:
+    """Regole TikTok: blocchi da 5 a 64 MB, l'ultimo può arrivare a 128 MB; sotto i 5 MB un blocco unico.
+
+    Con un solo blocco TikTok vuole chunk_size uguale all'intero file ("The chunk size is invalid" altrimenti):
+    fino a 64 MB si invia quindi tutto in un blocco; oltre, blocchi da 32 MB con l'ultimo che assorbe il resto.
+    """
+    if size <= 64 * MB:
         return size, 1
-    chunk = 10 * MB
-    return chunk, max(1, math.floor(size / chunk))
+    chunk = 32 * MB
+    return chunk, math.floor(size / chunk)
 
 
 async def upload_tiktok(path, caption, mode="draft", log=print, transport=None):

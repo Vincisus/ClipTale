@@ -283,19 +283,27 @@ def test_upload_tiktok_draft_chunks(secrets_dir, tmp_path, monkeypatch):
     ps = secrets_dir
     real_sleep = asyncio.sleep
     monkeypatch.setattr(ps.asyncio, "sleep", lambda *_: real_sleep(0))
-    assert ps.tiktok_chunks(3 * ps.MB) == (3 * ps.MB, 1)
-    assert ps.tiktok_chunks(25 * ps.MB) == (10 * ps.MB, 2)  # l'ultimo blocco assorbe il resto
+    MB = ps.MB
+    assert ps.tiktok_chunks(3 * MB) == (3 * MB, 1)
+    assert ps.tiktok_chunks(int(9.3 * MB)) == (int(9.3 * MB), 1)  # le clip normali: un blocco grande quanto il file
+    assert ps.tiktok_chunks(64 * MB) == (64 * MB, 1)
+    assert ps.tiktok_chunks(int(91.7 * MB)) == (32 * MB, 2)  # oltre 64 MB: blocchi da 32 MB, l'ultimo assorbe il resto
+    for size in (int(65 * MB), int(91.7 * MB), 500 * MB):
+        chunk, count = ps.tiktok_chunks(size)
+        last = size - chunk * (count - 1)
+        assert 5 * MB <= chunk <= 64 * MB and chunk <= last <= 128 * MB
+    monkeypatch.setattr(ps, "MB", 1000)  # file piccoli nel test, stesse regole
     ps.save_app("tiktok", "ck", "cs")
     ps._write("tiktok_token.json", {"refresh_token": "r", "access_token": "a", "expires_at": 9e12})
     video = tmp_path / "c.mp4"
-    video.write_bytes(b"y" * (25 * ps.MB))
+    video.write_bytes(b"y" * (100 * ps.MB))
     ranges = []
 
     def handler(req):
         path = req.url.path
         if path.endswith("/inbox/video/init/"):
             src = json.loads(req.content)["source_info"]
-            assert src["total_chunk_count"] == 2 and src["chunk_size"] == 10 * ps.MB
+            assert src["total_chunk_count"] == 3 and src["chunk_size"] == 32 * ps.MB
             return httpx.Response(200, json={"data": {"upload_url": "https://up.test/u", "publish_id": "p1"}, "error": {"code": "ok"}})
         if req.method == "PUT":
             ranges.append(req.headers["content-range"])
@@ -305,8 +313,8 @@ def test_upload_tiktok_draft_chunks(secrets_dir, tmp_path, monkeypatch):
         return httpx.Response(404)
 
     res = asyncio.run(ps.upload_tiktok(video, "Parte 1", "draft", log=lambda m: None, transport=httpx.MockTransport(handler)))
-    size = 25 * ps.MB
-    assert ranges == [f"bytes 0-{10 * ps.MB - 1}/{size}", f"bytes {10 * ps.MB}-{size - 1}/{size}"]
+    size, c = 100 * ps.MB, 32 * ps.MB
+    assert ranges == [f"bytes 0-{c - 1}/{size}", f"bytes {c}-{2 * c - 1}/{size}", f"bytes {2 * c}-{size - 1}/{size}"]
     assert res["status"] == "SEND_TO_USER_INBOX"
 
 
