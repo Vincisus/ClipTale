@@ -225,8 +225,13 @@ def render_overlay(state, path):
     draw = ImageDraw.Draw(img)
     if endcard:
         draw.rectangle([0, 0, W, H], fill=(8, 8, 12, 175))
-        draw.text((W / 2, H * 0.36), "CONTINUA", font=font_black(150), fill=KARAOKE, anchor="mm", stroke_width=8, stroke_fill=(0, 0, 0))
-        draw.text((W / 2, H * 0.45), endcard, font=font_black(70), fill=(255, 255, 255), anchor="mm", stroke_width=6, stroke_fill=(0, 0, 0))
+        big, _, small = endcard.rpartition("\n")  # "CONTINUA\nPARTE 2 NEL PROFILO" (prima riga facoltativa)
+        big = big or "CONTINUA"
+        size = 150
+        while size > 70 and draw.textlength(big, font=font_black(size)) > W - 100:
+            size -= 8
+        draw.text((W / 2, H * 0.36), big, font=font_black(size), fill=KARAOKE, anchor="mm", stroke_width=8, stroke_fill=(0, 0, 0))
+        draw.text((W / 2, H * 0.45), small, font=font_black(70), fill=(255, 255, 255), anchor="mm", stroke_width=6, stroke_fill=(0, 0, 0))
     if header and not endcard:
         draw.text((W / 2, H * 0.03), header, font=font_black(40), fill=(255, 255, 255), anchor="mm", stroke_width=5, stroke_fill=(0, 0, 0))
     if sticker and not endcard:
@@ -364,7 +369,7 @@ class VideoService:
         self.sfx = bool(sfx)
 
     async def render_part(self, part_no, parts_total, title, beat_audio, beat_texts, work, output, cut_seconds, offset,
-                          beat_shots=None, stickers=None, cast=None, cover=None):
+                          beat_shots=None, stickers=None, cast=None, cover=None, lang="it"):
         """Crea la clip TikTok della parte (con "Parte N" e cartello finale) e una versione pulita per il video lungo.
 
         beat_shots: per ogni beat una lista di (file, 'video'|'photo'[, secondi]); stickers: etichetta per beat.
@@ -434,8 +439,10 @@ class VideoService:
         # 2. testo: sottotitoli karaoke, etichette, "Parte N" e cartello finale
         chunks, words, beat_starts = word_timeline(beat_texts, durations, cut_seconds)
         entries = [(offset + a, offset + b - (GAP_SECONDS if b - a > GAP_SECONDS + 0.3 else 0), " ".join(ws)) for ws, a, b in chunks]
-        header = f"PARTE {part_no}" if parts_total > 1 else ""
-        endcard = f"PARTE {part_no + 1} NEL PROFILO" if part_no < parts_total else None
+        from app.core.languages import info
+        words_ = info(lang)
+        header = f"{words_['part']} {part_no}" if parts_total > 1 else ""
+        endcard = f"{words_['more']}\n{words_['next'].format(n=part_no + 1)}" if part_no < parts_total else None
         rendered = {}
 
         def overlay_list(name, timeline):

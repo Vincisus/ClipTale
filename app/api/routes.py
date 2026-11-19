@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app.core import jobs, projects
+from app.core import jobs, languages, projects
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
 from app.services import eleven_service, illustration_service, publish_service, tts_service
@@ -58,9 +58,13 @@ async def voices():
         v["group"] = "pc"
     eleven = await eleven_service.voices()
     if eleven:
-        voices.append({"id": "eleven:auto", "label": "Automatica: maschile o femminile in base a chi racconta", "engine": "eleven", "online": True, "group": "eleven"})
-        voices += [{"id": f"eleven:{v['id']}", "label": v["label"], "engine": "eleven", "online": True, "group": "eleven", "gender": v["gender"]} for v in eleven]
-    return {"voices": voices, "default": voices[0]["id"] if voices else None}
+        # le voci ElevenLabs leggono tutte le lingue (modello multilingue): "native" è la lingua in cui la voce è nata
+        voices.append({"id": "eleven:auto", "label": "Automatica: maschile o femminile in base a chi racconta", "engine": "eleven", "online": True,
+                       "group": "eleven", "lang": "*"})
+        voices += [{"id": f"eleven:{v['id']}", "label": v["label"], "engine": "eleven", "online": True, "group": "eleven", "gender": v["gender"],
+                    "lang": "*", "native": v.get("lang", "")} for v in eleven]
+    return {"voices": voices, "default": voices[0]["id"] if voices else None,
+            "languages": [{"code": k, "name": v["name"]} for k, v in languages.LANGS.items()]}
 
 
 @router.get("/eleven/status")
@@ -80,25 +84,27 @@ async def eleven_key(payload: ElevenKey, request: Request):
 
 
 @router.get("/voices/preview")
-async def voice_preview(voice: str, gender: str = ""):
+async def voice_preview(voice: str, gender: str = "", lang: str = "it"):
     """Una frase di prova con la voce scelta (salvata in cache), per ascoltarla prima di creare il video."""
     import hashlib
     g = gender.upper()[:1]
+    lang = lang if lang in languages.LANGS else "it"
+    text = tts_service.PREVIEW_TEXTS.get(lang, tts_service.PREVIEW_TEXT)
     if voice.startswith("eleven:"):
-        tts = tts_service.TTSService(voice, 165, g)
+        tts = tts_service.TTSService(voice, 165, g, lang)
         vid = await tts.prepare()
         if not vid.startswith("eleven:"):
             raise HTTPException(404, "Nessuna voce ElevenLabs disponibile")
     else:
-        vid = tts_service.resolve_voice(voice, g)
+        vid = tts_service.resolve_voice(voice, g, lang)
         if vid not in {v["id"] for v in await asyncio.to_thread(tts_service.list_voices)}:
             raise HTTPException(404, "Voce non disponibile")
     folder = projects.ROOT / "_voice_previews"
     folder.mkdir(parents=True, exist_ok=True)
-    stem = folder / hashlib.sha1(f"{vid}|{tts_service.PREVIEW_TEXT}".encode()).hexdigest()[:16]
+    stem = folder / hashlib.sha1(f"{vid}|{text}".encode()).hexdigest()[:16]
     found = [p for p in (stem.with_suffix(".wav"), stem.with_suffix(".mp3")) if p.is_file()]
     if not found:
-        found = await tts_service.TTSService(vid, 165).synthesize_many([(tts_service.PREVIEW_TEXT, stem)])
+        found = await tts_service.TTSService(vid, 165, g, lang).synthesize_many([(text, stem)])
     path = found[0]
     return FileResponse(path, media_type="audio/wav" if path.suffix == ".wav" else "audio/mpeg")
 
@@ -110,8 +116,16 @@ async def list_projects():
 
 
 @router.get("/projects/{project_id}")
-async def get_project(project_id: str):
-    return projects.detail(project_id)
+async def get_project(project_id: str, lang: Optional[str] = None):
+    return projects.detail(project_id, lang)
+
+
+def lang_base(folder, lang):
+    """Cartella di una lingua del progetto (404 se il progetto non ha quella lingua)."""
+    brief = projects.load_json(folder / "brief.json", {}) or {}
+    if lang and lang not in languages.of_brief(brief):
+        raise HTTPException(404, "Il progetto non ha questa lingua")
+    return languages.lang_dir(folder, lang, brief)
 
 
 class Beat(BaseModel):
@@ -126,16 +140,18 @@ class BeatsUpdate(BaseModel):
 
 
 @router.put("/projects/{project_id}/beats")
-async def save_beats(project_id: str, payload: BeatsUpdate, request: Request):
+async def save_beats(project_id: str, payload: BeatsUpdate, request: Request, lang: Optional[str] = None):
     same_origin(request)
     folder = projects.folder(project_id)
     active = jobs.active()
     if active and active.data["project_id"] == project_id:
         raise HTTPException(409, "Il progetto e in lavorazione: attendi la fine prima di salvare.")
+    base = lang_base(folder, lang)
     beats = [b.model_dump() for b in payload.beats]
-    projects.save_json(folder / "beats.json", beats)
+    projects.save_json(base / "beats.json", beats)
     concept = projects.load_json(folder / "concept.json", {}) or {}
-    projects.save_text(folder / "script.md", script_markdown(concept, projects.load_json(folder / "structure.json", {}), beats))
+    structure = projects.load_json(base / "structure.json") or projects.load_json(folder / "structure.json", {})
+    projects.save_text(base / "script.md", script_markdown(concept, structure, beats))
     return {"ok": True, "count": len(beats)}
 
 
@@ -168,6 +184,19 @@ class GenerateRequest(BaseModel):
     model: Optional[str] = Field(default=None, max_length=200)
     project_id: Optional[str] = Field(default=None, max_length=80)
     restart: bool = False
+    # lingue del video: la prima è quella in cui l'AI scrive la storia, le altre sono traduzioni
+    languages: list[Literal["it", "en", "es", "fr", "de", "pt"]] = Field(default_factory=lambda: ["it"], min_length=1, max_length=6)
+
+
+def set_languages(folder, brief, requested, allow_new_primary=False):
+    """Aggiorna le lingue del progetto. La principale resta quella in cui la storia è già scritta."""
+    current = languages.of_brief(brief)
+    if not requested:
+        return current
+    keep_primary = current[0] if (folder / "concept.json").is_file() and not allow_new_primary else None
+    # una lingua tolta non compare più, ma la sua cartella langs/<codice>/ resta su disco
+    brief["languages"] = languages.clean_list(requested, primary=keep_primary)
+    return brief["languages"]
 
 
 def prepare_brief(payload):
@@ -189,13 +218,16 @@ def prepare_brief(payload):
             for name in ("concept.json", "structure.json", "beats.json", "metadata.json", "script.md"):
                 (folder / name).unlink(missing_ok=True)
             shutil.rmtree(folder / "parts", ignore_errors=True)
+            shutil.rmtree(folder / "langs", ignore_errors=True)
+        set_languages(folder, brief, payload.languages, allow_new_primary=payload.restart)
     else:
         if not payload.topic.strip():
             raise HTTPException(400, "Scrivi un argomento o un'idea per il video.")
         project_id = projects.new_project_id()
         folder = projects.folder(project_id, must_exist=False)
         folder.mkdir(parents=True)
-        brief = {"id": project_id, "topic": payload.topic.strip(), "format": payload.format, "duration_minutes": payload.duration_minutes, "parts": payload.parts, "wpm": payload.wpm, "created_at": datetime.now().isoformat(timespec="seconds")}
+        brief = {"id": project_id, "topic": payload.topic.strip(), "format": payload.format, "duration_minutes": payload.duration_minutes, "parts": payload.parts, "wpm": payload.wpm,
+                 "languages": languages.clean_list(payload.languages), "created_at": datetime.now().isoformat(timespec="seconds")}
     brief["model"] = llm.model
     projects.save_json(folder / "brief.json", brief)
     return folder, brief, llm
@@ -210,15 +242,25 @@ async def generate(payload: GenerateRequest, request: Request):
         def activity(text):
             job.data["activity"] = text
         llm.on_activity = activity
-        await StoryPipeline(llm, folder, job).run(brief)
+        many = len(languages.of_brief(brief)) > 1
+        await StoryPipeline(llm, folder, jobs.Stage(job, 0, 85) if many else job).run(brief)
+        if many:
+            from app.core.translate import translate_project
+            stage = jobs.Stage(job, 85, 100)
+            await translate_project(llm, folder, brief, lambda m, progress=None, level="info": stage.log(m, module="translate", progress=progress, level=level))
         job.data["activity"] = None
 
     job = jobs.start("generate", folder.name, worker)
     return {"job_id": job.id, "project_id": folder.name}
 
 
+LangCode = Literal["it", "en", "es", "fr", "de", "pt"]
+
+
 class RenderRequest(BaseModel):
     voice: Optional[str] = Field(default=None, max_length=300)
+    voices: dict[LangCode, str] = Field(default_factory=dict, max_length=6)  # voce per lingua
+    languages: Optional[list[LangCode]] = Field(default=None, max_length=6)  # lingue del progetto (aggiunge quelle nuove)
     music: float = Field(default=0.25, ge=0, le=1)
     sfx: bool = True
     visuals: Literal["ai", "none"] = "ai"
@@ -236,8 +278,14 @@ async def render(project_id: str, payload: RenderRequest, request: Request):
     if not ffmpeg_exe():
         raise HTTPException(400, "FFmpeg non disponibile")
 
+    brief = projects.load_json(folder / "brief.json", {}) or {}
+    if payload.languages:
+        set_languages(folder, brief, payload.languages)
+        projects.save_json(folder / "brief.json", brief)
+
     async def worker(job):
-        await render_project(folder, job, payload.voice, payload.wpm, payload.cut_seconds, payload.silence_ms, payload.visuals, payload.model, payload.style, payload.music, payload.sfx)
+        await render_project(folder, job, payload.voice, payload.wpm, payload.cut_seconds, payload.silence_ms, payload.visuals, payload.model, payload.style,
+                             payload.music, payload.sfx, voices=payload.voices)
 
     job = jobs.start("render", project_id, worker)
     return {"job_id": job.id, "project_id": project_id}
@@ -280,6 +328,7 @@ async def illustrations_status():
 # ------------------------------------------------------------------ tutto in automatico
 class AutoRequest(GenerateRequest):
     voice: Optional[str] = Field(default=None, max_length=300)
+    voices: dict[LangCode, str] = Field(default_factory=dict, max_length=6)
     visuals: Literal["ai", "none"] = "ai"
     style: Literal["anim", "reel", "cartoon", "sketch", "comic"] = "anim"
     cut_seconds: float = Field(default=2.2, ge=0.8, le=6)
@@ -306,17 +355,27 @@ async def auto(payload: AutoRequest, request: Request):
         def activity(text):
             job.data["activity"] = text
         llm.on_activity = activity
-        job.log("Modalità automatica: copione, voce, disegni e video", module="auto", progress=1)
-        await StoryPipeline(llm, folder, jobs.Stage(job, 1, 40)).run(brief)
+        codes = languages.of_brief(brief)
+        names = ", ".join(languages.info(c)["name"] for c in codes)
+        job.log(f"Modalità automatica: copione, voce, disegni e video ({names})", module="auto", progress=1)
+        story_end = 40 if len(codes) == 1 else 34
+        await StoryPipeline(llm, folder, jobs.Stage(job, 1, story_end)).run(brief)
+        if len(codes) > 1:
+            from app.core.translate import translate_project
+            stage = jobs.Stage(job, story_end, 40)
+            await translate_project(llm, folder, brief, lambda m, progress=None, level="info": stage.log(m, module="translate", progress=progress, level=level))
         job.data["activity"] = None
         await render_project(folder, jobs.Stage(job, 40, render_end), payload.voice, payload.wpm, payload.cut_seconds,
-                             payload.silence_ms, payload.visuals, llm.model, payload.style, payload.music, payload.sfx)
+                             payload.silence_ms, payload.visuals, llm.model, payload.style, payload.music, payload.sfx, voices=payload.voices)
         if publish:
-            stage = jobs.Stage(job, 95, 100)
-            await publish_service.publish_project(
-                folder, lambda m, p=None, level="info": stage.log(m, module="publish", progress=p, level=level),
-                youtube={"privacy": payload.youtube_privacy} if payload.publish_youtube else None,
-                tiktok={"mode": payload.tiktok_mode} if payload.publish_tiktok else None)
+            for k, code in enumerate(codes):
+                stage = jobs.Stage(job, 95 + 5 * k / len(codes), 95 + 5 * (k + 1) / len(codes))
+                prefix = f"[{languages.info(code)['name']}] " if len(codes) > 1 else ""
+                await publish_service.publish_project(
+                    languages.lang_dir(folder, code, brief),
+                    lambda m, p=None, level="info", stage=stage, prefix=prefix: stage.log(prefix + m, module="publish", progress=p, level=level),
+                    youtube={"privacy": payload.youtube_privacy} if payload.publish_youtube else None,
+                    tiktok={"mode": payload.tiktok_mode} if payload.publish_tiktok else None)
 
     job = jobs.start("auto", folder.name, worker)
     return {"job_id": job.id, "project_id": folder.name}
@@ -377,16 +436,23 @@ def _page(message, ok):
 
 
 @router.get("/projects/{project_id}/publish")
-async def publish_info(project_id: str):
+async def publish_info(project_id: str, lang: Optional[str] = None):
     folder = projects.folder(project_id)
+    base = lang_base(folder, lang)
+    rel = lambda p: p.relative_to(folder).as_posix()  # noqa: E731 - percorsi per /file/, relativi al progetto
+    tiktok = [{**item, "clip": rel(base / item["clip"])} for item in publish_service.tiktok_captions(base)]
+    shorts = [{**item, "clip": rel(base / item["clip"])} for item in publish_service.shorts_texts(base)]
     return {
-        "youtube": publish_service.youtube_texts(folder),
-        "tiktok": publish_service.tiktok_captions(folder),
-        "history": projects.load_json(folder / "publish.json", {}) or {},
-        "has_video": (folder / "render" / "full_video.mp4").is_file(),
+        "lang": lang or languages.primary(projects.load_json(folder / "brief.json", {}) or {}),
+        "youtube": publish_service.youtube_texts(base),
+        "tiktok": tiktok,
+        "shorts": shorts,
+        "history": projects.load_json(base / "publish.json", {}) or {},
+        "has_video": (base / "render" / "full_video.mp4").is_file(),
+        "folder": rel(base / "render" / "tiktok") if (base / "render" / "tiktok").is_dir() else None,
         "covers": {
-            "tiktok": sorted(p.relative_to(folder).as_posix() for p in (folder / "render" / "covers").glob("tiktok_part_*.jpg")),
-            "youtube": "render/covers/youtube.jpg" if (folder / "render" / "covers" / "youtube.jpg").is_file() else None,
+            "tiktok": sorted(rel(p) for p in (base / "render" / "covers").glob("tiktok_part_*.jpg")),
+            "youtube": rel(base / "render" / "covers" / "youtube.jpg") if (base / "render" / "covers" / "youtube.jpg").is_file() else None,
         },
     }
 
@@ -400,23 +466,28 @@ class PublishRequest(BaseModel):
     tiktok: bool = False
     tiktok_mode: Literal["draft", "direct"] = "draft"
     tiktok_captions: list[str] = Field(default_factory=list, max_length=20)
+    shorts: bool = False  # le clip TikTok anche come YouTube Shorts
+    shorts_titles: list[str] = Field(default_factory=list, max_length=20)
 
 
 @router.post("/projects/{project_id}/publish")
-async def publish(project_id: str, payload: PublishRequest, request: Request):
+async def publish(project_id: str, payload: PublishRequest, request: Request, lang: Optional[str] = None):
     same_origin(request)
-    folder = projects.folder(project_id)
+    folder = lang_base(projects.folder(project_id), lang)
     if not (folder / "render" / "full_video.mp4").is_file():
-        raise HTTPException(400, "Prima crea il video.")
-    if not (payload.youtube or payload.tiktok):
-        raise HTTPException(400, "Scegli almeno YouTube o TikTok.")
+        raise HTTPException(400, "Prima crea il video in questa lingua.")
+    if not (payload.youtube or payload.tiktok or payload.shorts):
+        raise HTTPException(400, "Scegli almeno YouTube, YouTube Shorts o TikTok.")
+    if payload.shorts and not (folder / "render" / "tiktok").is_dir():
+        raise HTTPException(400, "Non ci sono clip da caricare come Shorts: crea prima il video.")
 
     async def worker(job):
         await publish_service.publish_project(
             folder, lambda m, p=None, level="info": job.log(m, module="publish", progress=p, level=level),
             youtube={"title": payload.youtube_title, "description": payload.youtube_description, "privacy": payload.youtube_privacy,
                      "thumbnail": payload.youtube_thumbnail} if payload.youtube else None,
-            tiktok={"mode": payload.tiktok_mode, "captions": payload.tiktok_captions} if payload.tiktok else None)
+            tiktok={"mode": payload.tiktok_mode, "captions": payload.tiktok_captions} if payload.tiktok else None,
+            shorts={"privacy": payload.youtube_privacy, "titles": [t[:100] for t in payload.shorts_titles]} if payload.shorts else None)
 
     job = jobs.start("publish", project_id, worker)
     return {"job_id": job.id, "project_id": project_id}
@@ -440,19 +511,21 @@ class CoversRequest(BaseModel):
 
 
 @router.post("/projects/{project_id}/covers")
-async def remake_covers(project_id: str, payload: CoversRequest, request: Request):
+async def remake_covers(project_id: str, payload: CoversRequest, request: Request, lang: Optional[str] = None):
     """Rifà le copertine (anche con una scritta diversa per YouTube) senza rifare il video."""
     same_origin(request)
     folder = projects.folder(project_id)
+    base = lang_base(folder, lang)
+    code = (projects.load_json(base / "render" / "render.json", {}) or {}).get("lang") or lang or "it"
     from app.services import covers
-    beats = [b for b in projects.load_json(folder / "beats.json", []) if str(b.get("text", "")).strip()]
+    beats = [b for b in projects.load_json(folder / "beats.json", []) if str(b.get("text", "")).strip()]  # i disegni seguono la principale
     concept = projects.load_json(folder / "concept.json", {}) or {}
-    meta = projects.load_json(folder / "metadata.json", {}) or {}
+    meta = projects.load_json(base / "metadata.json", {}) or {}
     if payload.thumbnail_text.strip():
         meta["thumbnail_text"] = payload.thumbnail_text.strip()
-        projects.save_json(folder / "metadata.json", meta)
+        projects.save_json(base / "metadata.json", meta)
     plan = projects.load_json(folder / "render" / "scenes" / "toon_plan.json", {}) or {}
-    render_info = projects.load_json(folder / "render" / "render.json", {}) or {}
+    render_info = projects.load_json(base / "render" / "render.json", {}) or {}
     parts = sorted({b["part"] for b in beats}) or [1]
     part_shots, part_bgs = [], []
     if plan.get("shots") and len(plan["shots"]) == len(beats):
@@ -467,9 +540,10 @@ async def remake_covers(project_id: str, payload: CoversRequest, request: Reques
             files = [folder / f for i, b in enumerate(beats) if b["part"] == part and i < len(scenes) for f in scenes[i]]
             part_shots.append([])
             part_bgs.append(str(files[0]) if files else None)
-    stickers = plan.get("stickers") or render_info.get("stickers") or []
-    made = await asyncio.to_thread(covers.make_all, folder, parts, [concept.get("title", "")] * len(parts), part_shots, part_bgs,
-                                   plan.get("cast") or [], meta, concept, stickers)
+    stickers = render_info.get("stickers") or plan.get("stickers") or []
+    title = concept.get("title", "") if base == folder else meta.get("story_title", "")
+    made = await asyncio.to_thread(covers.make_all, base, parts, [title] * len(parts), part_shots, part_bgs,
+                                   plan.get("cast") or [], meta, concept, stickers, code)
     return {"tiktok": len(made["tiktok"]), "youtube": bool(made["youtube"])}
 
 

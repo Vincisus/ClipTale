@@ -7,6 +7,7 @@ i difetti si correggono a mano nell'editor dei beat, che e la fonte per il rende
 import json
 import re
 
+from app.core.languages import localize_prompt, primary
 from app.core.projects import load_json, save_json, save_text
 
 WPM_DEFAULT = 150
@@ -184,12 +185,20 @@ def split_text(text, pieces):
 class StoryPipeline:
     def __init__(self, llm, folder, job):
         self.llm, self.folder, self.job = llm, folder, job
+        self.lang = "it"
+
+    def ask(self, prompt, schema, **kw):
+        """Chiamata al modello con le istruzioni adattate alla lingua principale del progetto."""
+        if self.lang != "it":  # il messaggio di sistema predefinito chiede l'italiano
+            kw.setdefault("system", "Rispondi esclusivamente con un oggetto JSON valido, senza testo aggiuntivo.")
+        return self.llm.generate_json(localize_prompt(prompt, self.lang), schema, **kw)
 
     def log(self, msg, progress=None, level="info", module="story_brain"):
         self.job.log(msg, module=module, progress=progress, level=level)
 
     async def run(self, brief):
         fmt = FORMATS.get(brief.get("format"), FORMATS["reddit"])
+        self.lang = primary(brief)
         numbers = plan(brief)
         parts_count = int(brief["parts"])
         self.log(f"Obiettivo: ~{numbers['total_words']} parole, {parts_count} parti da {numbers['beats_per_part']} beat (modello {self.llm.model})", 3)
@@ -201,7 +210,7 @@ class StoryPipeline:
             self.log("Concept gia presente: riutilizzato", 10)
         else:
             self.log("Generazione concept…", 5, module="llm_service")
-            raw = await self.llm.generate_json(
+            raw = await self.ask(
                 f"{fmt['concept']}\nArgomento / richiesta dell'utente: {brief['topic']}\n"
                 f"Durata del video: circa {brief['duration_minutes']} minuti, divisa in {parts_count} parti per TikTok.\n"
                 "Campi: title (titolo accattivante), hook (frase d'apertura che cattura in 3 secondi), logline, setting, "
@@ -218,7 +227,7 @@ class StoryPipeline:
             self.log("Struttura gia presente: riutilizzata", 18)
         else:
             self.log(f"Pianificazione di {parts_count} parti…", 14, module="llm_service")
-            raw = await self.llm.generate_json(
+            raw = await self.ask(
                 f"Dividi questo concept in esattamente {parts_count} parti consecutive. Ogni parte diventa un video TikTok autonomo "
                 "ma la sequenza forma un'unica storia (che su YouTube esce intera). Per ogni parte: part (numero da 1), title, "
                 "summary (eventi concreti in ordine, 3-5 frasi), cliffhanger (l'ultima frase della parte: il punto di massima tensione "
@@ -262,7 +271,7 @@ class StoryPipeline:
         if not load_json(self.folder / "metadata.json"):
             try:
                 self.log("Titoli, descrizione e hashtag…", 94, module="metadata")
-                meta = await self.llm.generate_json(
+                meta = await self.ask(
                     "Prepara i metadati social in italiano.\n"
                     "youtube_title: il titolo del video lungo su YouTube, nello stile dei canali di storie Reddit: la frase-gancio in prima "
                     "persona che racconta l'inizio del conflitto, interrotta sul più bello con «...» (max 100 caratteri, niente emoji, "
@@ -315,13 +324,13 @@ class StoryPipeline:
             f"Parte da scrivere ora: {dumps(part)}\n"
             + (f"Ultime righe della parte precedente: «{previous}»\n" if previous else "")
         )
-        data = await self.llm.generate_json(prompt, part_schema(beats_n), temperature=0.85, label=f"Parte {n}")
+        data = await self.ask(prompt, part_schema(beats_n), temperature=0.85, label=f"Parte {n}")
         beats = [{"text": str(b.get("text") or "").strip(), "visual": str(b.get("visual") or "").strip()} for b in data.get("beats", []) if isinstance(b, dict)]
         beats = [b for b in beats if b["text"]]
         got = sum(word_count(b["text"]) for b in beats)
         if got < words * 0.6:
             self.log(f"Parte {n}: testo corto ({got}/{words} parole), chiedo di ampliarlo", level="warn")
-            data = await self.llm.generate_json(
+            data = await self.ask(
                 prompt + f"\nLa versione precedente era troppo corta ({got} parole). Riscrivila ampliandola fino a circa {words} parole, "
                 f"stessi eventi, piu dettagli e dialoghi.\nVersione precedente: {dumps(beats)}",
                 part_schema(beats_n), temperature=0.85, label=f"Parte {n} (ampliamento)")
@@ -339,7 +348,7 @@ class StoryPipeline:
         """Revisione rapida: refusi, grammatica e contraddizioni evidenti. Mai bloccante."""
         self.log(f"Parte {n}: revisione di ortografia e coerenza…", module="llm_service")
         try:
-            data = await self.llm.generate_json(
+            data = await self.ask(
                 "Sei un editor italiano. Correggi il testo di questi beat: errori di ortografia e grammatica, parole inesistenti, "
                 "frasi poco chiare e contraddizioni evidenti con la parte precedente o con il riassunto della parte. "
                 "Mantieni stile, persona narrante, eventi, lunghezza e numero dei beat. Non aggiungere commenti. "

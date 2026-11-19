@@ -518,3 +518,103 @@ def test_covers_and_youtube_thumbnail(tmp_path, secrets_dir):
         return httpx.Response(403, json={"error": {"errors": [{"reason": "forbidden"}]}})
     with pytest.raises(RuntimeError, match="verificalo"):
         asyncio.run(ps.set_youtube_thumbnail("VID1", made["youtube"], transport=httpx.MockTransport(forbidden)))
+
+
+# ------------------------------------------------------------------ più lingue
+class FakeTranslator:
+    """Traduce mettendo "EN:" davanti; testi social in inglese."""
+
+    def __init__(self):
+        self.calls = 0
+
+    async def generate_json(self, prompt, schema=None, **kw):
+        self.calls += 1
+        props = (schema or {}).get("properties", {})
+        if "beats" in props:
+            texts = json.loads(prompt.rsplit("Blocchi: ", 1)[1])
+            return {"beats": [f"EN: {t}" for t in texts]}
+        n = props["part_captions"]["minItems"]
+        return {"youtube_title": "When I asked my husband...", "thumbnail_text": "THE HOUSE WAS MINE", "description": "Fictional story.",
+                "tiktok_caption": "Wait", "story_title": "The house", "titles": ["t"], "part_captions": [f"Part {i + 1}" for i in range(n)],
+                "part_titles": ["One", "Two"], "hashtags": ["storytime", "#reddit stories"]}
+
+
+def test_translate_project_into_lang_folder(tmp_path):
+    from app.core import languages, translate
+    from app.core.projects import save_json
+    brief = {"languages": ["it", "en", "en", "xx"]}
+    assert languages.of_brief(brief) == ["it", "en"]
+    beats = [{"part": 1, "role": "HOOK", "text": "Mio marito voleva il divorzio.", "cue": "c"},
+             {"part": 2, "role": "FINALE", "text": "La casa era mia.", "cue": "d"}]
+    save_json(tmp_path / "beats.json", beats)
+    save_json(tmp_path / "metadata.json", {"youtube_title": "Quando...", "part_captions": ["Parte 1", "Parte 2"], "hashtags": ["#storie"]})
+    save_json(tmp_path / "structure.json", {"parts": [{"part": 1, "title": "Uno"}, {"part": 2, "title": "Due"}]})
+    save_json(tmp_path / "concept.json", {"title": "La casa"})
+    llm = FakeTranslator()
+    assert asyncio.run(translate.translate_project(llm, tmp_path, brief, lambda *a, **k: None)) == ["en"]
+    base = languages.lang_dir(tmp_path, "en", brief)
+    assert base == tmp_path / "langs" / "en"
+    out = json.loads((base / "beats.json").read_text(encoding="utf-8"))
+    assert [b["text"] for b in out] == ["EN: Mio marito voleva il divorzio.", "EN: La casa era mia."]
+    assert [b["cue"] for b in out] == ["c", "d"]  # part, role e cue restano quelli della principale
+    meta = json.loads((base / "metadata.json").read_text(encoding="utf-8"))
+    assert meta["story_title"] == "The house" and meta["hashtags"] == ["#storytime", "#redditstories"]
+    assert json.loads((base / "structure.json").read_text(encoding="utf-8"))["parts"][1]["title"] == "Two"
+    # già aggiornata: nessuna nuova chiamata; copione principale cambiato: si rifà
+    calls = llm.calls
+    asyncio.run(translate.translate_project(llm, tmp_path, brief, lambda *a, **k: None))
+    assert llm.calls == calls
+    save_json(tmp_path / "beats.json", beats[:1] + [{**beats[1], "text": "La casa era intestata a me."}])
+    assert not translate.is_current(tmp_path, "en", brief)
+
+
+def test_language_texts_voices_and_prompts(tmp_path):
+    from app.core.languages import localize_prompt
+    from app.services import eleven_service, tts_service
+    from app.services.publish_service import youtube_texts
+    from app.services.text_norm import normalize
+    assert normalize("I paid 2,500 € and 51%", "en") == "I paid two thousand, five hundred euros and fifty-one percent"
+    assert "cincuenta y uno por ciento" in normalize("el 51% de las acciones", "es")
+    p = localize_prompt("Storia ambientata in Italia, italiano parlato. Personaggi con nomi italiani.", "es")
+    assert p.startswith("LINGUA:") and "Spagna" in p and "spagnolo parlato" in p and "nomi italiani" not in p
+    assert localize_prompt("in italiano", "it") == "in italiano"
+    # voci automatiche della lingua giusta
+    assert tts_service.resolve_voice("auto", "M", "es").startswith(("edge:es-", "kokoro:em_"))
+    voices = [{"id": "a", "gender": "F", "lang": "it", "italian": True, "label": "A"}, {"id": "b", "gender": "F", "lang": "en", "label": "B"}]
+    assert eleven_service.pick_for_gender(voices, "F", "en") == "b" and eleven_service.pick_for_gender(voices, "F", "it") == "a"
+    # testi YouTube nella lingua della cartella
+    folder = tmp_path / "langs" / "en"
+    (folder / "render").mkdir(parents=True)
+    (folder / "metadata.json").write_text(json.dumps({"description": "A story."}), encoding="utf-8")
+    (folder / "render" / "render.json").write_text(json.dumps({"lang": "en", "beats": [{"part": p, "start": s} for p, s in ((1, 0), (2, 60), (3, 120))]}), encoding="utf-8")
+    d = youtube_texts(folder)["description"]
+    assert "Chapters:" in d and "01:00 Part 2" in d and d.endswith("Fictional story. Voice and images generated with artificial intelligence.")
+
+
+def test_youtube_shorts_from_tiktok_clips(tmp_path, monkeypatch):
+    from app.services import publish_service as ps
+    (tmp_path / "render" / "tiktok").mkdir(parents=True)
+    for n in (1, 2):
+        (tmp_path / "render" / "tiktok" / f"part_{n:02}.mp4").write_bytes(b"x")
+    (tmp_path / "metadata.json").write_text(json.dumps({
+        "part_captions": ["Mi ha chiesto il divorzio al compleanno. Parte 1 👉 Parte 2 nel profilo", "La casa era mia. Parte 2"],
+        "hashtags": ["#storie", "#reddit"], "youtube_title": "Quando..."}), encoding="utf-8")
+    (tmp_path / "concept.json").write_text(json.dumps({"title": "La casa era mia"}), encoding="utf-8")
+    (tmp_path / "render" / "render.json").write_text(json.dumps({"clips": ["render/tiktok/part_01.mp4", "render/tiktok/part_02.mp4"],
+        "beats": [{"part": 1, "start": 0, "end": 50}, {"part": 2, "start": 50, "end": 250}]}), encoding="utf-8")
+    items = ps.shorts_texts(tmp_path)
+    assert items[0]["title"] == "Mi ha chiesto il divorzio al compleanno. Parte 1 #Shorts"
+    assert items[0]["description"].endswith("#storie #reddit #Shorts") and items[1]["seconds"] == 200
+    uploads = []
+
+    async def fake_upload(path, title, description, tags, privacy="private", log=print, transport=None, lang="it", short=False):
+        uploads.append((Path(path).name, title, privacy, short))
+        return {"id": f"S{len(uploads)}", "url": f"https://youtube.com/shorts/S{len(uploads)}", "privacy": privacy}
+
+    monkeypatch.setattr(ps, "upload_youtube", fake_upload)
+    logs = []
+    record = asyncio.run(ps.publish_project(tmp_path, lambda m, p=None, level="info": logs.append((level, m)),
+                                            shorts={"privacy": "unlisted", "titles": ["", "Titolo mio #Shorts"]}))
+    assert uploads == [("part_01.mp4", items[0]["title"], "unlisted", True), ("part_02.mp4", "Titolo mio #Shorts", "unlisted", True)]
+    assert [i["url"] for i in record["shorts"]["items"]] == ["https://youtube.com/shorts/S1", "https://youtube.com/shorts/S2"]
+    assert any(level == "warn" and "3 minuti" in m for level, m in logs)  # la parte 2 dura più di 3 minuti

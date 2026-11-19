@@ -59,14 +59,30 @@ def safe_file(project_id, relative):
     return path
 
 
-def outputs(path):
-    """Elenca i file prodotti, come percorsi relativi alla cartella del progetto."""
+def outputs(path, base=None):
+    """Elenca i file prodotti (di una lingua: base), come percorsi relativi alla cartella del progetto."""
+    base = Path(base or path)
+    prefix = "" if base == Path(path) else base.relative_to(path).as_posix() + "/"
     found = {}
     for name in ("script.md", "metadata.json", "render/full_video.mp4", "render/subtitles.srt"):
-        if (path / name).is_file():
-            found[name] = (path / name).stat().st_mtime
-    clips = sorted(p.relative_to(path).as_posix() for p in (path / "render" / "tiktok").glob("part_*.mp4"))
-    return {"files": sorted(found), "clips": clips}
+        if (base / name).is_file():
+            found[prefix + name] = (base / name).stat().st_mtime
+    clips = sorted(prefix + p.relative_to(base).as_posix() for p in (base / "render" / "tiktok").glob("part_*.mp4"))
+    return {"files": sorted(found), "clips": clips, "prefix": prefix}
+
+
+def language_status(path, brief=None):
+    """Per ogni lingua del progetto: copione, video e pubblicazioni."""
+    from app.core import languages
+    brief = brief if brief is not None else (load_json(path / "brief.json", {}) or {})
+    out = []
+    for code in languages.of_brief(brief):
+        base = languages.lang_dir(path, code, brief)
+        pub = load_json(base / "publish.json", {}) or {}
+        out.append({"code": code, "name": languages.info(code)["name"], "main": base == path,
+                    "has_script": bool(load_json(base / "beats.json")), "has_video": (base / "render" / "full_video.mp4").is_file(),
+                    "youtube": bool(pub.get("youtube")), "shorts": bool(pub.get("shorts")), "tiktok": bool(pub.get("tiktok"))})
+    return out
 
 
 def summary(path):
@@ -84,6 +100,7 @@ def summary(path):
         "has_script": bool(beats),
         "has_video": "render/full_video.mp4" in out["files"],
         "last_job": {k: job.get(k) for k in ("kind", "status", "current_step", "error")} if job else None,
+        "languages": language_status(path, brief),
     }
 
 
@@ -96,16 +113,23 @@ def list_projects():
     return items
 
 
-def detail(project_id):
+def detail(project_id, lang=None):
+    """Dati del progetto visti in una lingua (la principale se lang è vuoto): copione, testi, video e file di quella lingua."""
+    from app.core import languages
     path = folder(project_id)
     data = summary(path)
+    brief = load_json(path / "brief.json", {}) or {}
+    codes = languages.of_brief(brief)
+    lang = lang if lang in codes else codes[0]
+    base = languages.lang_dir(path, lang, brief)
     data.update(
-        brief=load_json(path / "brief.json", {}),
+        lang=lang,
+        brief=brief,
         concept=load_json(path / "concept.json"),
-        structure=load_json(path / "structure.json"),
-        beats=load_json(path / "beats.json", []),
-        metadata=load_json(path / "metadata.json"),
-        render=load_json(path / "render" / "render.json"),
-        outputs=outputs(path),
+        structure=load_json(base / "structure.json") or load_json(path / "structure.json"),
+        beats=load_json(base / "beats.json", []),
+        metadata=load_json(base / "metadata.json"),
+        render=load_json(base / "render" / "render.json"),
+        outputs=outputs(path, base),
     )
     return data

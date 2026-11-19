@@ -41,8 +41,39 @@ def _parse_number(text):
     return float(text) if "." in text else int(text)
 
 
-def normalize(text):
-    """Testo pronto per la sintesi vocale in italiano."""
+OTHER = {  # parole per le altre lingue: (codice num2words, "per cento", "euro")
+    "en": ("en", "percent", "euros"), "es": ("es", "por ciento", "euros"), "fr": ("fr", "pour cent", "euros"),
+    "de": ("de", "Prozent", "Euro"), "pt": ("pt_BR", "por cento", "euros"),
+}
+
+
+def _other(text, lang):
+    """Lingue diverse dall'italiano: virgolette e trattini puliti, cifre, euro e percentuali in parole."""
+    code, pct, euro = OTHER[lang]
+
+    def num(value):
+        if num2words is None:
+            return value
+        try:
+            clean = value.replace(",", "") if lang == "en" else value.replace(".", "").replace(",", ".")
+            return num2words(float(clean) if "." in clean else int(clean), lang=code)
+        except (ValueError, OverflowError, NotImplementedError):
+            return value
+    t = text
+    for q in ("«", "»", "“", "”", "„", "\""):
+        t = t.replace(q, "")
+    t = re.sub(r"\s*[—–]\s*", ", ", t).replace("…", "...")
+    t = re.sub(r"€\s?(\d[\d.,]*)", lambda m: f"{num(m.group(1))} {euro}", t)
+    t = re.sub(r"(\d[\d.,]*)\s?€", lambda m: f"{num(m.group(1))} {euro}", t)
+    t = re.sub(r"(\d[\d.,]*)\s?%", lambda m: f"{num(m.group(1))} {pct}", t)
+    t = re.sub(r"\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?", lambda m: num(m.group(0)), t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def normalize(text, lang="it"):
+    """Testo pronto per la sintesi vocale (italiano; per le altre lingue vedi _other)."""
+    if lang in OTHER:
+        return _other(text, lang)
     t = text
     for pattern, repl in ABBREVIATIONS.items():
         t = re.sub(pattern, repl, t, flags=re.I if pattern.islower() else 0)

@@ -18,7 +18,13 @@ from pathlib import Path
 PIPER_DIR = Path(__file__).resolve().parents[2] / "models" / "piper"
 KOKORO_DIR = Path(__file__).resolve().parents[2] / "models" / "kokoro"
 KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
-KOKORO_VOICES = {"if_sara": "Sara (IT, naturale locale)", "im_nicola": "Nicola (IT, naturale locale)"}
+KOKORO_VOICES = {"if_sara": "Sara (IT, naturale locale)", "im_nicola": "Nicola (IT, naturale locale)",
+                 "af_heart": "Heart (EN, naturale locale)", "am_michael": "Michael (EN, naturale locale)",
+                 "ef_dora": "Dora (ES, naturale locale)", "em_alex": "Alex (ES, naturale locale)",
+                 "ff_siwis": "Siwis (FR, naturale locale)",
+                 "pf_dora": "Dora (PT, naturale locale)", "pm_alex": "Alex (PT, naturale locale)"}
+# la prima lettera della voce Kokoro indica la lingua
+KOKORO_LANG = {"i": ("it", "it"), "a": ("en", "en-us"), "b": ("en", "en-gb"), "e": ("es", "es"), "f": ("fr", "fr-fr"), "p": ("pt", "pt-br")}
 KOKORO_WPM = 155  # parole al minuto con speed=1.0, misurate sulla lettura frase per frase (pause comprese)
 KOKORO_RATE = {"im_nicola": 1.1}  # Nicola è naturalmente più lento di Sara
 _KOKORO = {}
@@ -45,10 +51,10 @@ def download_kokoro():
             target.with_suffix(target.suffix + ".part").replace(target)
 
 
-def speakable(text):
+def speakable(text, lang="it"):
     """Testo pronto per la voce: numeri, cifre, date e sigle scritti in parole (vedi text_norm)."""
     from app.services.text_norm import normalize
-    return normalize(text)
+    return normalize(text, lang)
 
 
 def _kokoro_model():
@@ -73,10 +79,11 @@ def _kokoro_synth(voice, items, wpm):
         path = Path(path).with_suffix(".wav")
         path.parent.mkdir(parents=True, exist_ok=True)
         chunks, rate = [], 24000
-        for sentence, pause in sentences(speakable(text)) or [(speakable(text), 0.3)]:
+        lang, code = KOKORO_LANG.get(voice[:1], ("it", "it"))
+        for sentence, pause in sentences(speakable(text, lang)) or [(speakable(text, lang), 0.3)]:
             if not sentence.strip(" .,;:!?"):
                 continue
-            samples, rate = k.create(sentence, voice=voice, speed=speed, lang="it")
+            samples, rate = k.create(sentence, voice=voice, speed=speed, lang=code)
             chunks.append(np.asarray(samples, dtype=np.float32))
             chunks.append(np.zeros(int(rate * pause), dtype=np.float32))
         audio = np.concatenate(chunks) if chunks else np.zeros(rate // 2, dtype=np.float32)
@@ -90,24 +97,48 @@ def _kokoro_synth(voice, items, wpm):
     return created
 
 
-AUTO_VOICES = {"F": ["kokoro:if_sara", "edge:it-IT-ElsaNeural", "piper:it_IT-paola-medium"],
-               "M": ["kokoro:im_nicola", "edge:it-IT-DiegoNeural", "piper:it_IT-riccardo-x_low"]}
+AUTO_VOICES = {
+    "it": {"F": ["kokoro:if_sara", "edge:it-IT-ElsaNeural", "piper:it_IT-paola-medium"],
+           "M": ["kokoro:im_nicola", "edge:it-IT-DiegoNeural", "piper:it_IT-riccardo-x_low"]},
+    "en": {"F": ["edge:en-US-AvaMultilingualNeural", "kokoro:af_heart"], "M": ["edge:en-US-AndrewMultilingualNeural", "kokoro:am_michael"]},
+    "es": {"F": ["edge:es-ES-ElviraNeural", "kokoro:ef_dora"], "M": ["edge:es-ES-AlvaroNeural", "kokoro:em_alex"]},
+    "fr": {"F": ["edge:fr-FR-DeniseNeural", "kokoro:ff_siwis"], "M": ["edge:fr-FR-HenriNeural"]},
+    "de": {"F": ["edge:de-DE-KatjaNeural"], "M": ["edge:de-DE-ConradNeural"]},
+    "pt": {"F": ["edge:pt-BR-FranciscaNeural", "kokoro:pf_dora"], "M": ["edge:pt-BR-AntonioNeural", "kokoro:pm_alex"]},
+}
 
 
-def resolve_voice(voice, gender=""):
-    """'auto' (o vuoto) -> la migliore voce installata del genere di chi racconta (femminile se incerto)."""
+def resolve_voice(voice, gender="", lang="it"):
+    """'auto' (o vuoto) -> la migliore voce installata della lingua e del genere di chi racconta (femminile se incerto)."""
     if voice and voice != "auto":
         return voice
-    available = {v["id"] for v in list_voices()}
-    for vid in AUTO_VOICES["M" if gender == "M" else "F"]:
+    voices = list_voices()
+    available = {v["id"] for v in voices}
+    auto = AUTO_VOICES.get(lang, AUTO_VOICES["it"])
+    for vid in auto["M" if gender == "M" else "F"] + auto["F" if gender == "M" else "M"]:
         if vid in available:
             return vid
-    real = [v for v in available if v != "auto"]
-    return sorted(real)[0] if real else "edge:it-IT-ElsaNeural"
+    same = sorted(v["id"] for v in voices if v["id"] != "auto" and v.get("lang") == lang)
+    if same:
+        return same[0]
+    return auto["M" if gender == "M" else "F"][0]
 
 
-PREVIEW_TEXT = ("Quando chiesi a mio marito cosa volesse per il compleanno, mi rispose che voleva il divorzio. "
-                "Ma lui non sapeva una cosa: la casa, con il 51% delle quote, era intestata a me.")
+PREVIEW_TEXTS = {
+    "it": ("Quando chiesi a mio marito cosa volesse per il compleanno, mi rispose che voleva il divorzio. "
+           "Ma lui non sapeva una cosa: la casa, con il 51% delle quote, era intestata a me."),
+    "en": ("When I asked my husband what he wanted for his birthday, he said he wanted a divorce. "
+           "But he didn't know one thing: the house, with 51% of the shares, was in my name."),
+    "es": ("Cuando le pregunté a mi marido qué quería para su cumpleaños, me dijo que quería el divorcio. "
+           "Pero él no sabía una cosa: la casa, con el 51% de las acciones, estaba a mi nombre."),
+    "fr": ("Quand j'ai demandé à mon mari ce qu'il voulait pour son anniversaire, il m'a répondu qu'il voulait divorcer. "
+           "Mais il ignorait une chose : la maison, avec 51 % des parts, était à mon nom."),
+    "de": ("Als ich meinen Mann fragte, was er sich zum Geburtstag wünscht, sagte er, er wolle die Scheidung. "
+           "Aber eines wusste er nicht: Das Haus, mit 51 % der Anteile, lief auf meinen Namen."),
+    "pt": ("Quando perguntei ao meu marido o que ele queria de aniversário, ele disse que queria o divórcio. "
+           "Mas ele não sabia de uma coisa: a casa, com 51% das cotas, estava no meu nome."),
+}
+PREVIEW_TEXT = PREVIEW_TEXTS["it"]
 
 
 PIPER_LABELS = {"it_IT-paola-medium": "Paola (IT, neurale locale)", "it_IT-riccardo-x_low": "Riccardo (IT, neurale locale)"}
@@ -152,7 +183,7 @@ def _piper_synth(name, items, wpm):
         path = Path(path).with_suffix(".wav")
         path.parent.mkdir(parents=True, exist_ok=True)
         with wave.open(str(path), "wb") as w:
-            voice.synthesize_wav(speakable(text), w, syn_config=cfg)
+            voice.synthesize_wav(speakable(text, "it"), w, syn_config=cfg)
         created.append(path)
     return created
 
@@ -161,6 +192,20 @@ EDGE_VOICES = [
     ("it-IT-DiegoNeural", "Diego (IT, neurale)"),
     ("it-IT-IsabellaNeural", "Isabella (IT, neurale)"),
     ("it-IT-GiuseppeMultilingualNeural", "Giuseppe (IT, neurale)"),
+    ("en-US-AvaMultilingualNeural", "Ava (EN, neurale)"),
+    ("en-US-AndrewMultilingualNeural", "Andrew (EN, neurale)"),
+    ("en-GB-SoniaNeural", "Sonia (EN-GB, neurale)"),
+    ("en-GB-RyanNeural", "Ryan (EN-GB, neurale)"),
+    ("es-ES-ElviraNeural", "Elvira (ES, neurale)"),
+    ("es-ES-AlvaroNeural", "Álvaro (ES, neurale)"),
+    ("es-MX-DaliaNeural", "Dalia (ES-MX, neurale)"),
+    ("es-MX-JorgeNeural", "Jorge (ES-MX, neurale)"),
+    ("fr-FR-DeniseNeural", "Denise (FR, neurale)"),
+    ("fr-FR-HenriNeural", "Henri (FR, neurale)"),
+    ("de-DE-KatjaNeural", "Katja (DE, neurale)"),
+    ("de-DE-ConradNeural", "Conrad (DE, neurale)"),
+    ("pt-BR-FranciscaNeural", "Francisca (PT-BR, neurale)"),
+    ("pt-BR-AntonioNeural", "Antônio (PT-BR, neurale)"),
 ]
 BASE_WPM = 150  # velocita "normale" approssimativa delle voci neurali italiane
 
@@ -183,14 +228,25 @@ def local_voices():
         return []
 
 
+SAPI_LANG = {"ital": "it", "english": "en", "spanish": "es", "español": "es", "french": "fr", "fran": "fr", "german": "de", "deutsch": "de", "portug": "pt"}
+
+
+def _sapi_lang(name, italian=False):
+    low = name.lower()
+    return "it" if italian else next((code for key, code in SAPI_LANG.items() if key in low), "")
+
+
 def list_voices():
-    voices = [{"id": "auto", "label": "Automatica: maschile o femminile in base a chi racconta", "engine": "auto", "online": False}]
-    voices += [{"id": f"kokoro:{v}", "label": label, "engine": "kokoro", "online": False} for v, label in KOKORO_VOICES.items()] if kokoro_ready() else []
-    voices += [{"id": f"piper:{n}", "label": PIPER_LABELS.get(n, n + " (neurale locale)"), "engine": "piper", "online": False} for n in piper_voices()]
+    """Voci del PC. Ogni voce ha "lang" (it, en, es…); "auto" ("*") vale per tutte le lingue."""
+    voices = [{"id": "auto", "label": "Automatica: maschile o femminile in base a chi racconta", "engine": "auto", "online": False, "lang": "*"}]
+    voices += [{"id": f"kokoro:{v}", "label": label, "engine": "kokoro", "online": False, "lang": KOKORO_LANG.get(v[:1], ("it",))[0]}
+               for v, label in KOKORO_VOICES.items()] if kokoro_ready() else []
+    voices += [{"id": f"piper:{n}", "label": PIPER_LABELS.get(n, n + " (neurale locale)"), "engine": "piper", "online": False, "lang": n[:2]} for n in piper_voices()]
     if EDGE_AVAILABLE:
-        voices += [{"id": f"edge:{vid}", "label": label, "engine": "edge", "online": True} for vid, label in EDGE_VOICES]
+        voices += [{"id": f"edge:{vid}", "label": label, "engine": "edge", "online": True, "lang": vid[:2]} for vid, label in EDGE_VOICES]
     for v in local_voices():
-        voices.append({"id": f"local:{v['id']}", "label": v["name"] + " (Windows, offline)", "engine": "local", "online": False, "italian": v.get("italian", False)})
+        voices.append({"id": f"local:{v['id']}", "label": v["name"] + " (Windows, offline)", "engine": "local", "online": False,
+                       "italian": v.get("italian", False), "lang": _sapi_lang(v["name"], v.get("italian", False))})
     order = {"auto": -1, "kokoro": 0, "piper": 1, "edge": 2, "local": 3}
     voices.sort(key=lambda v: (order[v["engine"]], not v.get("italian", True)))
     return voices
@@ -201,17 +257,18 @@ def default_voice():
 
 
 class TTSService:
-    def __init__(self, voice=None, wpm=BASE_WPM, gender=""):
+    def __init__(self, voice=None, wpm=BASE_WPM, gender="", lang="it"):
         self.gender = gender
-        self.voice = voice if str(voice or "").startswith("eleven:") else resolve_voice(voice, gender)
+        self.lang = lang or "it"
+        self.voice = voice if str(voice or "").startswith("eleven:") else resolve_voice(voice, gender, self.lang)
         self.wpm = int(wpm)
 
     async def prepare(self):
         """Risolve 'eleven:auto' nella voce ElevenLabs del genere giusto (serve la lista delle voci dell'account)."""
         from app.services import eleven_service
         if self.voice == "eleven:auto":
-            vid = eleven_service.pick_for_gender(await eleven_service.voices(), self.gender)
-            self.voice = f"eleven:{vid}" if vid else resolve_voice("auto", self.gender)
+            vid = eleven_service.pick_for_gender(await eleven_service.voices(), self.gender, self.lang)
+            self.voice = f"eleven:{vid}" if vid else resolve_voice("auto", self.gender, self.lang)
         return self.voice
 
     async def synthesize_many(self, items, on_progress=None):
@@ -223,7 +280,7 @@ class TTSService:
             try:
                 return await eleven_service.synthesize(name, items, speed=self.wpm / 160, on_progress=on_progress)
             except eleven_service.QuotaError as exc:
-                fallback = resolve_voice("auto", self.gender)
+                fallback = resolve_voice("auto", self.gender, self.lang)
                 if on_progress:
                     on_progress(f"{exc}. Continuo con la voce del PC ({fallback})")
                 self.voice = fallback
@@ -244,7 +301,7 @@ class TTSService:
             try:
                 return await self._edge(name, items, on_progress)
             except Exception as exc:
-                if piper_voices():
+                if piper_voices() and self.lang == "it":
                     if on_progress:
                         on_progress(f"Voce online non disponibile ({type(exc).__name__}): uso la voce neurale locale")
                     return await asyncio.to_thread(_piper_synth, piper_voices()[0], items, self.wpm)
@@ -252,7 +309,7 @@ class TTSService:
                     raise RuntimeError(f"Voce online non disponibile ({exc}) e nessuna voce Windows installata.") from exc
                 if on_progress:
                     on_progress(f"Voce online non disponibile ({type(exc).__name__}): uso la voce di Windows")
-                fallback = next((v for v in local_voices() if v.get("italian")), local_voices()[0])
+                fallback = next((v for v in local_voices() if _sapi_lang(v["name"], v.get("italian", False)) == self.lang), local_voices()[0])
                 engine, name = "local", fallback["id"]
         if engine == "local":
             return await self._local(name, items, on_progress)
@@ -268,7 +325,7 @@ class TTSService:
             path.parent.mkdir(parents=True, exist_ok=True)
             for attempt in range(3):
                 try:
-                    await edge_tts.Communicate(speakable(text), voice, rate=rate).save(str(path))
+                    await edge_tts.Communicate(speakable(text, voice[:2]), voice, rate=rate).save(str(path))
                     break
                 except Exception:
                     if attempt == 2:

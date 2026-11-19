@@ -18,6 +18,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import secrets as pysecrets
 import time
 from pathlib import Path
@@ -181,27 +182,44 @@ def fmt_ts(seconds):
     return f"{s // 3600}:{s % 3600 // 60:02}:{s % 60:02}" if s >= 3600 else f"{s // 60:02}:{s % 60:02}"
 
 
+def _lang(folder, render=None):
+    """Lingua del video di una cartella (quella di una lingua secondaria è langs/<codice>/)."""
+    from app.core.languages import LANGS
+    from app.core.projects import load_json
+    folder = Path(folder)
+    render = render if render is not None else (load_json(folder / "render" / "render.json", {}) or {})
+    return render.get("lang") or (folder.name if folder.parent.name == "langs" and folder.name in LANGS else "it")
+
+
+def _words(folder, render):
+    """Parole fisse nella lingua del video."""
+    from app.core.languages import info
+    return info(_lang(folder, render))
+
+
 def youtube_texts(folder):
-    """Titolo, descrizione con capitoli (00:00 Parte 1 …) e tag del video lungo, dai file del progetto."""
+    """Titolo, descrizione con capitoli (00:00 Parte 1 …) e tag del video lungo, dai file del progetto (o di una sua lingua)."""
     from app.core.projects import load_json
     folder = Path(folder)
     meta = load_json(folder / "metadata.json", {}) or {}
     concept = load_json(folder / "concept.json", {}) or {}
     structure = load_json(folder / "structure.json", {}) or {}
     render = load_json(folder / "render" / "render.json", {}) or {}
-    title = short_title(meta.get("youtube_title") or (meta.get("titles") or [concept.get("title", "Storia")])[0])
+    w = _words(folder, render)
+    title = short_title(meta.get("youtube_title") or (meta.get("titles") or [meta.get("story_title") or concept.get("title", "Storia")])[0])
     lines = [meta.get("description", "").strip()]
     titles = {p.get("part"): p.get("title", "") for p in structure.get("parts", [])}
     starts = {}
     for b in render.get("beats", []):
         starts.setdefault(b["part"], b["start"])
     if len(starts) >= 3:  # YouTube mostra i capitoli solo con almeno 3 voci, la prima a 00:00
-        lines += ["", "Capitoli:"] + [f"{fmt_ts(0 if i == 0 else starts[p])} Parte {p}{' — ' + titles[p] if titles.get(p) else ''}" for i, p in enumerate(sorted(starts))]
+        lines += ["", w["chapters"]] + [f"{fmt_ts(0 if i == 0 else starts[p])} {w['word_part']} {p}{' — ' + titles[p] if titles.get(p) else ''}" for i, p in enumerate(sorted(starts))]
     hashtags = meta.get("hashtags") or []
     if hashtags:
         lines += ["", " ".join(hashtags[:8])]
-    footer = "Voce e immagini generate con intelligenza artificiale."
-    lines += ["", footer if "fantasia" in lines[0].lower() else "Storia di fantasia. " + footer]
+    footer = w["ai"]
+    already = w["fiction"].lower().rstrip(".") in lines[0].lower()  # la descrizione dice già «Storia di fantasia»
+    lines += ["", footer if already else w["fiction"] + " " + footer]
     tags = [h.lstrip("#") for h in hashtags][:15]
     return {"title": title, "description": "\n".join(lines).strip()[:4900], "tags": tags}
 
@@ -211,22 +229,52 @@ def tiktok_captions(folder):
     folder = Path(folder)
     meta = load_json(folder / "metadata.json", {}) or {}
     render = load_json(folder / "render" / "render.json", {}) or {}
+    w = _words(folder, render)
     clips = render.get("clips") or sorted(p.relative_to(folder).as_posix() for p in (folder / "render" / "tiktok").glob("part_*.mp4"))
     caps = meta.get("part_captions") or []
     tags = " ".join((meta.get("hashtags") or [])[:6])
     out = []
     for i, clip in enumerate(clips):
-        base = caps[i] if i < len(caps) else f"{meta.get('tiktok_caption', '')} Parte {i + 1}".strip()
+        base = caps[i] if i < len(caps) else f"{meta.get('tiktok_caption', '')} {w['word_part']} {i + 1}".strip()
         out.append({"clip": clip, "caption": f"{base} {tags}".strip()[:2000]})
     return out
 
 
+def shorts_texts(folder):
+    """Le clip TikTok come YouTube Shorts: titolo (con #Shorts) e descrizione per ogni clip.
+
+    YouTube tratta come Short un video verticale fino a 3 minuti; le clip più lunghe escono come video normali.
+    """
+    from app.core.projects import load_json
+    folder = Path(folder)
+    meta = load_json(folder / "metadata.json", {}) or {}
+    concept = load_json(folder / "concept.json", {}) or {}
+    render = load_json(folder / "render" / "render.json", {}) or {}
+    w = _words(folder, render)
+    story = meta.get("story_title") or concept.get("title") or meta.get("youtube_title") or ""
+    tags = [h.lstrip("#") for h in (meta.get("hashtags") or [])][:12]
+    out = []
+    for i, item in enumerate(tiktok_captions(folder)):
+        caps = meta.get("part_captions") or []
+        cap = caps[i] if i < len(caps) else item["caption"]
+        hook = re.split(r"\s*(?:👉|#)", cap, maxsplit=1)[0].strip()  # la frase, senza rimandi e hashtag
+        # via anche le frasi che rimandano al profilo o al video completo su YouTube
+        kept = [x for x in re.split(r"(?<=[.!?…])\s+", hook) if not re.search(r"youtube|profil|perfil|link", x, re.I)]
+        hook = " ".join(kept).strip() or story
+        title = short_title(f"{hook} #Shorts", 100) if len(hook) + 8 <= 100 else short_title(hook, 91) + " #Shorts"
+        beats = [b for b in render.get("beats", []) if b.get("part") == i + 1 and "start" in b and "end" in b]
+        seconds = round(beats[-1]["end"] - beats[0]["start"]) if beats else None
+        desc = f"{cap}\n\n{story} — {w['word_part']} {i + 1}\n\n" + " ".join((meta.get("hashtags") or [])[:6] + ["#Shorts"])
+        out.append({"clip": item["clip"], "title": title, "description": desc.strip()[:4900], "tags": tags, "seconds": seconds})
+    return out
+
+
 # ------------------------------------------------------------------ caricamenti
-async def upload_youtube(path, title, description, tags, privacy="private", log=print, transport=None):
+async def upload_youtube(path, title, description, tags, privacy="private", log=print, transport=None, lang="it", short=False):
     path = Path(path)
     size = path.stat().st_size
     body = {
-        "snippet": {"title": short_title(title), "description": description[:5000], "tags": tags, "categoryId": "24", "defaultLanguage": "it", "defaultAudioLanguage": "it"},
+        "snippet": {"title": short_title(title), "description": description[:5000], "tags": tags, "categoryId": "24", "defaultLanguage": lang, "defaultAudioLanguage": lang},
         "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False, "containsSyntheticMedia": True},
     }
     async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=20), transport=transport) as c:
@@ -245,8 +293,9 @@ async def upload_youtube(path, title, description, tags, privacy="private", log=
                 r = await c.put(url, content=data, headers={"Authorization": f"Bearer {token}", "Content-Length": str(len(data)), "Content-Range": f"bytes {sent}-{end}/{size}"})
                 if r.status_code in (200, 201):
                     vid = r.json().get("id")
-                    log(f"YouTube: caricato ({size / MB:.0f} MB) → https://youtu.be/{vid}")
-                    return {"id": vid, "url": f"https://youtu.be/{vid}", "privacy": privacy}
+                    link = f"https://youtube.com/shorts/{vid}" if short else f"https://youtu.be/{vid}"
+                    log(f"YouTube: caricato ({size / MB:.0f} MB) → {link}")
+                    return {"id": vid, "url": link, "privacy": privacy}
                 if r.status_code != 308:
                     raise RuntimeError(f"YouTube: caricamento interrotto ({r.status_code}): {r.text[:300]}")
                 sent = int(r.headers.get("range", f"bytes=0-{end}").split("-")[-1]) + 1
@@ -367,19 +416,23 @@ async def upload_tiktok(path, caption, mode="draft", log=print, transport=None):
         return {"publish_id": publish_id, "status": state, "privacy": privacy}
 
 
-async def publish_project(folder, job_log, youtube=None, tiktok=None):
-    """youtube={'title','description','tags','privacy'}; tiktok={'mode', 'captions': [..]}. Salva l'esito in publish.json."""
+async def publish_project(folder, job_log, youtube=None, tiktok=None, shorts=None):
+    """youtube={'title','description','tags','privacy'}; tiktok={'mode', 'captions': [..]};
+    shorts={'privacy', 'titles': [..]} carica le clip TikTok anche come YouTube Shorts. Salva l'esito in publish.json."""
     from app.core.projects import load_json, save_json
     folder = Path(folder)
     record = load_json(folder / "publish.json", {}) or {}
+    lang = _lang(folder)
     errors = []
+    attempts = 0
     if youtube is not None:
         video = folder / "render" / "full_video.mp4"
         try:
             job_log("YouTube: caricamento del video lungo…", 5)
             texts = youtube_texts(folder)
+            attempts += 1
             res = await upload_youtube(video, youtube.get("title") or texts["title"], youtube.get("description") or texts["description"],
-                                       youtube.get("tags") or texts["tags"], youtube.get("privacy", "private"), log=lambda m: job_log(m, None))
+                                       youtube.get("tags") or texts["tags"], youtube.get("privacy", "private"), log=lambda m: job_log(m, None), lang=lang)
             record["youtube"] = {**res, "at": time.strftime("%Y-%m-%d %H:%M")}
             thumb = folder / "render" / "covers" / "youtube.jpg"
             if youtube.get("thumbnail", True) and thumb.is_file():
@@ -393,12 +446,32 @@ async def publish_project(folder, job_log, youtube=None, tiktok=None):
         except Exception as exc:
             errors.append(str(exc))
             job_log(f"YouTube: {exc}", None, "error")
+    if shorts is not None:
+        items = shorts_texts(folder)
+        titles = shorts.get("titles") or []
+        results = []
+        for i, item in enumerate(items):
+            title = titles[i].strip() if i < len(titles) and titles[i].strip() else item["title"]
+            attempts += 1
+            try:
+                job_log(f"YouTube Shorts: clip {i + 1}/{len(items)}…", 30 + 20 * i / max(1, len(items)))
+                if item["seconds"] and item["seconds"] > 180:
+                    job_log(f"YouTube Shorts: la clip {i + 1} dura {item['seconds']} s, oltre i 3 minuti: YouTube la pubblicherà come video normale", None, "warn")
+                res = await upload_youtube(folder / item["clip"], title, item["description"], item["tags"], shorts.get("privacy", "private"),
+                                           log=lambda m: job_log(m, None), lang=lang, short=True)
+                results.append({"clip": item["clip"], "title": title, **res})
+            except Exception as exc:
+                errors.append(str(exc))
+                job_log(f"YouTube Shorts clip {i + 1}: {exc}", None, "error")
+                results.append({"clip": item["clip"], "error": str(exc)})
+        record["shorts"] = {"items": results, "privacy": shorts.get("privacy", "private"), "at": time.strftime("%Y-%m-%d %H:%M")}
     if tiktok is not None:
         items = tiktok_captions(folder)
         captions = tiktok.get("captions") or []
         results = []
         for i, item in enumerate(items):
             caption = captions[i] if i < len(captions) and captions[i] else item["caption"]
+            attempts += 1
             try:
                 job_log(f"TikTok: clip {i + 1}/{len(items)}…", 50 + 45 * i / max(1, len(items)))
                 res = await upload_tiktok(folder / item["clip"], caption, tiktok.get("mode", "draft"), log=lambda m: job_log(m, None))
@@ -411,6 +484,6 @@ async def publish_project(folder, job_log, youtube=None, tiktok=None):
                 await asyncio.sleep(12)  # TikTok accetta pochi avvii di caricamento al minuto
         record["tiktok"] = {"items": results, "mode": tiktok.get("mode", "draft"), "at": time.strftime("%Y-%m-%d %H:%M")}
     save_json(folder / "publish.json", record)
-    if errors and len(errors) == (youtube is not None) + len(tiktok_captions(folder) if tiktok is not None else []):
+    if errors and len(errors) == attempts:
         raise RuntimeError("Pubblicazione non riuscita: " + errors[0])
     return record
