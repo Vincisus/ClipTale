@@ -1,41 +1,11 @@
-<<<<<<< HEAD
-# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-
-# Virtual Environment
 .venv/
 venv/
-
-# Environment
 .env
-
-# Projects (keep structure, exclude generated content)
-projects/*/audio/
-projects/*/render/
-projects/*/tiktok/
-projects/*/diagnostics/
-
-# IDE
+projects/*/
+!projects/example/
 .vscode/
 .idea/
-*.swp
-
-# OS
-.DS_Store
 Thumbs.db
-=======
-.venv/
-__pycache__/
-*.pyc
-.env
-projects/*/audio/
-projects/*/images/
-projects/*/render/
-projects/*/tiktok/
-/projects/_diagnostics/
->>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
-
-.venv/
+.DS_Store

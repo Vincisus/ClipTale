@@ -1,16 +1,6 @@
-<<<<<<< HEAD
-
-"""Windows/local launcher: prepara recupero una volta, poi avvia server locale con console web."""
-=======
-<<<<<<< HEAD
-"""Windows/local launcher: prepara recupero una volta, poi avvia server locale con console web."""
-=======
-"""Windows/local launcher: prepare recovery once, then start a single local server."""
->>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
-import importlib
+"""Avvio locale: prepara .env, controlla LM Studio, avvia il server e apre il browser."""
+import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -18,128 +8,63 @@ import threading
 import time
 import urllib.request
 import webbrowser
+from pathlib import Path
+
+URL = "http://127.0.0.1:8000/"
+
+
+def lmstudio_models(base):
+    root = base[:-3] if base.endswith("/v1") else base
+    try:
+        with urllib.request.urlopen(root + "/api/v0/models", timeout=5) as r:
+            return [(m["id"], m.get("state") == "loaded") for m in json.load(r).get("data", []) if m.get("type") in ("llm", "vlm")]
+    except Exception:
+        with urllib.request.urlopen(base + "/models", timeout=5) as r:
+            return [(m["id"], None) for m in json.load(r).get("data", []) if "embed" not in m["id"]]
 
 
 def main():
     os.chdir(Path(__file__).resolve().parent)
-<<<<<<< HEAD
-    
-    # Crea .env se non esiste
-=======
-<<<<<<< HEAD
-    
-    # Crea .env se non esiste
-=======
->>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
     if not Path(".env").exists():
         shutil.copyfile(".env.example", ".env")
-        from dotenv import set_key
-        try:
-            with urllib.request.urlopen("http://127.0.0.1:1234/v1/models", timeout=5) as r:
-                import json
-                models = json.load(r).get("data", [])
-            if len(models) == 1:
-                chosen = models[0]["id"]
-            else:
-                print("Modelli disponibili:", [m.get("id") for m in models])
-                chosen = input("Incolla l'API Model Identifier da LM Studio: ").strip()
-            if not chosen:
-                raise ValueError("Identificatore vuoto")
-            set_key(".env", "LMSTUDIO_MODEL", chosen)
-        except Exception as exc:
-            print("Configurazione modello non completata:", exc)
-            print("Apri .env, imposta LMSTUDIO_MODEL e riavvia Avvia.bat.")
-            return 1
-<<<<<<< HEAD
-    
-    # Installa patch recupero scene se necessario
-=======
-<<<<<<< HEAD
-    
-    # Installa patch recupero scene se necessario
-=======
-    # Patch only before launching the server; never rewrite code during a running job.
->>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
-    source = Path("app/core/story_brain.py").read_text(encoding="utf-8-sig")
-    if "async def prepare_recovery_card(" not in source:
-        import apply_scene_recovery as patcher
-        patcher.CHECKPOINT_LOAD = patcher.CHECKPOINT_LOAD.replace('"\n\n"', '"\\n\\n"')
-        patcher.install()
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
-    
-    # Load .env
-    from dotenv import load_dotenv
-    load_dotenv()
-    
-    # Verifica modello
-<<<<<<< HEAD
-=======
-=======
-    from dotenv import load_dotenv
-    load_dotenv()
->>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
-    model = os.getenv("LMSTUDIO_MODEL", "")
-    if not model or model in {"local-model", "NOME_ESATTO_DEL_MODELLO"}:
-        print("Imposta LMSTUDIO_MODEL in .env con l'identificatore esatto di LM Studio.")
-        return 1
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
-    
-    # Verifica FFmpeg
-    if not shutil.which("ffmpeg"):
-        print("Avviso: FFmpeg non trovato nel PATH. Il recupero narrativo funziona; il video richiede FFmpeg.")
-    
-    # Apri browser automaticamente
-<<<<<<< HEAD
-=======
-=======
-    if not shutil.which("ffmpeg"):
-        print("Avviso: FFmpeg non trovato nel PATH. Il recupero narrativo funziona; il video richiede FFmpeg.")
->>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
+        print("Creato .env da .env.example")
+    from dotenv import load_dotenv, set_key
+    load_dotenv(override=True)
+    base = os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1").rstrip("/")
+    model = os.getenv("LMSTUDIO_MODEL", "").strip().strip("'\"")
+    try:
+        models = lmstudio_models(base)
+        ids = [m for m, _ in models]
+        print("LM Studio raggiungibile. Modelli:", ", ".join(f"{m}{' (caricato)' if l else ''}" for m, l in models))
+        if model not in ids:
+            loaded = [m for m, l in models if l]
+            chosen = loaded[0] if loaded else (ids[0] if ids else "")
+            if chosen:
+                print(f"Modello in .env non trovato ({model or 'vuoto'}): uso {chosen}. Puoi cambiarlo dalla pagina.")
+                set_key(".env", "LMSTUDIO_MODEL", chosen, quote_mode="never")
+    except Exception as exc:
+        print(f"ATTENZIONE: LM Studio non risponde su {base} ({exc}).")
+        print("Apri LM Studio > Developer > avvia il server locale. L'interfaccia si apre comunque.")
+
     def open_page():
-        for _ in range(30):
+        for _ in range(40):
             try:
-                with urllib.request.urlopen("http://127.0.0.1:8000/", timeout=1):
-                    webbrowser.open("http://127.0.0.1:8000/static/index.html")
+                with urllib.request.urlopen(URL + "api/health", timeout=2):
+                    webbrowser.open(URL)
                     return
             except Exception:
                 time.sleep(1)
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
-    
+
     threading.Thread(target=open_page, daemon=True).start()
-    
-    # Avvia Uvicorn con serving static files
-    return subprocess.call([
-        sys.executable, "-m", "uvicorn", "app.main:app",
-        "--env-file", ".env",
-        "--host", "127.0.0.1",
-        "--port", "8000",
-        "--no-access-log"
-    ])
-<<<<<<< HEAD
-=======
-=======
-    threading.Thread(target=open_page, daemon=True).start()
+    print("TiktokFactory Studio su", URL, "(chiudi questa finestra per fermarlo)")
     return subprocess.call([sys.executable, "-m", "uvicorn", "app.main:app", "--env-file", ".env", "--host", "127.0.0.1", "--port", "8000", "--no-access-log"])
->>>>>>> 715c55182517403e7c1f76e44a36231d6bd83387
->>>>>>> a1b3d5dbe7dff46c884019b7db2e62ebc54c7d36
 
 
 if __name__ == "__main__":
     try:
         sys.exit(main())
+    except KeyboardInterrupt:
+        sys.exit(0)
     except Exception as exc:
         print("Avvio interrotto:", exc)
         sys.exit(1)
