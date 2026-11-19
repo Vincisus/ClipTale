@@ -57,6 +57,12 @@ async def status(transport=None):
         async with httpx.AsyncClient(timeout=15, transport=transport) as c:
             r = await c.get(f"{API}/user/subscription", headers=_headers())
         if r.status_code == 401:
+            try:
+                detail = r.json().get("detail") or {}
+            except ValueError:
+                detail = {}
+            if isinstance(detail, dict) and detail.get("status") == "missing_permissions":
+                return {"configured": True, "ok": False, "error": "la chiave non ha i permessi necessari: su elevenlabs.io → API Keys abilita Text to Speech, Voices (lettura), Models (lettura) e User (lettura)"}
             return {"configured": True, "ok": False, "error": "chiave rifiutata"}
         r.raise_for_status()
         d = r.json()
@@ -74,27 +80,47 @@ async def voices(transport=None):
     try:
         async with httpx.AsyncClient(timeout=20, transport=transport) as c:
             r = await c.get(f"{API}/voices", headers=_headers())
-        r.raise_for_status()
+            r.raise_for_status()
+            sub = await c.get(f"{API}/user/subscription", headers=_headers())
+        tier = sub.json().get("tier", "") if sub.status_code == 200 else ""
     except Exception:
         return _cache["voices"] or []
     out = []
     for v in r.json().get("voices", []):
         labels = v.get("labels") or {}
         gender = {"female": "F", "male": "M"}.get(str(labels.get("gender", "")).lower(), "")
-        extra = ", ".join(x for x in (labels.get("accent"), labels.get("age"), labels.get("description") or labels.get("descriptive")) if x)
-        out.append({"id": v["voice_id"], "name": v.get("name", "?"), "gender": gender,
-                    "label": f"{v.get('name', '?')} ({'donna' if gender == 'F' else 'uomo' if gender == 'M' else 'voce'}{', ' + extra if extra else ''})"})
-    out.sort(key=lambda v: (v["gender"] != "F", v["name"]))
+        lang = str(labels.get("language") or labels.get("locale") or "").lower()[:2]
+        if not lang and str(labels.get("accent", "")).lower() in ("american", "british", "australian", "irish", "canadian"):
+            lang = "en"
+        italian = lang == "it" or "ital" in str(labels.get("accent", "")).lower()
+        lang = "it" if italian else lang
+        accent = "italiano" if italian else labels.get("accent")
+        extra = ", ".join(x for x in (accent, labels.get("age"), labels.get("description") or labels.get("descriptive")) if x)
+        # Le voci copiate dalla Voice Library non si possono usare via API con il piano gratuito (errore 402).
+        library = v.get("category") == "professional" or (v.get("sharing") or {}).get("status") == "copied"
+        paid_only = library and tier == "free"
+        out.append({"id": v["voice_id"], "name": v.get("name", "?"), "gender": gender, "italian": italian, "lang": lang, "paid_only": paid_only,
+                    "label": f"{v.get('name', '?')} ({'donna' if gender == 'F' else 'uomo' if gender == 'M' else 'voce'}{', ' + extra if extra else ''})"
+                             + (" · serve piano a pagamento" if paid_only else "")})
+    out.sort(key=lambda v: (v["paid_only"], not v["italian"], v["gender"] != "F", v["name"]))
     _cache.update(voices=out, at=time.time())
     return out
 
 
-def pick_for_gender(voice_list, gender):
-    """La prima voce dell'account del genere giusto (le voci italiane hanno la precedenza)."""
+def pick_for_gender(voice_list, gender, lang="it"):
+    """La prima voce dell'account del genere giusto; quelle della lingua del video hanno la precedenza.
+
+    Il modello multilingue legge qualsiasi lingua con qualsiasi voce, ma l'accento è più naturale
+    se la voce è nata in quella lingua.
+    """
     wanted = "M" if gender == "M" else "F"
+    voice_list = [v for v in voice_list if not v.get("paid_only")]
     same = [v for v in voice_list if v["gender"] == wanted] or voice_list
-    italian = [v for v in same if "ital" in v["label"].lower()]
-    return (italian or same)[0]["id"] if same else None
+    if lang == "it":
+        native = [v for v in same if v.get("italian") or "ital" in v["label"].lower()]
+    else:
+        native = [v for v in same if v.get("lang") == lang]
+    return (native or same)[0]["id"] if same else None
 
 
 async def synthesize(voice_id, items, speed=1.0, transport=None, on_progress=None):

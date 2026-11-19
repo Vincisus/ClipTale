@@ -227,6 +227,24 @@
     .lock-note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
     .lock-note.warn { border-color: rgba(251, 191, 36, .35); }
     .options.two-two { grid-template-columns: 1fr 1fr; }
+    .lang-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .lang-chip, .lang-tab {
+      min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent;
+      color: var(--ink-2); font: inherit; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+      transition: border-color .15s ease, color .15s ease, background .15s ease;
+    }
+    .lang-chip:hover:not(:disabled), .lang-tab:hover { border-color: rgba(255,255,255,.35); color: var(--ink); }
+    .lang-chip[aria-pressed="true"] { background: var(--surface-3); border-color: var(--ok); color: var(--ink); font-weight: 600; }
+    .lang-chip[aria-pressed="true"]::before { content: "✓"; color: var(--ok); }
+    .lang-chip:disabled { opacity: .5; cursor: not-allowed; }
+    .lang-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+    .lang-bar .lb-label { font-size: 13px; color: var(--muted); margin-right: 4px; }
+    .lang-tab { min-height: 44px; border-radius: var(--r); padding: 6px 14px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; text-align: left; }
+    .lang-tab b { font-size: 14px; font-weight: 600; color: var(--ink); }
+    .lang-tab .st { font-size: 12px; color: var(--muted); }
+    .lang-tab .st.ok { color: var(--ok); }
+    .lang-tab[aria-selected="true"] { background: var(--surface-2); border-color: var(--ink); }
+    .voice-extra { display: contents; }
     .voice-row { display: flex; gap: 8px; }
     .covers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; align-items: start; }
     .covers-grid .yt { grid-column: 1 / -1; max-width: 420px; }
@@ -466,18 +484,20 @@
     <main class="main" id="main" tabindex="-1">
       <div class="steps" role="tablist" aria-label="Passi">
         <button type="button" class="step" role="tab" id="tab-idea" data-step="idea" aria-controls="panel-idea" aria-selected="true">
-          <span class="step-num">1</span><span class="step-text"><b>Idea</b><span id="sub-idea">Di cosa parla il video</span></span>
+          <span class="step-num">1</span><span class="step-text"><b>Idea</b><span id="sub-idea">Idea e voce</span></span>
         </button>
         <button type="button" class="step" role="tab" id="tab-script" data-step="script" aria-controls="panel-script" aria-selected="false">
           <span class="step-num">2</span><span class="step-text"><b>Copione</b><span id="sub-script">Rileggi e correggi</span></span>
         </button>
         <button type="button" class="step" role="tab" id="tab-video" data-step="video" aria-controls="panel-video" aria-selected="false">
-          <span class="step-num">3</span><span class="step-text"><b>Video</b><span id="sub-video">Voce, disegni, clip</span></span>
+          <span class="step-num">3</span><span class="step-text"><b>Video</b><span id="sub-video">Disegni, ritmo, clip</span></span>
         </button>
         <button type="button" class="step" role="tab" id="tab-publish" data-step="publish" aria-controls="panel-publish" aria-selected="false">
           <span class="step-num">4</span><span class="step-text"><b>Pubblica</b><span id="sub-publish">YouTube e TikTok</span></span>
         </button>
       </div>
+
+      <div id="lang-bar" class="lang-bar hidden" role="tablist" aria-label="Lingua del video"></div>
 
       <div id="next-hint" class="next" role="status">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -532,6 +552,47 @@
             <span class="hint">Il pallino ● indica i modelli già caricati in LM Studio.</span>
           </div>
 
+          <div class="field" id="lang-field">
+            <label for="lang-main">Lingua della storia</label>
+            <select id="lang-main"></select>
+            <span class="field-label" id="lang-extra-label" style="margin-top:8px">Crea il video anche in</span>
+            <div class="lang-chips" id="lang-extra" role="group" aria-labelledby="lang-extra-label"></div>
+            <span class="hint" id="lang-hint"></span>
+          </div>
+
+          <div class="field">
+            <span class="field-label" id="engine-label">Motore della voce</span>
+            <div class="options" id="engine-group" role="group" aria-labelledby="engine-label">
+              <button type="button" class="opt" data-engine="pc" aria-pressed="true"><b>Voce del PC</b><span>Gratis e locale: nessun dato esce dal computer</span></button>
+              <button type="button" class="opt" data-engine="eleven" aria-pressed="false"><b>ElevenLabs</b><span id="eleven-sub">La più realistica, online, con limite mensile</span></button>
+            </div>
+            <div id="eleven-box" class="lock-note hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
+              <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:0">
+                <span id="eleven-text">Incolla la tua chiave API di ElevenLabs (elevenlabs.io → Profilo → API Keys). Il testo della storia viene inviato a ElevenLabs.</span>
+                <div class="actions" id="eleven-form">
+                  <input type="password" id="eleven-key" placeholder="Chiave API ElevenLabs" autocomplete="off" spellcheck="false" aria-label="Chiave API ElevenLabs" style="flex:1;min-width:180px" />
+                  <button type="button" id="btn-eleven-save" class="btn btn-sm">Salva chiave</button>
+                </div>
+                <span class="hint">Piano gratuito: circa 10 minuti di voce al mese, solo per uso non commerciale e citando ElevenLabs. Per video monetizzati serve almeno il piano Starter. Se i crediti finiscono, il video continua con la voce del PC.</span>
+                <button type="button" id="btn-eleven-remove" class="btn btn-sm btn-ghost hidden" style="align-self:flex-start">Rimuovi chiave</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="voice-select" id="voice-label">Voce</label>
+            <div class="voice-row">
+              <select id="voice-select"><option value="">caricamento…</option></select>
+              <button type="button" id="btn-voice-preview" class="btn" aria-label="Ascolta la voce scelta">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
+                <span id="voice-preview-label">Ascolta</span>
+              </button>
+            </div>
+            <span id="voice-hint" class="hint"></span>
+          </div>
+          <div id="voice-extra" class="voice-extra"></div>
+
           <div id="idea-lock" class="lock-note hidden">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
             <span>Idea, durata e parti sono fissate per questo progetto. Per cambiarle usa <b>Riscrivi da zero</b>, oppure crea un nuovo video.</span>
@@ -553,7 +614,7 @@
               <span id="btn-generate-label">Solo il copione</span>
             </button>
           </div>
-          <span class="hint" id="generate-hint">Crea tutto usa la voce e lo stile dei disegni scelti al passo 3.</span>
+          <span class="hint" id="generate-hint">Crea tutto usa la voce scelta qui sopra e lo stile dei disegni scelto al passo 3.</span>
 
           <details class="more" id="manage" hidden>
             <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Gestisci progetto</summary>
@@ -580,6 +641,7 @@
             <button type="button" id="btn-export-json" class="btn btn-sm btn-ghost">Copia JSON</button>
           </div>
         </div>
+        <div id="lang-note" class="lock-note hidden"><span id="lang-note-text"></span></div>
         <div id="meta-box" class="card hidden"></div>
         <div id="beat-list" class="beat-list"></div>
         <div class="actions" id="script-actions">
@@ -598,42 +660,18 @@
       <section class="panel hidden" id="panel-video" role="tabpanel" aria-labelledby="tab-video">
         <div class="panel-head">
           <div>
-            <h2>Scegli la voce e crea il video</h2>
+            <h2>Crea il video</h2>
             <p>L'app legge il copione, disegna sul tuo PC un'illustrazione per ogni scena, la anima con uno zoom lento e mette i sottotitoli bianchi in basso. Ottieni il video completo più una clip per ogni parte.</p>
           </div>
         </div>
 
         <div class="card">
           <div class="field">
-            <span class="field-label" id="engine-label">Motore della voce</span>
-            <div class="options" id="engine-group" role="group" aria-labelledby="engine-label">
-              <button type="button" class="opt" data-engine="pc" aria-pressed="true"><b>Voce del PC</b><span>Gratis e locale: nessun dato esce dal computer</span></button>
-              <button type="button" class="opt" data-engine="eleven" aria-pressed="false"><b>ElevenLabs</b><span id="eleven-sub">La più realistica, online, con limite mensile</span></button>
+            <span class="field-label">Voce</span>
+            <div class="voice-row" style="align-items:center">
+              <span id="voice-summary" class="hint" style="flex:1;min-width:0"></span>
+              <button type="button" class="btn btn-sm" id="btn-voice-change">Cambia al passo 1</button>
             </div>
-            <div id="eleven-box" class="lock-note hidden">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
-              <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:0">
-                <span id="eleven-text">Incolla la tua chiave API di ElevenLabs (elevenlabs.io → Profilo → API Keys). Il testo della storia viene inviato a ElevenLabs.</span>
-                <div class="actions" id="eleven-form">
-                  <input type="password" id="eleven-key" placeholder="Chiave API ElevenLabs" autocomplete="off" spellcheck="false" aria-label="Chiave API ElevenLabs" style="flex:1;min-width:180px" />
-                  <button type="button" id="btn-eleven-save" class="btn btn-sm">Salva chiave</button>
-                </div>
-                <span class="hint">Piano gratuito: circa 10 minuti di voce al mese, solo per uso non commerciale e citando ElevenLabs. Per video monetizzati serve almeno il piano Starter. Se i crediti finiscono, il video continua con la voce del PC.</span>
-                <button type="button" id="btn-eleven-remove" class="btn btn-sm btn-ghost hidden" style="align-self:flex-start">Rimuovi chiave</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="voice-select">Voce</label>
-            <div class="voice-row">
-              <select id="voice-select"><option value="">caricamento…</option></select>
-              <button type="button" id="btn-voice-preview" class="btn" aria-label="Ascolta la voce scelta">
-                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
-                <span id="voice-preview-label">Ascolta</span>
-              </button>
-            </div>
-            <span id="voice-hint" class="hint"></span>
           </div>
 
           <div class="field">
@@ -691,7 +729,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg>
               Crea il video
             </button>
-            <span class="hint">Formato 1080×1920, 30 fps, H.264.</span>
+            <span class="hint" id="render-hint">Formato 1080×1920, 30 fps, H.264.</span>
           </div>
         </div>
 
@@ -706,7 +744,7 @@
         <div class="panel-head">
           <div>
             <h2>Pubblica su YouTube e TikTok</h2>
-            <p>Il video lungo va su YouTube con titolo, descrizione e capitoli già pronti. Le clip vanno su TikTok, ognuna con la sua didascalia che rimanda alla parte successiva.</p>
+            <p>Il video lungo va su YouTube con titolo, descrizione e capitoli già pronti. Le clip vanno su TikTok e, se vuoi, anche su YouTube come Shorts, ognuna con la sua didascalia che rimanda alla parte successiva.</p>
           </div>
         </div>
 
@@ -765,6 +803,16 @@
             <span class="hint">Finché Google non verifica il tuo progetto API, YouTube tiene privati i video caricati dalle app.</span>
           </div>
           <label class="check"><input type="checkbox" id="yt-thumb" checked /> <span>Carica anche la copertina 16:9 (serve un canale verificato con il telefono)</span></label>
+
+          <div class="field" id="shorts-field">
+            <span class="field-label">YouTube Shorts · le clip TikTok, identiche</span>
+            <div id="shorts-list" class="copy-list"></div>
+            <span class="hint">Ogni clip diventa uno Short con #Shorts nel titolo, la descrizione e gli hashtag della sua parte, e la stessa visibilità scelta sopra. YouTube considera Short i video verticali fino a 3 minuti.</span>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn" id="btn-pub-shorts">Carica solo gli Shorts</button>
+            <button type="button" class="btn btn-primary" id="btn-pub-ytall">Tutto YouTube: video intero + Shorts</button>
+          </div>
         </div>
 
         <!-- TikTok -->
@@ -811,7 +859,8 @@
         </div>
 
         <div class="actions">
-          <label class="check"><input type="checkbox" id="pub-yt" checked /> <span>YouTube</span></label>
+          <label class="check"><input type="checkbox" id="pub-yt" checked /> <span>YouTube (video intero)</span></label>
+          <label class="check"><input type="checkbox" id="pub-shorts" /> <span>YouTube Shorts</span></label>
           <label class="check"><input type="checkbox" id="pub-tt" /> <span>TikTok</span></label>
           <button type="button" id="btn-publish" class="btn btn-primary btn-lg">Pubblica ora</button>
         </div>
@@ -891,6 +940,9 @@
       style: "cartoon",
       illustrations: null,
       engine: "pc",
+      langMain: "it",
+      langExtra: [],
+      lang: null,
       allVoices: [],
       eleven: null,
       ytPrivacy: "private",
@@ -987,27 +1039,109 @@
       } catch (e) { state.allVoices = []; }
       fillVoices();
     }
-    function fillVoices() {
-      const sel = $("voice-select");
-      const group = state.engine === "eleven" ? "eleven" : "pc";
-      const list = (state.allVoices || []).filter((v) => (v.group || "pc") === group);
+    // ------------------------------------------------------------ lingue
+    const LANG_NAMES = { it: "Italiano", en: "English", es: "Español", fr: "Français", de: "Deutsch", pt: "Português" };
+    const LANG_IT = { it: "italiano", en: "inglese", es: "spagnolo", fr: "francese", de: "tedesco", pt: "portoghese" };
+    const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>';
+    function selectedLangs() { return [state.langMain, ...state.langExtra.filter((c) => c !== state.langMain && LANG_NAMES[c])]; }
+    function storeLangs() { localSet("lang_main", state.langMain); localSet("lang_extra", state.langExtra.join(",")); }
+    function loadStoredLangs() {
+      const main = localGet("lang_main");
+      state.langMain = LANG_NAMES[main] ? main : "it";
+      state.langExtra = (localGet("lang_extra") || "").split(",").filter((c) => LANG_NAMES[c] && c !== state.langMain);
+    }
+    function listNames(codes) {
+      const n = codes.map((c) => LANG_IT[c]);
+      return n.length > 1 ? n.slice(0, -1).join(", ") + " e " + n[n.length - 1] : n.join("");
+    }
+    function renderLangPicker() {
+      const p = state.project;
+      const fixedMain = !!(p && p.has_plan);
+      const sel = $("lang-main");
+      if (!sel.options.length) sel.innerHTML = Object.entries(LANG_NAMES).map(([c, n]) => `<option value="${c}">${esc(n)}</option>`).join("");
+      sel.value = state.langMain;
+      sel.disabled = fixedMain || !!state.job;
+      $("lang-extra").innerHTML = Object.entries(LANG_NAMES).filter(([c]) => c !== state.langMain)
+        .map(([c, n]) => `<button type="button" class="lang-chip" data-lang="${c}" aria-pressed="${state.langExtra.includes(c)}"${state.job ? " disabled" : ""}>${esc(n)}</button>`).join("");
+      $("lang-extra").querySelectorAll(".lang-chip").forEach((b) => b.addEventListener("click", () => {
+        const c = b.dataset.lang;
+        state.langExtra = state.langExtra.includes(c) ? state.langExtra.filter((x) => x !== c) : [...state.langExtra, c];
+        storeLangs();
+        renderLangPicker();
+        fillVoices();
+      }));
+      const langs = selectedLangs();
+      let hint = langs.length > 1
+        ? `La storia viene scritta in ${LANG_IT[langs[0]]} e tradotta in ${listNames(langs.slice(1))}. Per ogni lingua ottieni video completo, clip TikTok, sottotitoli e testi social, con gli stessi disegni.`
+        : "Scegli altre lingue per avere lo stesso video tradotto, ognuno con la sua voce.";
+      if (fixedMain) hint += ` La lingua della storia è fissata per questo progetto: per aggiungere una lingua selezionala e premi Crea il video al passo 3.`;
+      $("lang-hint").textContent = hint;
+      $("render-hint").textContent = langs.length > 1
+        ? `Crea il video in ${listNames(langs)}. Formato 1080×1920, 30 fps, H.264.`
+        : "Formato 1080×1920, 30 fps, H.264.";
+    }
+    $("lang-main").addEventListener("change", (e) => {
+      state.langMain = e.target.value;
+      state.langExtra = state.langExtra.filter((c) => c !== state.langMain);
+      storeLangs();
+      renderLangPicker();
+      fillVoices();
+    });
+
+    function voiceGroup() { return state.engine === "eleven" ? "eleven" : "pc"; }
+    function voiceList(lang) {
+      const group = voiceGroup();
+      return (state.allVoices || []).filter((v) => (v.group || "pc") === group && (!v.lang || v.lang === "*" || v.lang === lang));
+    }
+    function savedVoice(lang) {
+      const g = voiceGroup();
+      return localGet(`voice_${g}_${lang}`) || (lang === "it" ? localGet("voice_" + g) : null);
+    }
+    function fillSelect(sel, lang) {
+      const list = voiceList(lang);
       sel.innerHTML = list.map((v) => `<option value="${esc(v.id)}">${esc(v.label)}</option>`).join("")
-        || `<option value="">${group === "eleven" ? "salva la chiave ElevenLabs per vedere le voci" : "nessuna voce"}</option>`;
-      const saved = localGet("voice_" + group);
+        || `<option value="">${voiceGroup() === "eleven" ? "salva la chiave ElevenLabs per vedere le voci" : "nessuna voce per questa lingua"}</option>`;
+      const saved = savedVoice(lang);
       if (saved && list.some((v) => v.id === saved)) sel.value = saved;
+    }
+    function fillVoices() {
+      const langs = selectedLangs();
+      fillSelect($("voice-select"), state.langMain);
+      $("voice-label").textContent = langs.length > 1 ? `Voce · ${LANG_NAMES[state.langMain]}` : "Voce";
+      $("voice-extra").innerHTML = langs.slice(1).map((c) => `<div class="field">
+          <label for="voice-${c}">Voce · ${esc(LANG_NAMES[c])}</label>
+          <div class="voice-row"><select id="voice-${c}" data-voice-lang="${c}"></select>
+            <button type="button" class="btn" data-preview-lang="${c}" aria-label="Ascolta la voce ${esc(LANG_NAMES[c])}">${ICON_PLAY}<span>Ascolta</span></button></div>
+        </div>`).join("");
+      langs.slice(1).forEach((c) => fillSelect($(`voice-${c}`), c));
+      $("voice-extra").querySelectorAll("[data-voice-lang]").forEach((sel) => sel.addEventListener("change", () => {
+        localSet(`voice_${voiceGroup()}_${sel.dataset.voiceLang}`, sel.value);
+        stopVoicePreview();
+        voiceSummary();
+      }));
+      $("voice-extra").querySelectorAll("[data-preview-lang]").forEach((b) => b.addEventListener("click", () =>
+        playPreview($(`voice-${b.dataset.previewLang}`).value, b.dataset.previewLang, b)));
       voiceHint();
+    }
+    function voicesMap() {
+      const out = {};
+      selectedLangs().forEach((c) => {
+        const sel = c === state.langMain ? $("voice-select") : $(`voice-${c}`);
+        if (sel && sel.value) out[c] = sel.value;
+      });
+      return out;
     }
     function setEngine(engine) {
       state.engine = engine;
       localSet("engine", engine);
-      $("music-range").addEventListener("input", (e) => { $("music-val").textContent = e.target.value === "0" ? "spenta" : e.target.value + "%"; localSet("music", e.target.value); });
-    $("sfx-check").addEventListener("change", (e) => localSet("sfx", e.target.checked ? "1" : "0"));
-    { const m = localGet("music"); if (m !== null) { $("music-range").value = m; $("music-val").textContent = m === "0" ? "spenta" : m + "%"; } }
-    { const f = localGet("sfx"); if (f !== null) $("sfx-check").checked = f === "1"; }
-    document.querySelectorAll("#engine-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.engine === engine)));
+      document.querySelectorAll("#engine-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.engine === engine)));
       $("eleven-box").classList.toggle("hidden", engine !== "eleven");
       fillVoices();
     }
+    $("music-range").addEventListener("input", (e) => { $("music-val").textContent = e.target.value === "0" ? "spenta" : e.target.value + "%"; localSet("music", e.target.value); });
+    $("sfx-check").addEventListener("change", (e) => localSet("sfx", e.target.checked ? "1" : "0"));
+    { const m = localGet("music"); if (m !== null) { $("music-range").value = m; $("music-val").textContent = m === "0" ? "spenta" : m + "%"; } }
+    { const f = localGet("sfx"); if (f !== null) $("sfx-check").checked = f === "1"; }
     async function loadEleven() {
       let st = { configured: false };
       try { st = await api("/api/eleven/status"); } catch { /* offline */ }
@@ -1040,7 +1174,18 @@
       await loadEleven();
       await loadVoices();
     });
+    function voiceSummary() {
+      const langs = selectedLangs();
+      const parts = langs.map((c) => {
+        const sel = c === state.langMain ? $("voice-select") : $(`voice-${c}`);
+        const label = sel && sel.value ? (sel.selectedOptions[0]?.textContent || "").split(":")[0] : "nessuna voce scelta";
+        return langs.length > 1 ? `${LANG_NAMES[c]}: ${label}` : label;
+      });
+      $("voice-summary").textContent = `${state.engine === "eleven" ? "ElevenLabs" : "Voce del PC"} · ${parts.join(" · ")}`;
+    }
+    $("btn-voice-change").addEventListener("click", () => { setStep("idea"); $("engine-group").scrollIntoView({ behavior: "smooth", block: "center" }); });
     function voiceHint() {
+      voiceSummary();
       const online = $("voice-select").value.startsWith("edge:");
       const v = $("voice-select").value;
       if (v.startsWith("eleven:")) {
@@ -1107,6 +1252,8 @@
       await flushSave();
       stopPreview();
       hideVideo();
+      const sameProject = (id || null) === state.projectId;
+      if (!sameProject) state.lang = null;
       state.projectId = id || null;
       state.project = null;
       state.beats = [];
@@ -1114,9 +1261,12 @@
       $("save-state").textContent = "";
       if (id) {
         try {
-          const p = await api(`/api/projects/${id}`);
+          const p = await api(`/api/projects/${id}${state.lang ? "?lang=" + state.lang : ""}`);
           state.project = p;
+          state.lang = p.lang || null;
           state.beats = p.beats || [];
+          const codes = (p.languages || []).map((l) => l.code);
+          if (!sameProject && codes.length) { state.langMain = codes[0]; state.langExtra = codes.slice(1); fillVoices(); }
           $("topic-input").value = p.topic || "";
           const b = p.brief || {};
           if (b.duration_minutes) $("duration-range").value = b.duration_minutes;
@@ -1127,6 +1277,7 @@
         } catch (e) { log("system", e.message, "error"); state.projectId = null; }
       } else {
         localSet("project", "");
+        if (!sameProject) { loadStoredLangs(); fillVoices(); }
       }
       if (autoStep) setStep(bestStep(state.project));
       renderAll();
@@ -1148,7 +1299,41 @@
         t.tabIndex = on ? 0 : -1;
       });
       ["idea", "script", "video", "publish"].forEach((s) => $(`panel-${s}`).classList.toggle("hidden", s !== step));
+      renderLangBar();
       if (step === "publish") loadPublish();
+    }
+
+    function isTranslation() {
+      const p = state.project;
+      return !!(p && p.lang && p.languages?.length && p.lang !== p.languages[0].code);
+    }
+    function renderLangBar() {
+      const bar = $("lang-bar");
+      const langs = state.project?.languages || [];
+      const show = langs.length > 1 && state.step !== "idea";
+      bar.classList.toggle("hidden", !show);
+      if (!show) { bar.innerHTML = ""; return; }
+      bar.innerHTML = `<span class="lb-label">Lingua</span>` + langs.map((l) => {
+        let st, ok = false;
+        if (state.step === "publish") {
+          const done = [l.youtube && "YouTube", l.shorts && "Shorts", l.tiktok && "TikTok"].filter(Boolean);
+          ok = done.length > 0;
+          st = ok ? "Pubblicato: " + done.join(" e ") : l.has_video ? "Da pubblicare" : "Video da creare";
+        } else {
+          ok = l.has_video;
+          st = l.has_video ? "Video pronto" : l.has_script ? (l.main ? "Copione pronto" : "Traduzione pronta") : (l.main ? "Da scrivere" : "Da tradurre");
+        }
+        return `<button type="button" class="lang-tab" role="tab" data-lang="${esc(l.code)}" aria-selected="${l.code === state.project.lang}">
+          <b>${esc(l.name)}${l.main ? " · principale" : ""}</b><span class="st${ok ? " ok" : ""}">${esc(st)}</span></button>`;
+      }).join("");
+      bar.querySelectorAll(".lang-tab").forEach((b) => b.addEventListener("click", () => switchLang(b.dataset.lang)));
+    }
+    async function switchLang(code) {
+      if (!state.projectId || code === state.project?.lang) return;
+      await flushSave();
+      state.lang = code;
+      await openProject(state.projectId);
+      if (state.step === "publish") loadPublish();
     }
 
     function renderSteps() {
@@ -1161,8 +1346,8 @@
       $("sub-script").textContent = n ? `${n} blocchi · ${fmtTime(totalSeconds())}` : "Rileggi e correggi";
       $("sub-video").textContent = p && p.has_video ? `${p.outputs?.clips?.length || 0} clip pronte` : "Voce, disegni, clip";
       const h = state.publish?.history || {};
-      $("tab-publish").classList.toggle("done", !!(h.youtube || h.tiktok));
-      $("sub-publish").textContent = h.youtube || h.tiktok ? "Pubblicato" : "YouTube e TikTok";
+      $("tab-publish").classList.toggle("done", !!(h.youtube || h.shorts || h.tiktok));
+      $("sub-publish").textContent = h.youtube || h.shorts || h.tiktok ? "Pubblicato" : "YouTube, Shorts e TikTok";
     }
 
     function renderHint() {
@@ -1194,21 +1379,28 @@
       document.querySelectorAll("#format-group .opt, #examples .example").forEach((b) => (b.disabled = locked || busy));
       $("idea-lock").classList.toggle("hidden", !locked);
       $("manage").hidden = !has;
-      $("btn-add-beat").classList.toggle("hidden", !has || !state.beats.length);
+      $("btn-add-beat").classList.toggle("hidden", !has || !state.beats.length || isTranslation());
+      $("lang-note").classList.toggle("hidden", !isTranslation());
+      if (isTranslation()) {
+        $("lang-note-text").textContent = `Stai correggendo la traduzione in ${LANG_IT[p.lang]}. Puoi cambiare le frasi ma non il numero di blocchi, perché i disegni sono gli stessi della lingua principale. Se modifichi il copione principale, la traduzione viene rifatta da capo alla prossima creazione del video.`;
+      }
       $("btn-to-video").classList.toggle("hidden", !state.beats.length);
 
       const scriptReady = has && p && p.has_script;
       $("btn-generate-label").textContent = has && p && p.has_plan && !p.has_script ? "Riprendi il copione" : scriptReady ? "Copione già pronto" : "Solo il copione";
       $("btn-generate").disabled = busy || scriptReady;
       $("btn-auto").disabled = busy || !!(has && p && p.has_plan);
-      $("generate-hint").textContent = has && p && p.has_plan ? "Questo progetto ha già una storia: continua dai passi 2 e 3, oppure premi Nuovo video." : "Crea tutto usa la voce e lo stile dei disegni scelti al passo 3.";
+      $("generate-hint").textContent = has && p && p.has_plan ? "Questo progetto ha già una storia: continua dai passi 2 e 3, oppure premi Nuovo video." : "Crea tutto usa la voce scelta qui sopra e lo stile dei disegni scelto al passo 3.";
       $("btn-publish").disabled = busy || !(p && p.has_video);
+      $("btn-pub-shorts").disabled = $("btn-pub-ytall").disabled = busy || !(state.publish?.shorts?.length);
       $("btn-render").disabled = busy || !state.beats.length;
       $("btn-regenerate").disabled = busy;
       $("btn-delete").disabled = busy;
       $("jobbar").classList.toggle("hidden", !busy);
       document.documentElement.style.setProperty("--jobh", busy ? $("jobbar").offsetHeight + "px" : "0px");
       renderProjectList();
+      renderLangPicker();
+      renderLangBar();
       renderSteps();
       renderHint();
       renderMeta();
@@ -1280,7 +1472,7 @@
           <div class="beat-meta">
             <span class="beat-role"><span class="beat-num">${String(idx + 1).padStart(2, "0")}</span>${role ? esc(role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()) : "Blocco"}</span>
             <span class="beat-stats"><span data-time="${idx}"></span><span data-wc="${idx}">${words(beat.text)} parole</span>
-              <button type="button" class="beat-del" aria-label="Elimina blocco ${idx + 1}" title="Elimina blocco" data-del="${idx}">${ICON_TRASH}</button></span>
+              ${isTranslation() ? "" : `<button type="button" class="beat-del" aria-label="Elimina blocco ${idx + 1}" title="Elimina blocco" data-del="${idx}">${ICON_TRASH}</button>`}</span>
           </div>
           <textarea class="beat-editor" data-idx="${idx}" aria-label="Testo del blocco ${idx + 1}">${esc(beat.text)}</textarea>
           <div class="beat-cue-row">
@@ -1370,7 +1562,7 @@
       clearTimeout(state.saveTimer);
       if (!state.dirty || !state.projectId) return;
       try {
-        await api(`/api/projects/${state.projectId}/beats`, { method: "PUT", keepalive, body: JSON.stringify({ beats: state.beats }) });
+        await api(`/api/projects/${state.projectId}/beats${state.project?.lang ? "?lang=" + state.project.lang : ""}`, { method: "PUT", keepalive, body: JSON.stringify({ beats: state.beats }) });
         state.dirty = false;
         updateMetrics();
         renderSteps();
@@ -1392,12 +1584,14 @@
       $("btn-show-video").classList.add("hidden");
       const rows = [];
       const url = (p, dl) => `/api/projects/${id}/file/${p}${dl ? "?download=1" : ""}`;
+      const pre = out?.prefix || "";
+      const tag = (state.project?.languages?.length || 0) > 1 ? ` · ${LANG_NAMES[state.project.lang] || ""}` : "";
       if (id && out) {
-        if (out.files.includes("render/full_video.mp4")) rows.push(["Video completo", "render/full_video.mp4", true]);
+        if (out.files.includes(pre + "render/full_video.mp4")) rows.push(["Video completo" + tag, pre + "render/full_video.mp4", true]);
         out.clips.forEach((c, i) => rows.push([`Clip TikTok, parte ${i + 1}`, c, true]));
-        if (out.files.includes("render/subtitles.srt")) rows.push(["Sottotitoli", "render/subtitles.srt", false]);
-        if (out.files.includes("script.md")) rows.push(["Copione", "script.md", false]);
-        if (out.files.includes("metadata.json")) rows.push(["Titoli e hashtag", "metadata.json", false]);
+        if (out.files.includes(pre + "render/subtitles.srt")) rows.push(["Sottotitoli", pre + "render/subtitles.srt", false]);
+        if (out.files.includes(pre + "script.md")) rows.push(["Copione", pre + "script.md", false]);
+        if (out.files.includes(pre + "metadata.json")) rows.push(["Titoli e hashtag", pre + "metadata.json", false]);
       }
       if (!rows.length) {
         box.innerHTML = `<p class="hint">I file compaiono qui dopo aver creato il video: video completo, una clip per parte e sottotitoli .srt.</p>`;
@@ -1414,9 +1608,9 @@
         box.appendChild(row);
       });
       box.querySelectorAll("[data-play]").forEach((b) => b.addEventListener("click", () => showVideo(url(b.dataset.play) + "?v=" + Date.now())));
-      if (out.files.includes("render/full_video.mp4")) {
+      if (out.files.includes(pre + "render/full_video.mp4")) {
         $("btn-show-video").classList.remove("hidden");
-        $("btn-show-video").onclick = () => showVideo(url("render/full_video.mp4") + "?v=" + Date.now());
+        $("btn-show-video").onclick = () => showVideo(url(pre + "render/full_video.mp4") + "?v=" + Date.now());
       }
     }
     function showVideo(src) {
@@ -1473,8 +1667,9 @@
         if (ok) {
           toast({ render: "Video pronto", auto: "Tutto pronto", publish: "Pubblicazione completata" }[job.kind] || "Copione pronto");
           setStep({ render: "video", auto: "video", publish: "publish" }[job.kind] || "script");
-          if (["render", "auto"].includes(job.kind) && state.project?.outputs?.files.includes("render/full_video.mp4")) {
-            showVideo(`/api/projects/${pid}/file/render/full_video.mp4?v=${Date.now()}`);
+          const full = (state.project?.outputs?.prefix || "") + "render/full_video.mp4";
+          if (["render", "auto"].includes(job.kind) && state.project?.outputs?.files.includes(full)) {
+            showVideo(`/api/projects/${pid}/file/${full}?v=${Date.now()}`);
           }
         } else {
           const why = job.status === "cancelled" ? "Lavoro annullato." : `Lavoro non riuscito${job.error ? ": " + job.error : "."} Apri il registro per i dettagli.`;
@@ -1494,7 +1689,7 @@
       if (state.health && state.health.model_loaded === false && model === state.health.model) log("llm_service.py", "Il modello non risulta caricato: LM Studio proverà a caricarlo (può richiedere un minuto).", "warn");
       try {
         const res = await api("/api/generate", { method: "POST", body: JSON.stringify({
-          topic, format: state.format, model, project_id: state.projectId,
+          topic, format: state.format, model, project_id: state.projectId, languages: selectedLangs(),
           duration_minutes: Number($("duration-range").value), parts: Number($("parts-range").value), wpm: wpm(),
         }) });
         log("llm_service.py", `Generazione avviata con ${model}`);
@@ -1511,7 +1706,7 @@
       if (!topic) { toast("Scrivi prima un'idea"); $("topic-input").focus(); return; }
       try {
         const res = await api("/api/auto", { method: "POST", body: JSON.stringify({
-          topic, format: state.format, model,
+          topic, format: state.format, model, languages: selectedLangs(), voices: voicesMap(),
           duration_minutes: Number($("duration-range").value), parts: Number($("parts-range").value), wpm: wpm(),
           voice: $("voice-select").value || null, visuals: $("no-visuals").checked ? "none" : "ai", style: state.style,
           music: Number($("music-range").value) / 100, sfx: $("sfx-check").checked,
@@ -1529,7 +1724,7 @@
     $("btn-regenerate").addEventListener("click", async () => {
       if (!state.projectId || !confirm("Riscrivere concept, struttura e testo da zero? Il copione attuale verrà sostituito.")) return;
       try {
-        const res = await api("/api/generate", { method: "POST", body: JSON.stringify({ project_id: state.projectId, restart: true, model: $("llm-select").value, wpm: wpm() }) });
+        const res = await api("/api/generate", { method: "POST", body: JSON.stringify({ project_id: state.projectId, restart: true, model: $("llm-select").value, wpm: wpm(), languages: selectedLangs() }) });
         await openProject(res.project_id);
         attachJob({ id: res.job_id, project_id: res.project_id, kind: "generate" });
       } catch (e) { log("llm_service.py", e.message, "error"); toast(e.message); }
@@ -1542,12 +1737,13 @@
       try {
         const visuals = $("no-visuals").checked ? "none" : "ai";
         const res = await api(`/api/projects/${state.projectId}/render`, { method: "POST", body: JSON.stringify({
-          voice: voice || null, wpm: wpm(), cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
+          voice: voice || null, voices: voicesMap(), languages: selectedLangs(),
+          wpm: wpm(), cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
           visuals, style: state.style, model: $("llm-select").value || null,
           music: Number($("music-range").value) / 100, sfx: $("sfx-check").checked,
         }) });
         hideVideo();
-        log("tts_engine", `Render avviato: voce ${voice}, ${wpm()} WPM, taglio silenzi > ${$("silence-range").value}ms`);
+        log("tts_engine", `Render avviato (${selectedLangs().map((c) => LANG_NAMES[c]).join(", ")}): ${wpm()} WPM, taglio silenzi > ${$("silence-range").value}ms`);
         attachJob({ id: res.job_id, project_id: state.projectId, kind: "render" });
       } catch (e) { log("compositor", e.message, "error"); toast(e.message); }
     });
@@ -1664,8 +1860,10 @@
       await loadPublishStatus();
       state.publish = null;
       if (!state.projectId) { $("tt-captions").innerHTML = '<p class="hint">Apri un progetto con il video pronto.</p>'; $("pub-history").innerHTML = ""; return; }
-      try { state.publish = await api(`/api/projects/${state.projectId}/publish`); } catch { return; }
+      const lq = state.project?.lang ? "?lang=" + state.project.lang : "";
+      try { state.publish = await api(`/api/projects/${state.projectId}/publish${lq}`); } catch { return; }
       const d = state.publish;
+      $("cover-text").value = state.project?.metadata?.thumbnail_text || "";
       $("yt-title").value = d.youtube.title; $("yt-title-count").textContent = `${d.youtube.title.length}/100`;
       $("yt-desc").value = d.youtube.description;
       $("tt-captions").innerHTML = d.tiktok.length ? d.tiktok.map((c, i) => `<div class="cap-row"><label for="cap-${i}">Clip ${i + 1} · ${esc(c.clip.split("/").pop())}</label><textarea id="cap-${i}" rows="2" data-cap="${i}">${esc(c.caption)}</textarea><div class="actions"><button type="button" class="btn btn-sm btn-primary" data-tt-upload="${i}">Carica clip ${i + 1} su TikTok</button><button type="button" class="btn btn-sm btn-ghost" data-tt-copy="${i}">Copia didascalia</button></div></div>`).join("")
@@ -1675,15 +1873,25 @@
         await copyCaption(b.dataset.ttUpload);
         openClipFolder();
         window.open("https://www.tiktok.com/tiktokstudio/upload", "_blank", "noopener");
-        toast(`Didascalia della clip ${Number(b.dataset.ttUpload) + 1} copiata: trascina il video e incolla con Ctrl+V`);
+        toast(`Didascalia della clip ${Number(b.dataset.ttUpload) + 1}${langTag()} copiata: trascina il video e incolla con Ctrl+V`);
       }));
+      const shorts = d.shorts || [];
+      $("shorts-list").innerHTML = shorts.length ? shorts.map((c, i) => `<div class="cap-row">
+          <label for="short-${i}">Short ${i + 1} · ${esc(c.clip.split("/").pop())}${c.seconds ? ` · ${fmtTime(c.seconds)}` : ""}${c.seconds > 180 ? " · oltre 3 minuti: uscirà come video normale" : ""}</label>
+          <input type="text" id="short-${i}" maxlength="100" data-short="${i}" value="${esc(c.title)}" aria-label="Titolo dello Short ${i + 1}" /></div>`).join("")
+        : '<p class="hint">Gli Shorts compaiono qui dopo aver creato il video.</p>';
+      $("btn-pub-shorts").disabled = $("btn-pub-ytall").disabled = !shorts.length || !!state.job;
       renderCovers(d);
       const h = d.history || {};
       const rows = [];
       if (h.youtube) rows.push(`<div class="out-row"><span class="n"><b>YouTube · ${esc(h.youtube.privacy)}</b><span>${esc(h.youtube.at || "")}</span></span><span class="acts"><a class="btn btn-sm" href="${esc(h.youtube.url)}" target="_blank" rel="noopener">Apri</a></span></div>`);
+      (h.shorts?.items || []).forEach((t, i) => rows.push(`<div class="out-row"><span class="n"><b>YouTube Short ${i + 1}${t.privacy ? " · " + esc(t.privacy) : ""}</b><span>${esc(t.error ? "errore: " + t.error : h.shorts.at || "")}</span></span>${t.url ? `<span class="acts"><a class="btn btn-sm" href="${esc(t.url)}" target="_blank" rel="noopener">Apri</a></span>` : ""}</div>`));
       (h.tiktok?.items || []).forEach((t, i) => rows.push(`<div class="out-row"><span class="n"><b>TikTok clip ${i + 1}</b><span>${esc(t.error ? "errore: " + t.error : t.status === "SEND_TO_USER_INBOX" ? "nella casella dell'app TikTok" : t.status)}</span></span></div>`));
       $("pub-history").innerHTML = rows.length ? `<h3>Già pubblicato</h3>` + rows.join("") : "";
       renderSteps();
+    }
+    function langTag(sep = " ") {
+      return (state.project?.languages?.length || 0) > 1 ? `${sep}${LANG_IT[state.project.lang] || ""}` : "";
     }
     async function copyCaption(i) {
       const text = $(`cap-${i}`).value;
@@ -1692,7 +1900,8 @@
     }
     async function openClipFolder() {
       if (!state.projectId) return;
-      try { await api(`/api/projects/${state.projectId}/open-folder`, { method: "POST" }); }
+      const sub = state.publish?.folder || "render/tiktok";
+      try { await api(`/api/projects/${state.projectId}/open-folder?sub=${encodeURIComponent(sub)}`, { method: "POST" }); }
       catch (e) { toast("Cartella delle clip non trovata: crea prima il video"); }
     }
     $("btn-tt-folder").addEventListener("click", openClipFolder);
@@ -1711,7 +1920,9 @@
       if (!state.projectId) return;
       $("btn-covers").disabled = true;
       try {
-        await api(`/api/projects/${state.projectId}/covers`, { method: "POST", body: JSON.stringify({ thumbnail_text: $("cover-text").value.trim() }) });
+        const text = $("cover-text").value.trim();
+        await api(`/api/projects/${state.projectId}/covers${state.project?.lang ? "?lang=" + state.project.lang : ""}`, { method: "POST", body: JSON.stringify({ thumbnail_text: text }) });
+        if (text && state.project?.metadata) state.project.metadata.thumbnail_text = text;
         toast("Copertine aggiornate");
         await loadPublish();
       } catch (e) { toast("Copertine non create: " + e.message); }
@@ -1743,24 +1954,29 @@
     }
     window.addEventListener("message", (e) => { if (e.origin === location.origin && e.data === "tf-connected") { toast("Account collegato"); loadPublishStatus(); } });
     window.addEventListener("focus", () => { if (state.step === "publish") loadPublishStatus(); });
-    $("btn-publish").addEventListener("click", async () => {
+    $("btn-publish").addEventListener("click", () => publishNow({ yt: $("pub-yt").checked, shorts: $("pub-shorts").checked, tt: $("pub-tt").checked }));
+    $("btn-pub-shorts").addEventListener("click", () => publishNow({ yt: false, shorts: true, tt: false }));
+    $("btn-pub-ytall").addEventListener("click", () => publishNow({ yt: true, shorts: true, tt: false }));
+    async function publishNow({ yt, shorts, tt }) {
       if (!state.projectId) return;
-      const yt = $("pub-yt").checked, tt = $("pub-tt").checked;
       const st = state.pubStatus || {};
-      if (yt && !st.youtube?.connected) { toast("Collega prima YouTube"); return; }
+      if ((yt || shorts) && !st.youtube?.connected) { toast("Collega prima YouTube"); return; }
       if (tt && !st.tiktok?.connected) { toast("Collega prima TikTok"); return; }
-      if (!yt && !tt) { toast("Scegli YouTube, TikTok o entrambi"); return; }
-      const where = [yt && "YouTube", tt && "TikTok"].filter(Boolean).join(" e ");
-      if (!confirm(`Caricare il video su ${where}?`)) return;
+      if (!yt && !tt && !shorts) { toast("Scegli YouTube, YouTube Shorts o TikTok"); return; }
+      const n = state.publish?.shorts?.length || 0;
+      const what = [yt && "il video intero su YouTube", shorts && `${n} Shorts su YouTube`, tt && "le clip su TikTok"].filter(Boolean);
+      const list = what.length > 1 ? what.slice(0, -1).join(", ") + " e " + what[what.length - 1] : what[0];
+      if (!confirm(`Caricare${langTag(" in ")} ${list}?`)) return;
       try {
-        const res = await api(`/api/projects/${state.projectId}/publish`, { method: "POST", body: JSON.stringify({
+        const res = await api(`/api/projects/${state.projectId}/publish${state.project?.lang ? "?lang=" + state.project.lang : ""}`, { method: "POST", body: JSON.stringify({
           youtube: yt, youtube_title: $("yt-title").value.trim(), youtube_description: $("yt-desc").value, youtube_privacy: state.ytPrivacy,
           youtube_thumbnail: $("yt-thumb").checked,
           tiktok: tt, tiktok_mode: state.ttMode, tiktok_captions: [...document.querySelectorAll("[data-cap]")].map((t) => t.value.trim()),
+          shorts, shorts_titles: [...document.querySelectorAll("[data-short]")].map((t) => t.value.trim()),
         }) });
         attachJob({ id: res.job_id, project_id: state.projectId, kind: "publish" });
       } catch (e) { toast(e.message); log("publish", e.message, "error"); }
-    });
+    }
 
     // illustrazioni
     function setStyle(v) {
@@ -1780,28 +1996,35 @@
     document.querySelectorAll("#style-group .opt").forEach((b) => b.addEventListener("click", () => setStyle(b.dataset.style)));
 
     $("llm-select").addEventListener("change", (e) => localSet("model", e.target.value));
-    $("voice-select").addEventListener("change", (e) => { localSet("voice_" + (state.engine === "eleven" ? "eleven" : "pc"), e.target.value); voiceHint(); stopVoicePreview(); });
+    $("voice-select").addEventListener("change", (e) => { localSet(`voice_${voiceGroup()}_${state.langMain}`, e.target.value); voiceHint(); stopVoicePreview(); });
     const previewAudio = new Audio();
+    let previewBtn = null;
     function stopVoicePreview() {
       previewAudio.pause();
-      $("voice-preview-label").textContent = "Ascolta";
-      $("btn-voice-preview").disabled = false;
+      if (previewBtn) {
+        previewBtn.querySelector("span").textContent = "Ascolta";
+        previewBtn.disabled = false;
+      }
+      previewBtn = null;
     }
     previewAudio.addEventListener("ended", stopVoicePreview);
-    $("btn-voice-preview").addEventListener("click", async () => {
-      if (!previewAudio.paused) { stopVoicePreview(); return; }
-      const v = $("voice-select").value;
-      if (!v) return;
+    async function playPreview(v, lang, btn) {
+      const again = previewBtn === btn && !previewAudio.paused;
+      stopVoicePreview();
+      if (again || !v) return;
+      previewBtn = btn;
+      const label = btn.querySelector("span");
       const gender = v.endsWith("auto") ? (state.project?.concept?.narrator_gender || "") : "";
-      $("voice-preview-label").textContent = "Preparo…";
-      $("btn-voice-preview").disabled = true;
+      label.textContent = "Preparo…";
+      btn.disabled = true;
       try {
-        previewAudio.src = `/api/voices/preview?voice=${encodeURIComponent(v)}&gender=${encodeURIComponent(gender)}`;
+        previewAudio.src = `/api/voices/preview?voice=${encodeURIComponent(v)}&gender=${encodeURIComponent(gender)}&lang=${encodeURIComponent(lang)}`;
         await previewAudio.play();
-        $("voice-preview-label").textContent = "Ferma";
-        $("btn-voice-preview").disabled = false;
+        label.textContent = "Ferma";
+        btn.disabled = false;
       } catch (e) { stopVoicePreview(); toast("Anteprima non disponibile per questa voce"); }
-    });
+    }
+    $("btn-voice-preview").addEventListener("click", () => playPreview($("voice-select").value, state.langMain, $("btn-voice-preview")));
 
     // passi: clic e frecce
     const tabs = [...document.querySelectorAll(".step")];
@@ -1854,6 +2077,7 @@
       syncPace();
       setStep("idea");
       log("system", "TiktokFactory Studio: connessione al server locale…");
+      loadStoredLangs();
       await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus(), loadPublishStatus(), loadEleven()]);
       setEngine(localGet("engine") || "pc");
       setStyle(localGet("style3") || state.illustrations?.default_style || "anim");

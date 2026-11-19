@@ -142,7 +142,12 @@ def _replace_names(text, looks):
     return text
 
 
-async def scene_prompts(llm, beats, concept, moments=None):
+def _lang_name(lang):
+    from app.core.languages import info
+    return info(lang)["it"].upper()
+
+
+async def scene_prompts(llm, beats, concept, moments=None, lang="it"):
     """(personaggi, inquadrature per beat, etichette per beat).
 
     moments: per ogni beat la lista di (testo, secondi) da beat_moments; senza, un momento per beat.
@@ -176,7 +181,7 @@ async def scene_prompts(llm, beats, concept, moments=None):
             f"shots: esattamente {n} descrizioni, una per frase numerata, nello stesso ordine. Ognuna max 30 parole: chi si vede, "
             "cosa sta facendo in quel preciso momento, espressione del viso esagerata da cartone, luogo. Varia le inquadrature. "
             "Niente testo scritto, insegne o nomi propri nell'immagine.\n"
-            f"stickers: esattamente {len(idx)} etichette, una per BEAT, IN ITALIANO e MAIUSCOLO: la frase chiave o la cifra di quel beat "
+            f"stickers: esattamente {len(idx)} etichette, una per BEAT, IN {_lang_name(lang)} e MAIUSCOLO: la frase chiave o la cifra di quel beat "
             "in 2-4 parole (es. «PAGAMI A GENNAIO», «3.000 € SUBITO?»), oppure stringa vuota se non serve.\n\n"
             + "\n".join(lines)
             + '\n\nFormato: {"shots": ["...", "..."], "stickers": ["...", "..."]}'
@@ -252,7 +257,7 @@ def toon_shots_schema(moments, beats, names, places):
     }, "required": ["shots", "stickers"]}
 
 
-async def toon_plan(llm, beats, concept, moments):
+async def toon_plan(llm, beats, concept, moments, lang="it"):
     """(cast, luoghi, inquadrature per beat, etichette per beat) per il cartone animato.
 
     cast: schede dei personaggi (toon.design_defaults); luoghi: descrizioni inglesi degli ambienti vuoti;
@@ -296,7 +301,7 @@ async def toon_plan(llm, beats, concept, moments):
             "- speaker: chi sta parlando in quella frase (chi racconta, se è narrazione);\n"
             "- framing: single (un personaggio a mezzo busto), close (primo piano sulle reazioni forti), two (due personaggi), wide (scena larga). "
             "Varia spesso inquadrature ed espressioni.\n"
-            f"stickers: esattamente {len(idx)} etichette, una per BEAT, IN ITALIANO e MAIUSCOLO: la frase chiave o la cifra del beat in 2-4 parole, "
+            f"stickers: esattamente {len(idx)} etichette, una per BEAT, IN {_lang_name(lang)} e MAIUSCOLO: la frase chiave o la cifra del beat in 2-4 parole, "
             "oppure stringa vuota.\n\n"
             f"{story}\nPersonaggi:\n{cast_lines}\nLuoghi:\n{place_lines}\n\nFrasi:\n" + "\n".join(lines)
         )

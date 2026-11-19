@@ -84,7 +84,7 @@ def _outlined(draw, xy, text, fnt, fill, stroke, anchor="mm"):
     draw.text((x, y), text, font=fnt, fill=fill, anchor=anchor, stroke_width=stroke, stroke_fill=(0, 0, 0))
 
 
-def tiktok_cover(out, part_no, parts_total, title, bg, shots=None, cast=None):
+def tiktok_cover(out, part_no, parts_total, title, bg, shots=None, cast=None, lang="it"):
     """Copertina 1080x1920 della clip: sfondo, personaggi, "PARTE N" grande e titolo."""
     W, H = 1080, 1920
     img = _background(bg, (W, H)).convert("RGBA")
@@ -100,7 +100,9 @@ def tiktok_cover(out, part_no, parts_total, title, bg, shots=None, cast=None):
         d.line([(0, y), (W, y)], fill=(0, 0, 0, int(170 * (1 - y / 760) ** 1.3)))
     img = Image.alpha_composite(img, shade)
     d = ImageDraw.Draw(img)
-    label = f"PARTE {part_no}" if parts_total > 1 else "STORIA COMPLETA"
+    from app.core.languages import info
+    words = info(lang)
+    label = f"{words['part']} {part_no}" if parts_total > 1 else words["full"]
     _outlined(d, (W / 2, 230), label, font_black(170 if parts_total > 1 else 120), KARAOKE, 12)
     fnt, size, lines = _fit_text(d, title.upper(), W - 140, 84, 52, 4)
     y = 400
@@ -149,13 +151,13 @@ def thumbnail_text(meta, concept, stickers):
     return " ".join(words[:6])
 
 
-def make_all(folder, parts, part_titles, part_shots, part_bgs, cast, meta, concept, stickers):
+def make_all(folder, parts, part_titles, part_shots, part_bgs, cast, meta, concept, stickers, lang="it"):
     """Crea tutte le copertine in render/covers/. Restituisce {"tiktok": [file], "youtube": file}."""
     folder = Path(folder)
     covers = folder / "render" / "covers"
     tiktok = []
     for n, (title, shots, bg) in enumerate(zip(part_titles, part_shots, part_bgs), 1):
-        tiktok.append(tiktok_cover(covers / f"tiktok_part_{n:02}.jpg", n, len(parts), title, bg, shots, cast))
+        tiktok.append(tiktok_cover(covers / f"tiktok_part_{n:02}.jpg", n, len(parts), title, bg, shots, cast, lang))
     all_shots = [s for shots in part_shots for s in shots]
     yt = youtube_thumbnail(covers / "youtube.jpg", thumbnail_text(meta, concept, stickers), part_bgs[0] if part_bgs else None, all_shots, cast)
     return {"tiktok": tiktok, "youtube": yt}
