@@ -1,0 +1,13 @@
+# Disegni locali con Stable Diffusion (facoltativo, circa 6 GB con il modello).
+# Installa con installa_disegni.bat. Versioni bloccate: torch 2.5.1 + CUDA 12.1 supporta ancora le GTX 10xx (Pascal);
+# le versioni più nuove di diffusers/transformers/accelerate pretendono un torch più recente senza quel supporto.
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.5.1+cu121
+sympy==1.13.1
+diffusers==0.32.2
+transformers==4.47.1
+tokenizers==0.21.0
+accelerate==1.2.1
+peft==0.14.0
+huggingface_hub==0.27.1
+safetensors==0.4.5

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from app.core import jobs, projects
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
-from app.services import tts_service
+from app.services import illustration_service, tts_service
 from app.services.llm_service import LLMService
 from app.services.video_service import ffmpeg_exe
 
@@ -106,7 +106,7 @@ async def delete_project(project_id: str, request: Request):
 @router.get("/projects/{project_id}/file/{path:path}")
 async def project_file(project_id: str, path: str, download: bool = False):
     file = projects.safe_file(project_id, path)
-    if file.suffix.lower() not in (".mp4", ".srt", ".md", ".json", ".wav", ".mp3", ".txt"):
+    if file.suffix.lower() not in (".mp4", ".srt", ".md", ".json", ".wav", ".mp3", ".txt", ".png"):
         raise HTTPException(404, "Tipo di file non esposto")
     return FileResponse(file, filename=f"{project_id}_{file.name}" if download else None)
 
@@ -166,6 +166,9 @@ async def generate(payload: GenerateRequest, request: Request):
 
 class RenderRequest(BaseModel):
     voice: Optional[str] = Field(default=None, max_length=300)
+    visuals: Literal["ai", "none"] = "ai"
+    style: Literal["cartoon", "sketch", "comic"] = "cartoon"
+    model: Optional[str] = Field(default=None, max_length=200)
     wpm: int = Field(default=165, ge=100, le=220)
     cut_seconds: float = Field(default=2.2, ge=0.8, le=6)
     silence_ms: int = Field(default=120, ge=0, le=1000)
@@ -179,7 +182,7 @@ async def render(project_id: str, payload: RenderRequest, request: Request):
         raise HTTPException(400, "FFmpeg non disponibile")
 
     async def worker(job):
-        await render_project(folder, job, payload.voice, payload.wpm, payload.cut_seconds, payload.silence_ms)
+        await render_project(folder, job, payload.voice, payload.wpm, payload.cut_seconds, payload.silence_ms, payload.visuals, payload.model, payload.style)
 
     job = jobs.start("render", project_id, worker)
     return {"job_id": job.id, "project_id": project_id}
@@ -205,3 +208,13 @@ async def cancel_job(job_id: str, request: Request):
 @router.get("/config")
 async def config():
     return {"lmstudio_url": os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")}
+
+
+# ------------------------------------------------------------------ illustrazioni
+@router.get("/illustrations/status")
+async def illustrations_status():
+    return {
+        "available": illustration_service.available(),
+        "models_ready": illustration_service.models_ready(),
+        "styles": [{"id": k, "label": v["label"]} for k, v in illustration_service.STYLES.items()],
+    }

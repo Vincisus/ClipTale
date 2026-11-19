@@ -16,12 +16,28 @@ Servono Python 3.12 e LM Studio. FFmpeg è incluso tramite `imageio-ffmpeg`; se 
 
 | Passo | Cosa succede |
 |---|---|
-| **1. Genera Script** | concept → struttura in N parti → testo di ogni parte diviso in beat → titoli, caption, hashtag. Circa 3 + N chiamate al modello. |
-| Editor beat | Modifica testo e "visual cue" di ogni beat; il salvataggio è automatico. Puoi aggiungere o eliminare beat. |
-| **2. Render MP4** | voce per ogni beat (con cache) → taglio silenzi → sottotitoli tempati sull'audio reale → `render/tiktok/part_XX.mp4` + `render/full_video.mp4` + `render/subtitles.srt` |
+| **1. Scrivi il copione** | concept → struttura in N parti → testo di ogni parte diviso in beat → titoli, caption, hashtag. Circa 3 + N chiamate al modello. |
+| **2. Copione** | Modifica testo e "visual cue" di ogni beat; il salvataggio è automatico. Puoi aggiungere o eliminare beat. |
+| **3. Crea il video** | voce per ogni beat (con cache) → taglio silenzi → un disegno AI locale per ogni scena, animato → sottotitoli bianchi in basso, tempati sull'audio reale → `render/tiktok/part_XX.mp4` + `render/full_video.mp4` + `render/subtitles.srt` |
 
 Se un lavoro si interrompe, seleziona il progetto e premi **Riprendi Script**: riparte dal primo passo mancante.
 Tutto è salvato in `projects/<id>/`.
+
+### Disegni AI locali
+
+Ogni scena viene **disegnata sul tuo PC** da Stable Diffusion (nessuna foto presa da Internet):
+
+1. il modello in LM Studio crea una scheda dei personaggi (aspetto fisso, così restano riconoscibili) e descrive ogni scena;
+2. LM Studio viene messo in pausa (`lms unload`): la GTX 1070 ha 8 GB e non basta per entrambi i modelli;
+3. Stable Diffusion (DreamShaper 8 + LCM, 6 passi) disegna un'illustrazione 576×1024 ogni ~7 secondi di parlato;
+4. LM Studio viene ricaricato con la sua configurazione salvata, mentre FFmpeg anima i disegni con uno zoom lento.
+
+Stili: **Cartoon** (contorni neri e colori pieni), **Schizzo a matita** (disegno a inchiostro passato in un filtro matita), **Fumetto**. I disegni restano in
+`render/scenes/` come cache: rifare il video con lo stesso copione non li ridisegna.
+
+**Installazione (una volta):** chiudi l'app ed esegui `installa_disegni.bat`. Scarica PyTorch con CUDA e i pacchetti
+(circa 4 GB) e il modello di disegno (circa 2 GB, in `models/`). Senza installazione il video ha uno sfondo scuro.
+Per non disegnare: "Impostazioni avanzate" → "Niente disegni".
 
 ### Controlli
 
@@ -76,7 +92,9 @@ app/core/jobs.py             un lavoro alla volta, annullabile
 app/core/projects.py         cartelle dei progetti
 app/services/llm_service.py  client LM Studio (streaming, thinking off, JSON tollerante)
 app/services/tts_service.py  voci Edge neurali / Windows
-app/services/video_service.py render FFmpeg + Pillow
+app/services/video_service.py render FFmpeg + Pillow (sfondi, sottotitoli in basso)
+app/services/illustration_service.py scene descritte da LM Studio e disegnate in locale
+app/services/sd_worker.py   Stable Diffusion in un processo separato (GPU)
 app/web/index.html           interfaccia
 legacy/                      versione precedente, non usata
 ```

@@ -118,3 +118,57 @@ def test_project_id_validation(bad):
     from app.core.projects import folder
     with pytest.raises(HTTPException):
         folder(bad)
+
+
+def test_render_caption_bottom(tmp_path):
+    from PIL import Image
+    from app.services.video_service import H, render_caption
+
+    out = tmp_path / "c.png"
+    render_caption("Ogni notte trovo un biglietto sul frigo", "", out)
+    img = Image.open(out)
+    assert img.mode == "RGBA" and img.size == (1080, 1920)
+    alpha = img.getchannel("A")
+    # testo bianco solo nella parte bassa: nessun pixel bianco opaco al centro dello schermo
+    centre = img.crop((0, int(H * 0.40), 1080, int(H * 0.55)))
+    assert not any(p[0] > 240 and p[3] > 240 for p in centre.getdata())
+    bottom = img.crop((0, int(H * 0.60), 1080, int(H * 0.81)))
+    assert any(p[0] > 240 and p[1] > 240 and p[3] > 240 for p in bottom.getdata())
+    assert alpha.getpixel((540, 900)) == 0
+
+
+# ------------------------------------------------------------------ illustrazioni locali
+class FakeSceneLLM:
+    def __init__(self, scenes):
+        self.scenes = scenes
+        self.prompts = []
+
+    async def generate_json(self, prompt, schema=None, **kw):
+        self.prompts.append(prompt)
+        return {"characters": [{"name": "Marta", "look": "a 35-year-old woman with a short red bob and a green coat"}], "scenes": self.scenes}
+
+
+def test_scene_prompts_keep_character_look():
+    from app.services.illustration_service import scene_prompts
+
+    llm = FakeSceneLLM(["Marta finds a phone in the garage", "close view of a phone on a workbench"])
+    beats = [{"text": "Ho trovato un telefono.", "cue": "garage"}, {"text": "Era acceso.", "cue": "telefono"}]
+    looks, scenes = asyncio.run(scene_prompts(llm, beats, {"title": "t", "characters": [{"name": "Marta", "role": "moglie"}]}))
+    assert "Marta" not in scenes[0] and "short red bob" in scenes[0]
+    assert looks[0]["name"] == "Marta"
+    assert "esattamente 2 descrizioni" in llm.prompts[0]
+    with pytest.raises(ValueError):
+        asyncio.run(scene_prompts(FakeSceneLLM(["solo una"]), beats, {}))
+
+
+def test_build_items_shots_and_cache_paths(tmp_path):
+    from app.services.illustration_service import NEGATIVE, STYLES, build_items, shots_for
+
+    assert [shots_for(d) for d in (3, 10, 15, 60)] == [1, 1, 2, 3]
+    items, per_beat = build_items([{}, {}], [4.0, 15.0], ["a kitchen", "a garage"], "sketch", tmp_path, 100)
+    assert [len(s) for s in per_beat] == [1, 2]
+    assert len(items) == 3 and all(STYLES["sketch"]["prompt"] in i["prompt"] for i in items)
+    assert "close-up" in items[2]["prompt"] and items[2]["prompt"].startswith(STYLES["sketch"]["prompt"]) and items[0]["post"] == "pencil" and items[0]["negative"] == NEGATIVE
+    assert len({i["out"] for i in items}) == 3 and len({i["seed"] for i in items}) == 3
+    again, _ = build_items([{}, {}], [4.0, 15.0], ["a kitchen", "a garage"], "sketch", tmp_path, 100)
+    assert [i["out"] for i in again] == [i["out"] for i in items]  # stessa scena = stesso file in cache

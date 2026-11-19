@@ -1,9 +1,11 @@
 """Render 9:16 con FFmpeg + Pillow.
 
 Per ogni parte: audio dei beat (silenzi rifilati) -> sottotitoli a blocchi tempati sulla durata reale
--> immagini 1080x1920 -> part_XX.mp4 (gia pronta per TikTok). Il video completo e la concatenazione delle parti.
+-> sfondo di inquadrature inerenti a ogni beat (video stock o foto con zoom lento)
+-> sottotitoli bianchi in basso -> part_XX.mp4 (gia pronta per TikTok). Il video completo e la concatenazione delle parti.
 """
 import asyncio
+import os
 import re
 import shutil
 import subprocess
@@ -157,46 +159,77 @@ def _wrap(words, fnt, width, draw):
     return lines
 
 
-def render_frame(text, header, progress, path):
-    global _BG
-    if _BG is None:
-        _BG = _background()
-    img = _BG.copy()
-    draw = ImageDraw.Draw(img, "RGBA")
-    # zona sicura superiore: etichetta della parte
-    small = font(34)
-    draw.text((W / 2, H * 0.16), header, font=small, fill=DIM, anchor="mm")
-    # sottotitolo centrale, maiuscolo, con parola evidenziata
-    words = text.upper().split()
-    longest = max(range(len(words)), key=lambda i: len(re.sub(r"\W", "", words[i]))) if words else -1
-    size = 84
+def _caption_font(words, draw):
+    size = 76
     while True:
         fnt = font(size)
-        lines = _wrap(words, fnt, W - 180, draw)
-        if len(lines) <= 4 or size <= 52:
-            break
-        size -= 6
-    line_h = int(size * 1.22)
-    block_h = line_h * len(lines)
-    top = int(H * 0.52 - block_h / 2)
-    widest = max((draw.textlength(" ".join(l), font=fnt) for l in lines), default=0)
-    pad = 36
-    draw.rounded_rectangle([W / 2 - widest / 2 - pad, top - pad, W / 2 + widest / 2 + pad, top + block_h + pad * 0.6], radius=26, fill=(9, 9, 11, 200), outline=(255, 255, 255, 22), width=2)
-    index = 0
-    for row, line in enumerate(lines):
-        x = W / 2 - draw.textlength(" ".join(line), font=fnt) / 2
-        y = top + row * line_h
-        for w in line:
-            color = ACCENT if index == longest else WHITE
-            draw.text((x + 3, y + 4), w, font=fnt, fill=(0, 0, 0, 160))
-            draw.text((x, y), w, font=fnt, fill=color)
-            x += draw.textlength(w + " ", font=fnt)
-            index += 1
-    # barra di avanzamento nella zona inferiore
-    y = int(H * 0.86)
-    draw.rounded_rectangle([140, y, W - 140, y + 8], radius=4, fill=(255, 255, 255, 30))
-    draw.rounded_rectangle([140, y, 140 + (W - 280) * max(0.0, min(1.0, progress)), y + 8], radius=4, fill=ACCENT + (230,))
-    img.save(path, "JPEG", quality=90)
+        lines = _wrap(words, fnt, W - 160, draw)
+        if len(lines) <= 3 or size <= 50:
+            return fnt, size, lines
+        size -= 4
+
+
+_SHADE = None
+
+
+def _bottom_shade():
+    """Sfumatura scura in basso (e leggera in alto) per leggere il testo su qualsiasi immagine."""
+    shade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(shade)
+    top = int(H * 0.52)
+    for y in range(top, H):
+        a = int(170 * ((y - top) / (H - top)) ** 1.4)
+        draw.line([(0, y), (W, y)], fill=(0, 0, 0, a))
+    for y in range(0, int(H * 0.12)):
+        a = int(110 * (1 - y / (H * 0.12)))
+        draw.line([(0, y), (W, y)], fill=(0, 0, 0, a))
+    return shade
+
+
+def render_caption(text, header, path):
+    """Livello trasparente 1080x1920: parte in alto, sottotitolo bianco con bordo nero in basso."""
+    global _SHADE
+    if _SHADE is None:
+        _SHADE = _bottom_shade()
+    img = _SHADE.copy()
+    draw = ImageDraw.Draw(img)
+    if header:
+        draw.text((W / 2, H * 0.075), header, font=font(32), fill=(255, 255, 255, 215), anchor="mm", stroke_width=3, stroke_fill=(0, 0, 0, 160))
+    words = text.split()
+    if words:
+        fnt, size, lines = _caption_font(words, draw)
+        line_h = int(size * 1.2)
+        bottom = int(H * 0.80)  # sopra la zona dei pulsanti di TikTok (ultimo 20%)
+        top = bottom - line_h * len(lines)
+        stroke = max(4, size // 12)
+        for row, line in enumerate(lines):
+            draw.text((W / 2, top + row * line_h), " ".join(line), font=fnt, fill=WHITE, anchor="ma", stroke_width=stroke, stroke_fill=(0, 0, 0))
+    img.save(path, "PNG", compress_level=1)
+
+
+def background_still(path):
+    """Sfondo neutro usato quando non ci sono immagini."""
+    _background().save(path, "JPEG", quality=92)
+    return path
+
+
+async def render_shot(source, kind, duration, output, variant=0):
+    """Una inquadratura 1080x1920 a 30 fps senza audio: video ritagliato in verticale o foto con zoom lento."""
+    frames = max(1, int(round(duration * FPS)))
+    if kind == "video":
+        vf = f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={FPS},setsar=1,format=yuv420p"
+        args = ["-stream_loop", "-1", "-i", source, "-frames:v", str(frames), "-an", "-vf", vf]
+    else:
+        # Ken Burns: zoom avanti o indietro con un piccolo spostamento, diverso per ogni inquadratura
+        zin = variant % 2 == 0
+        z = f"1+0.14*on/{frames}" if zin else f"1.14-0.14*on/{frames}"
+        dx = ["0", "0.6", "-0.6", "0"][variant % 4]
+        x = f"(iw-iw/zoom)/2*(1+({dx})*on/{frames})"
+        y = "(ih-ih/zoom)/2"
+        vf = (f"scale={W * 2}:{H * 2}:force_original_aspect_ratio=increase,crop={W * 2}:{H * 2},"
+              f"zoompan=z='{z}':x='{x}':y='{y}':d=1:s={W}x{H}:fps={FPS},setsar=1,format=yuv420p")
+        args = ["-loop", "1", "-framerate", str(FPS), "-i", source, "-frames:v", str(frames), "-vf", vf]
+    await run_ffmpeg([*args, "-r", str(FPS), "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p", output])
 
 
 # ---------------------------------------------------------------- render
@@ -204,8 +237,8 @@ class VideoService:
     def __init__(self, log):
         self.log = log  # callable(msg, progress=None)
 
-    async def render_part(self, part_no, parts_total, title, beat_audio, beat_texts, work, output, cut_seconds, offset):
-        """Restituisce (durata, voci SRT) per una parte."""
+    async def render_part(self, part_no, parts_total, title, beat_audio, beat_texts, work, output, cut_seconds, offset, beat_shots=None):
+        """Restituisce (durata, voci SRT) per una parte. beat_shots: per ogni beat una lista di (file, 'video'|'photo')."""
         frames_dir = work / f"frames_{part_no:02}"
         if frames_dir.exists():
             shutil.rmtree(frames_dir)
@@ -214,15 +247,44 @@ class VideoService:
         part_wav = work / f"part_{part_no:02}.wav"
         concat_wavs(beat_audio, part_wav)
         total = sum(durations)
-        header = f"PARTE {part_no}/{parts_total}" if parts_total > 1 else ""
-        if title:
-            header = (header + " · " if header else "") + title.upper()
-        header = header[:58]
+        header = f"Parte {part_no}/{parts_total}" if parts_total > 1 else ""
+
+        # 1. sfondo: una o piu inquadrature per beat, codificate in parallelo
+        beat_shots = beat_shots or [[] for _ in durations]
+        still = None
+        jobs = []
+        for b, (dur, shots) in enumerate(zip(durations, beat_shots)):
+            if not shots:
+                still = still or background_still(frames_dir / "still.jpg")
+                shots = [(still, "photo")]
+            each = dur / len(shots)
+            for s, (src, kind) in enumerate(shots):
+                jobs.append((src, kind, each, frames_dir / f"shot_{b:03}_{s:02}.mp4", b + s))
+        sem = asyncio.Semaphore(max(1, min(6, (os.cpu_count() or 4) // 4)))
+        done = [0]
+
+        async def one(src, kind, dur, out, variant):
+            async with sem:
+                try:
+                    await render_shot(src, kind, dur, out, variant)
+                except RuntimeError:  # file danneggiato: sfondo neutro
+                    await render_shot(background_still(frames_dir / f"still_{variant}.jpg"), "photo", dur, out, variant)
+                done[0] += 1
+                if done[0] % 4 == 0 or done[0] == len(jobs):
+                    self.log(f"Parte {part_no}: inquadrature {done[0]}/{len(jobs)}")
+
+        await asyncio.gather(*(one(*j) for j in jobs))
+        bg_list = work / f"bg_{part_no:02}.txt"
+        bg_list.write_text("".join(f"file '{j[3].resolve().as_posix()}'\n" for j in jobs), encoding="utf-8")
+        bg = work / f"bg_{part_no:02}.mp4"
+        await run_ffmpeg(["-f", "concat", "-safe", "0", "-i", bg_list, "-c", "copy", bg])
+
+        # 2. sottotitoli come livelli trasparenti tempati sull'audio
         entries, listing, t = [], [], 0.0
         for text, dur in zip(beat_texts, durations):
             for chunk, secs in caption_chunks(text, dur, cut_seconds):
-                frame = frames_dir / f"{len(listing):05}.jpg"
-                render_frame(chunk, header, (t + secs / 2) / total, frame)
+                frame = frames_dir / f"{len(listing):05}.png"
+                render_caption(chunk, header, frame)
                 listing.append((frame, secs))
                 entries.append((offset + t, offset + t + secs - (GAP_SECONDS if secs > GAP_SECONDS + 0.3 else 0), chunk))
                 t += secs
@@ -232,10 +294,17 @@ class VideoService:
             lines += [f"file '{frame.resolve().as_posix()}'", f"duration {secs:.3f}"]
         lines.append(f"file '{listing[-1][0].resolve().as_posix()}'")
         concat.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        # 3. composizione finale con la voce
         output.parent.mkdir(parents=True, exist_ok=True)
         await run_ffmpeg([
-            "-f", "concat", "-safe", "0", "-i", concat, "-i", part_wav,
-            "-vf", f"fps={FPS},scale=in_range=pc:out_range=tv,format=yuv420p", "-color_range", "tv", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage", "-crf", "23",
+            "-i", bg, "-f", "concat", "-safe", "0", "-i", concat, "-i", part_wav,
+            "-filter_complex",
+            f"[0:v]tpad=stop_mode=clone:stop_duration=3[bg];[1:v]fps={FPS},format=rgba[cap];"
+            f"[bg][cap]overlay=0:0:format=auto:eof_action=repeat,scale=in_range=pc:out_range=tv,format=yuv420p[v]",
+            "-map", "[v]", "-map", "2:a",
+            "-color_range", "tv", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-r", str(FPS),
             "-af", "loudnorm=I=-14:TP=-1.5:LRA=11", "-ar", "44100", "-c:a", "aac", "-b:a", "192k",
             "-t", f"{total:.3f}", "-movflags", "+faststart", output,
         ])
