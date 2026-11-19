@@ -445,3 +445,41 @@ def test_italian_normalization_and_gender():
     assert narrator_gender("Io ero rimasta zitta. Mio marito urlava.") == "F"
     assert narrator_gender("Mia moglie rideva. Io ero rimasto seduto.") == "M"
     assert narrator_gender("Ciao", "M") == "M"
+
+
+def test_tiktok_direct_falls_back_to_private_then_draft(secrets_dir, tmp_path, monkeypatch):
+    ps = secrets_dir
+    real_sleep = asyncio.sleep
+    monkeypatch.setattr(ps.asyncio, "sleep", lambda *_: real_sleep(0))
+    ps.save_app("tiktok", "ck", "cs")
+    ps._write("tiktok_token.json", {"refresh_token": "r", "access_token": "a", "expires_at": 9e12})
+    video = tmp_path / "c.mp4"
+    video.write_bytes(b"z" * 20000)
+    tried, logs = [], []
+    unaudited = {"error": {"code": "unaudited_client_can_only_post_to_private_accounts", "message": "Please review our integration guidelines"}}
+
+    def handler(req):
+        path = req.url.path
+        if path.endswith("/creator_info/query/"):
+            return httpx.Response(200, json={"data": {"privacy_level_options": ["PUBLIC_TO_EVERYONE", "SELF_ONLY"]}, "error": {"code": "ok"}})
+        if path.endswith("/post/publish/video/init/"):
+            tried.append(json.loads(req.content)["post_info"]["privacy_level"])
+            return httpx.Response(403, json=unaudited)
+        if path.endswith("/inbox/video/init/"):
+            tried.append("inbox")
+            return httpx.Response(200, json={"data": {"upload_url": "https://up.test/u", "publish_id": "p9"}, "error": {"code": "ok"}})
+        if req.method == "PUT":
+            return httpx.Response(201)
+        if path.endswith("/status/fetch/"):
+            return httpx.Response(200, json={"data": {"status": "SEND_TO_USER_INBOX"}})
+        return httpx.Response(404)
+
+    res = asyncio.run(ps.upload_tiktok(video, "Parte 1", "direct", log=logs.append, transport=httpx.MockTransport(handler)))
+    assert tried == ["PUBLIC_TO_EVERYONE", "SELF_ONLY", "inbox"]  # pubblico -> privato -> bozza
+    assert res["status"] == "SEND_TO_USER_INBOX" and res["privacy"] == "bozza"
+    assert any("bozza" in m for m in logs)
+
+    def always_bad(req):
+        return httpx.Response(401, json={"error": {"code": "scope_not_authorized", "message": "no scope"}})
+    with pytest.raises(RuntimeError, match=r"\[scope_not_authorized\].*ricollega"):
+        asyncio.run(ps.upload_tiktok(video, "x", "draft", log=logs.append, transport=httpx.MockTransport(always_bad)))

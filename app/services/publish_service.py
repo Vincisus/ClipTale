@@ -274,20 +274,48 @@ async def upload_tiktok(path, caption, mode="draft", log=print, transport=None):
     async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=20), transport=transport) as c:
         token = await _tiktok_access(c)
         auth = {"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=UTF-8"}
+        def failed(resp):
+            try:
+                err = resp.json().get("error", {})
+            except ValueError:
+                err = {}
+            code = err.get("code", "ok")
+            return (resp.status_code != 200 or code != "ok"), code, err.get("message", "")
+
+        r, privacy = None, "bozza"
         if mode == "direct":
             info = (await c.post(f"{TT_API}/post/publish/creator_info/query/", headers=auth)).json().get("data", {})
             options = info.get("privacy_level_options") or ["SELF_ONLY"]
-            privacy = "PUBLIC_TO_EVERYONE" if "PUBLIC_TO_EVERYONE" in options else options[0]
-            body = {"post_info": {"title": caption[:2200], "privacy_level": privacy, "disable_comment": False, "disable_duet": False,
-                                  "disable_stitch": False, "is_aigc": True}, "source_info": source}
-            r = await c.post(f"{TT_API}/post/publish/video/init/", headers=auth, json=body)
-        else:
-            privacy = "bozza"
+            # prima pubblico; le app non ancora revisionate da TikTok possono solo privato (SELF_ONLY)
+            tries = (["PUBLIC_TO_EVERYONE"] if "PUBLIC_TO_EVERYONE" in options else []) + (["SELF_ONLY"] if "SELF_ONLY" in options else options[:1])
+            for privacy in dict.fromkeys(tries):
+                body = {"post_info": {"title": caption[:2200], "privacy_level": privacy, "disable_comment": False, "disable_duet": False,
+                                      "disable_stitch": False, "is_aigc": True}, "source_info": source}
+                r = await c.post(f"{TT_API}/post/publish/video/init/", headers=auth, json=body)
+                bad, code, _ = failed(r)
+                if not bad:
+                    break
+                if code not in ("unaudited_client_can_only_post_to_private_accounts", "privacy_level_option_mismatch"):
+                    break
+                log(f"TikTok non accetta la visibilità {privacy} per un'app non ancora revisionata ({code})")
+            bad, code, _ = failed(r)
+            if bad and code in ("unaudited_client_can_only_post_to_private_accounts", "privacy_level_option_mismatch"):
+                # account pubblico + app non revisionata: la pubblicazione diretta è bloccata, si passa alle bozze
+                log("Pubblicazione diretta non consentita finché TikTok non approva la tua app: invio la clip come bozza nell'app TikTok")
+                mode, r, privacy = "draft", None, "bozza"
+        if r is None:
             r = await c.post(f"{TT_API}/post/publish/inbox/video/init/", headers=auth, json={"source_info": source})
+        bad, code, message = failed(r)
+        if bad:
+            hint = {
+                "unaudited_client_can_only_post_to_private_accounts": "app non ancora approvata da TikTok: usa Bozze nell'app",
+                "scope_not_authorized": "manca un permesso: scollega e ricollega TikTok accettando tutti i permessi",
+                "access_token_invalid": "accesso scaduto: ricollega TikTok",
+                "spam_risk_too_many_posts": "hai raggiunto il limite giornaliero di post di TikTok",
+                "rate_limit_exceeded": "troppe richieste ravvicinate: riprova fra qualche minuto",
+            }.get(code, "")
+            raise RuntimeError(f"TikTok ha rifiutato la clip [{code or r.status_code}]{': ' + hint if hint else ''} ({message[:160]})")
         data = r.json()
-        if r.status_code != 200 or data.get("error", {}).get("code", "ok") != "ok":
-            err = data.get("error", {})
-            raise RuntimeError(f"TikTok ha rifiutato la clip: {err.get('message') or err.get('code') or r.status_code}")
         upload_url, publish_id = data["data"]["upload_url"], data["data"]["publish_id"]
         with open(path, "rb") as fh:
             for i in range(count):
