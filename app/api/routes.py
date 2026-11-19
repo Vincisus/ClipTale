@@ -413,3 +413,16 @@ async def publish(project_id: str, payload: PublishRequest, request: Request):
 
     job = jobs.start("publish", project_id, worker)
     return {"job_id": job.id, "project_id": project_id}
+
+
+@router.post("/projects/{project_id}/open-folder")
+async def open_folder(project_id: str, request: Request, sub: str = "render/tiktok"):
+    """Apre in Esplora risorse la cartella delle clip (solo dal PC locale), per il caricamento assistito su TikTok."""
+    same_origin(request)
+    folder = projects.folder(project_id)
+    target = (folder / sub).resolve()
+    if folder.resolve() not in (target, *target.parents) or not target.is_dir():
+        raise HTTPException(404, "Cartella non trovata")
+    if hasattr(os, "startfile"):
+        os.startfile(str(target))  # noqa: S606 - solo Windows, cartella del progetto
+    return {"ok": True, "path": str(target)}

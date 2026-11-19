@@ -777,6 +777,13 @@
               <button type="button" class="opt" data-mode="direct" aria-pressed="false"><b>Pubblica subito</b><span>Solo dopo che TikTok approva la tua app; prima la clip va da sola nelle bozze</span></button>
             </div>
           </div>
+          <div class="lock-note" id="tt-manual">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 20h16"/></svg>
+            <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:0">
+              <span><b>Caricamento assistito (consigliato).</b> TikTok non consente la pubblicazione pubblica automatica alle app personali. Per ogni clip premi <b>Carica</b>: si apre la cartella delle clip e TikTok Studio, e la didascalia è già copiata. Trascina il video, incolla (Ctrl+V) e pubblica.</span>
+              <button type="button" id="btn-tt-folder" class="btn btn-sm" style="align-self:flex-start">Apri la cartella delle clip</button>
+            </div>
+          </div>
           <div class="field">
             <span class="field-label">Didascalie delle clip</span>
             <div id="tt-captions" class="copy-list"></div>
@@ -785,7 +792,7 @@
 
         <div class="actions">
           <label class="check"><input type="checkbox" id="pub-yt" checked /> <span>YouTube</span></label>
-          <label class="check"><input type="checkbox" id="pub-tt" checked /> <span>TikTok</span></label>
+          <label class="check"><input type="checkbox" id="pub-tt" /> <span>TikTok</span></label>
           <button type="button" id="btn-publish" class="btn btn-primary btn-lg">Pubblica ora</button>
         </div>
         <div id="pub-history" class="outputs"></div>
@@ -1641,8 +1648,15 @@
       const d = state.publish;
       $("yt-title").value = d.youtube.title; $("yt-title-count").textContent = `${d.youtube.title.length}/100`;
       $("yt-desc").value = d.youtube.description;
-      $("tt-captions").innerHTML = d.tiktok.length ? d.tiktok.map((c, i) => `<div class="cap-row"><label for="cap-${i}">Clip ${i + 1}</label><textarea id="cap-${i}" rows="2" data-cap="${i}">${esc(c.caption)}</textarea></div>`).join("")
+      $("tt-captions").innerHTML = d.tiktok.length ? d.tiktok.map((c, i) => `<div class="cap-row"><label for="cap-${i}">Clip ${i + 1} · ${esc(c.clip.split("/").pop())}</label><textarea id="cap-${i}" rows="2" data-cap="${i}">${esc(c.caption)}</textarea><div class="actions"><button type="button" class="btn btn-sm btn-primary" data-tt-upload="${i}">Carica clip ${i + 1} su TikTok</button><button type="button" class="btn btn-sm btn-ghost" data-tt-copy="${i}">Copia didascalia</button></div></div>`).join("")
         : '<p class="hint">Le clip compaiono qui dopo aver creato il video.</p>';
+      document.querySelectorAll("[data-tt-copy]").forEach((b) => b.addEventListener("click", () => copyCaption(b.dataset.ttCopy)));
+      document.querySelectorAll("[data-tt-upload]").forEach((b) => b.addEventListener("click", async () => {
+        await copyCaption(b.dataset.ttUpload);
+        openClipFolder();
+        window.open("https://www.tiktok.com/tiktokstudio/upload", "_blank", "noopener");
+        toast(`Didascalia della clip ${Number(b.dataset.ttUpload) + 1} copiata: trascina il video e incolla con Ctrl+V`);
+      }));
       const h = d.history || {};
       const rows = [];
       if (h.youtube) rows.push(`<div class="out-row"><span class="n"><b>YouTube · ${esc(h.youtube.privacy)}</b><span>${esc(h.youtube.at || "")}</span></span><span class="acts"><a class="btn btn-sm" href="${esc(h.youtube.url)}" target="_blank" rel="noopener">Apri</a></span></div>`);
@@ -1650,6 +1664,17 @@
       $("pub-history").innerHTML = rows.length ? `<h3>Già pubblicato</h3>` + rows.join("") : "";
       renderSteps();
     }
+    async function copyCaption(i) {
+      const text = $(`cap-${i}`).value;
+      try { await navigator.clipboard.writeText(text); } catch { $(`cap-${i}`).select(); document.execCommand("copy"); }
+      toast("Didascalia copiata");
+    }
+    async function openClipFolder() {
+      if (!state.projectId) return;
+      try { await api(`/api/projects/${state.projectId}/open-folder`, { method: "POST" }); }
+      catch (e) { toast("Cartella delle clip non trovata: crea prima il video"); }
+    }
+    $("btn-tt-folder").addEventListener("click", openClipFolder);
     $("yt-title").addEventListener("input", (e) => ($("yt-title-count").textContent = `${e.target.value.length}/100`));
     document.querySelectorAll("#yt-privacy .opt").forEach((b) => b.addEventListener("click", () => { state.ytPrivacy = b.dataset.privacy; pressed("yt-privacy", "privacy", b.dataset.privacy); }));
     document.querySelectorAll("#tt-mode .opt").forEach((b) => b.addEventListener("click", () => { state.ttMode = b.dataset.mode; pressed("tt-mode", "mode", b.dataset.mode); }));
