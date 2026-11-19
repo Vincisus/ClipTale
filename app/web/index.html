@@ -228,6 +228,11 @@
     .lock-note.warn { border-color: rgba(251, 191, 36, .35); }
     .options.two-two { grid-template-columns: 1fr 1fr; }
     .voice-row { display: flex; gap: 8px; }
+    .covers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; align-items: start; }
+    .covers-grid .yt { grid-column: 1 / -1; max-width: 420px; }
+    .cover-tile { display: flex; flex-direction: column; gap: 6px; }
+    .cover-tile img { width: 100%; border-radius: 8px; border: 1px solid var(--line-2); display: block; background: var(--bg); }
+    .cover-tile .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
     .voice-row select { flex: 1; min-width: 0; }
     .pub-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .howto { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); font-size: 14px; }
@@ -705,6 +710,20 @@
           </div>
         </div>
 
+        <!-- Copertine -->
+        <div class="card" id="covers-card">
+          <div class="pub-head"><h3>Copertine</h3><span class="hint">Create insieme al video</span></div>
+          <div id="covers-grid" class="covers-grid"></div>
+          <div class="field">
+            <label for="cover-text">Scritta della copertina YouTube</label>
+            <div class="voice-row">
+              <input type="text" id="cover-text" maxlength="60" placeholder="2-5 parole che fanno cliccare, es. LA CASA ERA MIA" />
+              <button type="button" id="btn-covers" class="btn">Rifai le copertine</button>
+            </div>
+            <span class="hint">TikTok non accetta un'immagine di copertina separata: la copertina di ogni parte è il primo fotogramma della clip, quello che TikTok mostra di default. Su YouTube la copertina 16:9 viene caricata insieme al video.</span>
+          </div>
+        </div>
+
         <!-- YouTube -->
         <div class="card" id="yt-card">
           <div class="pub-head"><h3>YouTube</h3><span class="badge" id="yt-badge">Non collegato</span></div>
@@ -745,6 +764,7 @@
             </div>
             <span class="hint">Finché Google non verifica il tuo progetto API, YouTube tiene privati i video caricati dalle app.</span>
           </div>
+          <label class="check"><input type="checkbox" id="yt-thumb" checked /> <span>Carica anche la copertina 16:9 (serve un canale verificato con il telefono)</span></label>
         </div>
 
         <!-- TikTok -->
@@ -1657,6 +1677,7 @@
         window.open("https://www.tiktok.com/tiktokstudio/upload", "_blank", "noopener");
         toast(`Didascalia della clip ${Number(b.dataset.ttUpload) + 1} copiata: trascina il video e incolla con Ctrl+V`);
       }));
+      renderCovers(d);
       const h = d.history || {};
       const rows = [];
       if (h.youtube) rows.push(`<div class="out-row"><span class="n"><b>YouTube · ${esc(h.youtube.privacy)}</b><span>${esc(h.youtube.at || "")}</span></span><span class="acts"><a class="btn btn-sm" href="${esc(h.youtube.url)}" target="_blank" rel="noopener">Apri</a></span></div>`);
@@ -1675,6 +1696,27 @@
       catch (e) { toast("Cartella delle clip non trovata: crea prima il video"); }
     }
     $("btn-tt-folder").addEventListener("click", openClipFolder);
+    function renderCovers(d) {
+      const c = d?.covers || {};
+      const v = Date.now();
+      const url = (path, dl) => `/api/projects/${state.projectId}/file/${path}${dl ? "?download=1" : "?v=" + v}`;
+      const tiles = (c.tiktok || []).map((path, i) => `<div class="cover-tile"><img src="${url(path)}" alt="Copertina TikTok parte ${i + 1}" />
+        <div class="row"><span>Parte ${i + 1}</span><a class="btn btn-sm" href="${url(path, true)}">Scarica</a></div></div>`);
+      if (c.youtube) tiles.push(`<div class="cover-tile yt"><img src="${url(c.youtube)}" alt="Copertina YouTube 16:9" />
+        <div class="row"><span>YouTube 16:9</span><a class="btn btn-sm" href="${url(c.youtube, true)}">Scarica</a></div></div>`);
+      $("covers-grid").innerHTML = tiles.join("") || '<p class="hint">Le copertine compaiono qui dopo aver creato il video. Puoi crearle ora con "Rifai le copertine".</p>';
+      if (!$("cover-text").value) $("cover-text").value = state.project?.metadata?.thumbnail_text || "";
+    }
+    $("btn-covers").addEventListener("click", async () => {
+      if (!state.projectId) return;
+      $("btn-covers").disabled = true;
+      try {
+        await api(`/api/projects/${state.projectId}/covers`, { method: "POST", body: JSON.stringify({ thumbnail_text: $("cover-text").value.trim() }) });
+        toast("Copertine aggiornate");
+        await loadPublish();
+      } catch (e) { toast("Copertine non create: " + e.message); }
+      $("btn-covers").disabled = false;
+    });
     $("yt-title").addEventListener("input", (e) => ($("yt-title-count").textContent = `${e.target.value.length}/100`));
     document.querySelectorAll("#yt-privacy .opt").forEach((b) => b.addEventListener("click", () => { state.ytPrivacy = b.dataset.privacy; pressed("yt-privacy", "privacy", b.dataset.privacy); }));
     document.querySelectorAll("#tt-mode .opt").forEach((b) => b.addEventListener("click", () => { state.ttMode = b.dataset.mode; pressed("tt-mode", "mode", b.dataset.mode); }));
@@ -1713,6 +1755,7 @@
       try {
         const res = await api(`/api/projects/${state.projectId}/publish`, { method: "POST", body: JSON.stringify({
           youtube: yt, youtube_title: $("yt-title").value.trim(), youtube_description: $("yt-desc").value, youtube_privacy: state.ytPrivacy,
+          youtube_thumbnail: $("yt-thumb").checked,
           tiktok: tt, tiktok_mode: state.ttMode, tiktok_captions: [...document.querySelectorAll("[data-cap]")].map((t) => t.value.trim()),
         }) });
         attachJob({ id: res.job_id, project_id: state.projectId, kind: "publish" });

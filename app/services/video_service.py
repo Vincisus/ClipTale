@@ -364,7 +364,7 @@ class VideoService:
         self.sfx = bool(sfx)
 
     async def render_part(self, part_no, parts_total, title, beat_audio, beat_texts, work, output, cut_seconds, offset,
-                          beat_shots=None, stickers=None, cast=None):
+                          beat_shots=None, stickers=None, cast=None, cover=None):
         """Crea la clip TikTok della parte (con "Parte N" e cartello finale) e una versione pulita per il video lungo.
 
         beat_shots: per ogni beat una lista di (file, 'video'|'photo'[, secondi]); stickers: etichetta per beat.
@@ -476,11 +476,17 @@ class VideoService:
         output.parent.mkdir(parents=True, exist_ok=True)
         clean = work / f"clean_{part_no:02}.mp4"
         for listing, target, audio in ((clip_list, output, clip_audio), (clean_list, clean, clean_audio)):
+            # la copertina della clip TikTok diventa il primo fotogramma (0,1 s): è quella che TikTok mostra di default
+            with_cover = cover is not None and Path(cover).is_file() and target == output
+            cover_in = ["-loop", "1", "-framerate", str(FPS), "-t", "0.2", "-i", cover] if with_cover else []
+            cover_fx = (f";[3:v]scale={W}:{H},format=rgba[cv];[v0][cv]overlay=0:0:enable='lt(t,0.1)':eof_action=pass,format=yuv420p[v]"
+                        if with_cover else "")
             await run_ffmpeg([
-                "-i", bg, "-f", "concat", "-safe", "0", "-i", listing, "-i", audio,
+                "-i", bg, "-f", "concat", "-safe", "0", "-i", listing, "-i", audio, *cover_in,
                 "-filter_complex",
                 f"[0:v]tpad=stop_mode=clone:stop_duration=3[bg];[1:v]fps={FPS},format=rgba[cap];"
-                f"[bg][cap]overlay=0:0:format=auto:eof_action=repeat,scale=in_range=pc:out_range=tv,format=yuv420p[v]",
+                f"[bg][cap]overlay=0:0:format=auto:eof_action=repeat,scale=in_range=pc:out_range=tv,format=yuv420p"
+                + ("[v0]" + cover_fx if with_cover else "[v]"),
                 "-map", "[v]", "-map", "2:a",
                 "-color_range", "tv", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
                 "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-r", str(FPS),

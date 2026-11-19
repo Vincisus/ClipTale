@@ -483,3 +483,38 @@ def test_tiktok_direct_falls_back_to_private_then_draft(secrets_dir, tmp_path, m
         return httpx.Response(401, json={"error": {"code": "scope_not_authorized", "message": "no scope"}})
     with pytest.raises(RuntimeError, match=r"\[scope_not_authorized\].*ricollega"):
         asyncio.run(ps.upload_tiktok(video, "x", "draft", log=logs.append, transport=httpx.MockTransport(always_bad)))
+
+
+def test_covers_and_youtube_thumbnail(tmp_path, secrets_dir):
+    from PIL import Image
+    from app.services import covers
+
+    bg = tmp_path / "bg.png"
+    Image.new("RGB", (512, 768), (200, 170, 130)).save(bg)
+    cast = [{"name": "Luca", "gender": "M", "hair_style": "bald", "outfit_color": "navy", "tie": True}]
+    shots = [{"bg": str(bg), "chars": [{"name": "Luca", "expression": "shocked", "pose": "phone"}]}]
+    made = covers.make_all(tmp_path, [1, 2], ["La casa era mia"] * 2, [shots, shots], [str(bg), str(bg)], cast,
+                           {"thumbnail_text": "LA CASA ERA MIA"}, {"title": "t"}, [])
+    assert [Image.open(p).size for p in made["tiktok"]] == [(1080, 1920), (1080, 1920)]
+    assert Image.open(made["youtube"]).size == (1280, 720)
+    assert covers.thumbnail_text({}, {"title": "Il segreto"}, ["", "TRE MILIONI!"]) == "TRE MILIONI!"
+
+    ps = secrets_dir
+    ps.save_app("youtube", "cid", "sec")
+    ps._write("youtube_token.json", {"refresh_token": "r1"})
+    seen = []
+
+    def handler(req):
+        if req.url.host == "oauth2.googleapis.com":
+            return httpx.Response(200, json={"access_token": "a1"})
+        seen.append((req.url.params["videoId"], req.headers["content-type"], len(req.content)))
+        return httpx.Response(200, json={"items": []})
+    asyncio.run(ps.set_youtube_thumbnail("VID1", made["youtube"], transport=httpx.MockTransport(handler)))
+    assert seen and seen[0][0] == "VID1" and seen[0][1] == "image/jpeg" and seen[0][2] > 1000
+
+    def forbidden(req):
+        if req.url.host == "oauth2.googleapis.com":
+            return httpx.Response(200, json={"access_token": "a1"})
+        return httpx.Response(403, json={"error": {"errors": [{"reason": "forbidden"}]}})
+    with pytest.raises(RuntimeError, match="verificalo"):
+        asyncio.run(ps.set_youtube_thumbnail("VID1", made["youtube"], transport=httpx.MockTransport(forbidden)))

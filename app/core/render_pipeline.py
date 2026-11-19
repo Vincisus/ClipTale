@@ -189,6 +189,24 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
     # 3. video per parte (= clip TikTok) e video completo
     video = VideoService(log, music, sfx)
     parts = sorted({b["part"] for b in beats})
+
+    # copertine: una 9:16 per clip ("PARTE N") e la 16:9 per YouTube
+    from app.services import covers
+    meta = load_json(folder / "metadata.json", {}) or {}
+    part_shots, part_bgs = [], []
+    for part in parts:
+        idx = [i for i, b in enumerate(beats) if b["part"] == part]
+        shots = [s for i in idx for s in beat_shots[i]]
+        part_shots.append(shots)
+        first = next((s for s in shots if Path(s["bg"] if isinstance(s, dict) else s[0]).is_file()), None)
+        part_bgs.append((first["bg"] if isinstance(first, dict) else first[0]) if first else None)
+    try:
+        cover_files = await asyncio.to_thread(covers.make_all, folder, parts, [concept.get("title") or titles.get(p, "") for p in parts],
+                                              part_shots, part_bgs, cast, meta, concept, stickers)
+        log(f"Copertine pronte: {len(cover_files['tiktok'])} per TikTok e 1 per YouTube (16:9)", 59)
+    except Exception as exc:
+        cover_files = {"tiktok": [], "youtube": None}
+        log(f"Copertine non create ({exc})", level="warn")
     tiktok = render / "tiktok"
     if tiktok.exists():
         shutil.rmtree(tiktok)
@@ -200,7 +218,8 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
         out = tiktok / f"part_{n:02}.mp4"
         total, part_entries, clean = await video.render_part(
             n, len(parts), title, [clean_paths[i] for i in idx], [beats[i]["text"] for i in idx], work, out, cut_seconds, offset,
-            [beat_shots[i] for i in idx], [stickers[i] for i in idx], cast)
+            [beat_shots[i] for i in idx], [stickers[i] for i in idx], cast,
+            cover_files["tiktok"][n - 1] if len(cover_files["tiktok"]) >= n else None)
         cleans.append(clean)
         t = offset
         for i in idx:

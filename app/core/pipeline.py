@@ -88,13 +88,13 @@ def metadata_schema(parts):
     return {
         "type": "object",
         "properties": {
-            "youtube_title": S,
+            "youtube_title": S, "thumbnail_text": S,
             "titles": {"type": "array", "minItems": 5, "maxItems": 5, "items": S},
             "description": S, "tiktok_caption": S,
             "part_captions": {"type": "array", "minItems": parts, "maxItems": parts, "items": S},
             "hashtags": {"type": "array", "maxItems": 12, "items": S},
         },
-        "required": ["youtube_title", "titles", "description", "tiktok_caption", "part_captions", "hashtags"],
+        "required": ["youtube_title", "thumbnail_text", "titles", "description", "tiktok_caption", "part_captions", "hashtags"],
     }
 
 
@@ -268,6 +268,8 @@ class StoryPipeline:
                     "persona che racconta l'inizio del conflitto, interrotta sul più bello con «...» (max 100 caratteri, niente emoji, "
                     "es. «Quando chiesi a mio marito cosa volesse per il compleanno, mi rispose che voleva il...»).\n"
                     "titles: 5 alternative diverse nello stesso stile (max 100 caratteri).\n"
+                    "thumbnail_text: la scritta della copertina YouTube, 2-5 parole MAIUSCOLE che fanno cliccare "
+                    "(es. «HA SCELTO L'AMANTE», «LA CASA ERA MIA»).\n"
                     "description: descrizione YouTube di 2-3 frasi che incuriosisce senza svelare il finale; termina con «Storia di fantasia.»\n"
                     "tiktok_caption: didascalia breve generica.\n"
                     f"part_captions: esattamente {len(structure['parts'])} didascalie TikTok, una per parte: una frase che stuzzica "

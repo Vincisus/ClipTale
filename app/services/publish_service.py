@@ -32,6 +32,7 @@ BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 YT_AUTH = "https://accounts.google.com/o/oauth2/v2/auth"
 YT_TOKEN = "https://oauth2.googleapis.com/token"
 YT_UPLOAD = "https://www.googleapis.com/upload/youtube/v3/videos"
+YT_THUMB = "https://www.googleapis.com/upload/youtube/v3/thumbnails/set"
 YT_SCOPE = "https://www.googleapis.com/auth/youtube.upload"
 
 TT_AUTH = "https://www.tiktok.com/v2/auth/authorize/"
@@ -253,6 +254,31 @@ async def upload_youtube(path, title, description, tags, privacy="private", log=
     raise RuntimeError("YouTube: caricamento non completato")
 
 
+async def set_youtube_thumbnail(video_id, image, transport=None):
+    """Carica la copertina 16:9 (JPEG, max 2 MB). YouTube la accetta solo da canali verificati con il telefono."""
+    data = Path(image).read_bytes()
+    if len(data) > 2 * 1024 * 1024:
+        from PIL import Image
+        import io
+        buf = io.BytesIO()
+        Image.open(image).convert("RGB").save(buf, "JPEG", quality=80)
+        data = buf.getvalue()
+    async with httpx.AsyncClient(timeout=60, transport=transport) as c:
+        token = await _youtube_access(c)
+        r = await c.post(YT_THUMB, params={"videoId": video_id}, content=data,
+                         headers={"Authorization": f"Bearer {token}", "Content-Type": "image/jpeg"})
+    if r.status_code != 200:
+        reason = ""
+        try:
+            reason = r.json()["error"]["errors"][0].get("reason", "")
+        except Exception:
+            pass
+        if r.status_code == 403:
+            raise RuntimeError("YouTube non accetta copertine personalizzate da questo canale: verificalo con il telefono su "
+                               "youtube.com/verify, poi caricala da YouTube Studio (il file è in render/covers/youtube.jpg)")
+        raise RuntimeError(f"copertina rifiutata ({r.status_code} {reason})")
+
+
 def tiktok_chunks(size):
     """Regole TikTok: blocchi da 5 a 64 MB, l'ultimo può arrivare a 128 MB; sotto i 5 MB un blocco unico.
 
@@ -355,6 +381,15 @@ async def publish_project(folder, job_log, youtube=None, tiktok=None):
             res = await upload_youtube(video, youtube.get("title") or texts["title"], youtube.get("description") or texts["description"],
                                        youtube.get("tags") or texts["tags"], youtube.get("privacy", "private"), log=lambda m: job_log(m, None))
             record["youtube"] = {**res, "at": time.strftime("%Y-%m-%d %H:%M")}
+            thumb = folder / "render" / "covers" / "youtube.jpg"
+            if youtube.get("thumbnail", True) and thumb.is_file():
+                try:
+                    await set_youtube_thumbnail(res["id"], thumb)
+                    record["youtube"]["thumbnail"] = True
+                    job_log("YouTube: copertina 16:9 caricata", None)
+                except Exception as exc:
+                    record["youtube"]["thumbnail"] = False
+                    job_log(f"YouTube: video caricato, ma la copertina no: {exc}", None, "warn")
         except Exception as exc:
             errors.append(str(exc))
             job_log(f"YouTube: {exc}", None, "error")

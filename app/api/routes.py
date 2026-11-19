@@ -2,6 +2,7 @@ import asyncio
 import os
 import shutil
 from datetime import datetime
+from pathlib import Path
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -152,7 +153,7 @@ async def delete_project(project_id: str, request: Request):
 @router.get("/projects/{project_id}/file/{path:path}")
 async def project_file(project_id: str, path: str, download: bool = False):
     file = projects.safe_file(project_id, path)
-    if file.suffix.lower() not in (".mp4", ".srt", ".md", ".json", ".wav", ".mp3", ".txt", ".png"):
+    if file.suffix.lower() not in (".mp4", ".srt", ".md", ".json", ".wav", ".mp3", ".txt", ".png", ".jpg"):
         raise HTTPException(404, "Tipo di file non esposto")
     return FileResponse(file, filename=f"{project_id}_{file.name}" if download else None)
 
@@ -383,6 +384,10 @@ async def publish_info(project_id: str):
         "tiktok": publish_service.tiktok_captions(folder),
         "history": projects.load_json(folder / "publish.json", {}) or {},
         "has_video": (folder / "render" / "full_video.mp4").is_file(),
+        "covers": {
+            "tiktok": sorted(p.relative_to(folder).as_posix() for p in (folder / "render" / "covers").glob("tiktok_part_*.jpg")),
+            "youtube": "render/covers/youtube.jpg" if (folder / "render" / "covers" / "youtube.jpg").is_file() else None,
+        },
     }
 
 
@@ -391,6 +396,7 @@ class PublishRequest(BaseModel):
     youtube_title: str = Field(default="", max_length=100)
     youtube_description: str = Field(default="", max_length=5000)
     youtube_privacy: Literal["private", "unlisted", "public"] = "private"
+    youtube_thumbnail: bool = True
     tiktok: bool = False
     tiktok_mode: Literal["draft", "direct"] = "draft"
     tiktok_captions: list[str] = Field(default_factory=list, max_length=20)
@@ -408,7 +414,8 @@ async def publish(project_id: str, payload: PublishRequest, request: Request):
     async def worker(job):
         await publish_service.publish_project(
             folder, lambda m, p=None, level="info": job.log(m, module="publish", progress=p, level=level),
-            youtube={"title": payload.youtube_title, "description": payload.youtube_description, "privacy": payload.youtube_privacy} if payload.youtube else None,
+            youtube={"title": payload.youtube_title, "description": payload.youtube_description, "privacy": payload.youtube_privacy,
+                     "thumbnail": payload.youtube_thumbnail} if payload.youtube else None,
             tiktok={"mode": payload.tiktok_mode, "captions": payload.tiktok_captions} if payload.tiktok else None)
 
     job = jobs.start("publish", project_id, worker)
@@ -426,3 +433,49 @@ async def open_folder(project_id: str, request: Request, sub: str = "render/tikt
     if hasattr(os, "startfile"):
         os.startfile(str(target))  # noqa: S606 - solo Windows, cartella del progetto
     return {"ok": True, "path": str(target)}
+
+
+class CoversRequest(BaseModel):
+    thumbnail_text: str = Field(default="", max_length=60)
+
+
+@router.post("/projects/{project_id}/covers")
+async def remake_covers(project_id: str, payload: CoversRequest, request: Request):
+    """Rifà le copertine (anche con una scritta diversa per YouTube) senza rifare il video."""
+    same_origin(request)
+    folder = projects.folder(project_id)
+    from app.services import covers
+    beats = [b for b in projects.load_json(folder / "beats.json", []) if str(b.get("text", "")).strip()]
+    concept = projects.load_json(folder / "concept.json", {}) or {}
+    meta = projects.load_json(folder / "metadata.json", {}) or {}
+    if payload.thumbnail_text.strip():
+        meta["thumbnail_text"] = payload.thumbnail_text.strip()
+        projects.save_json(folder / "metadata.json", meta)
+    plan = projects.load_json(folder / "render" / "scenes" / "toon_plan.json", {}) or {}
+    render_info = projects.load_json(folder / "render" / "render.json", {}) or {}
+    parts = sorted({b["part"] for b in beats}) or [1]
+    part_shots, part_bgs = [], []
+    if plan.get("shots") and len(plan["shots"]) == len(beats):
+        bgs = {i: p for i, p in enumerate(_place_files(folder, plan))}
+        for part in parts:
+            shots = [{**s, "bg": bgs.get(s.get("place", 0))} for i, b in enumerate(beats) if b["part"] == part for s in plan["shots"][i]]
+            part_shots.append(shots)
+            part_bgs.append(next((s["bg"] for s in shots if s["bg"]), None))
+    else:
+        scenes = render_info.get("scenes") or []
+        for part in parts:
+            files = [folder / f for i, b in enumerate(beats) if b["part"] == part and i < len(scenes) for f in scenes[i]]
+            part_shots.append([])
+            part_bgs.append(str(files[0]) if files else None)
+    stickers = plan.get("stickers") or render_info.get("stickers") or []
+    made = await asyncio.to_thread(covers.make_all, folder, parts, [concept.get("title", "")] * len(parts), part_shots, part_bgs,
+                                   plan.get("cast") or [], meta, concept, stickers)
+    return {"tiktok": len(made["tiktok"]), "youtube": bool(made["youtube"])}
+
+
+def _place_files(folder, plan):
+    """I file degli sfondi dei luoghi, nello stesso ordine del piano (come li calcola il render)."""
+    import hashlib
+    seed_base = int(hashlib.sha1(folder.name.encode()).hexdigest()[:6], 16)
+    _, files = illustration_service.toon_background_items(plan.get("places") or [], folder, seed_base)
+    return [str(f) if Path(f).is_file() else None for f in files]
