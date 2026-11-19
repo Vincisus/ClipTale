@@ -5,13 +5,13 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 from app.core import jobs, projects
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
-from app.services import illustration_service, tts_service
+from app.services import illustration_service, publish_service, tts_service
 from app.services.llm_service import LLMService
 from app.services.video_service import ffmpeg_exe
 
@@ -114,7 +114,7 @@ async def project_file(project_id: str, path: str, download: bool = False):
 # ------------------------------------------------------------------ lavori
 class GenerateRequest(BaseModel):
     topic: str = Field(default="", max_length=4000)
-    format: Literal["story", "explainer"] = "story"
+    format: Literal["reddit", "story", "explainer"] = "reddit"
     duration_minutes: float = Field(default=3, ge=0.5, le=30)
     parts: int = Field(default=3, ge=1, le=8)
     wpm: int = Field(default=150, ge=100, le=220)
@@ -123,9 +123,8 @@ class GenerateRequest(BaseModel):
     restart: bool = False
 
 
-@router.post("/generate")
-async def generate(payload: GenerateRequest, request: Request):
-    same_origin(request)
+def prepare_brief(payload):
+    """Crea (o riprende) la cartella del progetto e il brief. Restituisce (folder, brief, llm)."""
     if jobs.active():
         raise HTTPException(409, "Un lavoro e gia in corso: attendi o annullalo.")
     llm = LLMService(model=payload.model or None)
@@ -152,6 +151,13 @@ async def generate(payload: GenerateRequest, request: Request):
         brief = {"id": project_id, "topic": payload.topic.strip(), "format": payload.format, "duration_minutes": payload.duration_minutes, "parts": payload.parts, "wpm": payload.wpm, "created_at": datetime.now().isoformat(timespec="seconds")}
     brief["model"] = llm.model
     projects.save_json(folder / "brief.json", brief)
+    return folder, brief, llm
+
+
+@router.post("/generate")
+async def generate(payload: GenerateRequest, request: Request):
+    same_origin(request)
+    folder, brief, llm = prepare_brief(payload)
 
     async def worker(job):
         def activity(text):
@@ -218,3 +224,140 @@ async def illustrations_status():
         "models_ready": illustration_service.models_ready(),
         "styles": [{"id": k, "label": v["label"]} for k, v in illustration_service.STYLES.items()],
     }
+
+
+# ------------------------------------------------------------------ tutto in automatico
+class AutoRequest(GenerateRequest):
+    voice: Optional[str] = Field(default=None, max_length=300)
+    visuals: Literal["ai", "none"] = "ai"
+    style: Literal["cartoon", "sketch", "comic"] = "cartoon"
+    cut_seconds: float = Field(default=2.2, ge=0.8, le=6)
+    silence_ms: int = Field(default=120, ge=0, le=1000)
+    publish_youtube: bool = False
+    youtube_privacy: Literal["private", "unlisted", "public"] = "private"
+    publish_tiktok: bool = False
+    tiktok_mode: Literal["draft", "direct"] = "draft"
+
+
+@router.post("/auto")
+async def auto(payload: AutoRequest, request: Request):
+    """Dall'idea al video finito in un solo lavoro: copione (LM Studio) -> voce -> disegni -> video -> pubblicazione facoltativa."""
+    same_origin(request)
+    if not ffmpeg_exe():
+        raise HTTPException(400, "FFmpeg non disponibile")
+    folder, brief, llm = prepare_brief(payload)
+    publish = payload.publish_youtube or payload.publish_tiktok
+    render_end = 95 if publish else 100
+
+    async def worker(job):
+        def activity(text):
+            job.data["activity"] = text
+        llm.on_activity = activity
+        job.log("Modalità automatica: copione, voce, disegni e video", module="auto", progress=1)
+        await StoryPipeline(llm, folder, jobs.Stage(job, 1, 40)).run(brief)
+        job.data["activity"] = None
+        await render_project(folder, jobs.Stage(job, 40, render_end), payload.voice, payload.wpm, payload.cut_seconds,
+                             payload.silence_ms, payload.visuals, llm.model, payload.style)
+        if publish:
+            stage = jobs.Stage(job, 95, 100)
+            await publish_service.publish_project(
+                folder, lambda m, p=None, level="info": stage.log(m, module="publish", progress=p, level=level),
+                youtube={"privacy": payload.youtube_privacy} if payload.publish_youtube else None,
+                tiktok={"mode": payload.tiktok_mode} if payload.publish_tiktok else None)
+
+    job = jobs.start("auto", folder.name, worker)
+    return {"job_id": job.id, "project_id": folder.name}
+
+
+# ------------------------------------------------------------------ pubblicazione
+@router.get("/publish/status")
+async def publish_status():
+    return publish_service.status()
+
+
+class AppKeys(BaseModel):
+    key: str = Field(min_length=4, max_length=300, pattern=r"^[A-Za-z0-9._\-]+$")
+    secret: str = Field(min_length=4, max_length=300, pattern=r"^[A-Za-z0-9._\-]+$")
+
+
+@router.post("/publish/{platform}/app")
+async def publish_save_app(platform: Literal["youtube", "tiktok"], payload: AppKeys, request: Request):
+    same_origin(request)
+    publish_service.save_app(platform, payload.key, payload.secret)
+    return publish_service.status()
+
+
+@router.post("/publish/{platform}/disconnect")
+async def publish_disconnect(platform: Literal["youtube", "tiktok"], request: Request):
+    same_origin(request)
+    publish_service.disconnect(platform)
+    return publish_service.status()
+
+
+@router.get("/publish/{platform}/connect")
+async def publish_connect(platform: Literal["youtube", "tiktok"]):
+    try:
+        return RedirectResponse(publish_service.auth_url(platform))
+    except ValueError as exc:
+        return HTMLResponse(_page(str(exc), ok=False), status_code=400)
+
+
+@router.get("/publish/{platform}/callback")
+async def publish_callback(platform: Literal["youtube", "tiktok"], code: str = "", state: str = "", error: str = "", error_description: str = ""):
+    if error or not code:
+        return HTMLResponse(_page(f"Collegamento annullato: {error_description or error or 'nessun codice ricevuto'}", ok=False), status_code=400)
+    try:
+        await publish_service.finish_auth(platform, code, state)
+    except Exception as exc:
+        return HTMLResponse(_page(str(exc), ok=False), status_code=400)
+    name = "YouTube" if platform == "youtube" else "TikTok"
+    return HTMLResponse(_page(f"{name} collegato. Puoi chiudere questa scheda e tornare a TiktokFactory.", ok=True))
+
+
+def _page(message, ok):
+    from html import escape
+    color = "#34d399" if ok else "#f87171"
+    return (f"<!doctype html><meta charset='utf-8'><title>TiktokFactory</title><body style='font-family:system-ui;background:#0b0b0d;"
+            f"color:#f2f2f3;display:grid;place-items:center;height:100vh;margin:0'><p style='max-width:520px;font-size:18px;"
+            f"border:1px solid {color};padding:24px;border-radius:12px'>{escape(message)}</p>"
+            + ("<script>try{window.opener&&window.opener.postMessage('tf-connected','*')}catch(e){};setTimeout(()=>window.close(),1500)</script>" if ok else ""))
+
+
+@router.get("/projects/{project_id}/publish")
+async def publish_info(project_id: str):
+    folder = projects.folder(project_id)
+    return {
+        "youtube": publish_service.youtube_texts(folder),
+        "tiktok": publish_service.tiktok_captions(folder),
+        "history": projects.load_json(folder / "publish.json", {}) or {},
+        "has_video": (folder / "render" / "full_video.mp4").is_file(),
+    }
+
+
+class PublishRequest(BaseModel):
+    youtube: bool = False
+    youtube_title: str = Field(default="", max_length=100)
+    youtube_description: str = Field(default="", max_length=5000)
+    youtube_privacy: Literal["private", "unlisted", "public"] = "private"
+    tiktok: bool = False
+    tiktok_mode: Literal["draft", "direct"] = "draft"
+    tiktok_captions: list[str] = Field(default_factory=list, max_length=20)
+
+
+@router.post("/projects/{project_id}/publish")
+async def publish(project_id: str, payload: PublishRequest, request: Request):
+    same_origin(request)
+    folder = projects.folder(project_id)
+    if not (folder / "render" / "full_video.mp4").is_file():
+        raise HTTPException(400, "Prima crea il video.")
+    if not (payload.youtube or payload.tiktok):
+        raise HTTPException(400, "Scegli almeno YouTube o TikTok.")
+
+    async def worker(job):
+        await publish_service.publish_project(
+            folder, lambda m, p=None, level="info": job.log(m, module="publish", progress=p, level=level),
+            youtube={"title": payload.youtube_title, "description": payload.youtube_description, "privacy": payload.youtube_privacy} if payload.youtube else None,
+            tiktok={"mode": payload.tiktok_mode, "captions": payload.tiktok_captions} if payload.tiktok else None)
+
+    job = jobs.start("publish", project_id, worker)
+    return {"job_id": job.id, "project_id": project_id}

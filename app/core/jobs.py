@@ -44,6 +44,18 @@ class Job:
         self.persist()
 
 
+class Stage:
+    """Vista di un lavoro per una fase di un lavoro più grande: riporta l'avanzamento 0-100 nell'intervallo [lo, hi]."""
+
+    def __init__(self, job, lo, hi):
+        self.job, self.lo, self.hi = job, lo, hi
+        self.data = job.data
+
+    def log(self, message, module="system", progress=None, level="info"):
+        scaled = None if progress is None else self.lo + (self.hi - self.lo) * max(0, min(100, progress)) / 100
+        self.job.log(message, module=module, progress=scaled, level=level)
+
+
 def active():
     task = _current["task"]
     return JOBS.get(_current["id"]) if task is not None and not task.done() else None

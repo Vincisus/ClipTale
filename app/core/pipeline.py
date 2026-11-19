@@ -12,6 +12,31 @@ from app.core.projects import load_json, save_json, save_text
 WPM_DEFAULT = 150
 
 FORMATS = {
+    # Formula delle "storie di Reddit" italiane (canali come Moglie Reddit): chi racconta subisce un torto,
+    # ha una carta nascosta, la situazione peggiora a ondate, arriva la rivincita e un ultimo colpo di scena.
+    "reddit": {
+        "label": "Storia stile Reddit",
+        "concept": (
+            "Crea il concept di una storia ORIGINALE in italiano nello stile delle 'storie di Reddit' (come il canale Moglie Reddit): "
+            "raccontata in prima persona da chi subisce un torto, realistica e ambientata in Italia. Temi tipici: matrimonio e tradimenti, "
+            "suoceri o parenti che umiliano, fratelli e sorelle invidiosi, figli ingrati, soldi ed eredità, capi ingiusti, segreti scoperti per caso "
+            "(un telefono, una chat, il gruppo WhatsApp di famiglia o del condominio).\n"
+            "Ingredienti obbligatori:\n"
+            "1) una frase d'apertura shock, in prima persona, che contiene già il conflitto (esempi di tono: «Quando chiesi a mio marito cosa volesse "
+            "per il compleanno, mi rispose che voleva il divorzio.» / «Alla cena di famiglia, papà mi chiese se la paghetta mi bastava.»);\n"
+            "2) un'ingiustizia o umiliazione concreta con dialoghi taglienti, che fa arrabbiare chi ascolta;\n"
+            "3) una carta nascosta del narratore che gli altri ignorano (soldi segreti, una prova, un'informazione, un ruolo importante);\n"
+            "4) un'escalation in 3-4 colpi, ognuno peggiore del precedente;\n"
+            "5) una rivincita soddisfacente e legale, con la reazione degli altri personaggi;\n"
+            "6) un ultimo colpo di scena che nessuno si aspetta.\n"
+            "Personaggi con nomi italiani. Niente violenza esplicita, niente contenuti sessuali."
+        ),
+        "write": (
+            "Prima persona, italiano parlato come chi racconta la propria storia a voce: frasi brevi, molti dialoghi diretti tra caporali «», "
+            "dettagli concreti (cifre, oggetti, luoghi, messaggi letti sul telefono). Ogni 3-4 frasi un piccolo gancio che fa restare: "
+            "una rivelazione a metà, una domanda, un «ma loro non sapevano che…». Niente titoli, elenchi, emoji o note dell'autore."
+        ),
+    },
     "story": {
         "label": "Racconto in prima persona",
         "concept": (
@@ -59,15 +84,29 @@ def part_schema(beats):
     return {"type": "object", "properties": {"beats": {"type": "array", "minItems": beats, "maxItems": beats, "items": beat}}, "required": ["beats"]}
 
 
-METADATA_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "titles": {"type": "array", "minItems": 5, "maxItems": 5, "items": S},
-        "description": S, "tiktok_caption": S,
-        "hashtags": {"type": "array", "maxItems": 12, "items": S},
-    },
-    "required": ["titles", "description", "tiktok_caption", "hashtags"],
-}
+def metadata_schema(parts):
+    return {
+        "type": "object",
+        "properties": {
+            "youtube_title": S,
+            "titles": {"type": "array", "minItems": 5, "maxItems": 5, "items": S},
+            "description": S, "tiktok_caption": S,
+            "part_captions": {"type": "array", "minItems": parts, "maxItems": parts, "items": S},
+            "hashtags": {"type": "array", "maxItems": 12, "items": S},
+        },
+        "required": ["youtube_title", "titles", "description", "tiktok_caption", "part_captions", "hashtags"],
+    }
+
+
+# Il taglio delle clip TikTok: ogni parte finisce sul punto di massima tensione (mai su una pausa naturale)
+# e, dalla seconda in poi, riparte con una riga che rimette dentro chi arriva direttamente da quella clip.
+CUT_RULES = (
+    "Regole dei tagli (ogni parte è una clip TikTok separata e deve far venire voglia di vedere la successiva): "
+    "la parte 1 contiene il gancio nella prima frase e il primo torto entro i primi 20 secondi; "
+    "ogni parte tranne l'ultima finisce nel momento di massima tensione: una frase scioccante appena detta, una rivelazione a metà, "
+    "una porta che si apre, un messaggio letto solo in parte; mai su una conclusione o su una pausa naturale. "
+    "L'ultima parte chiude tutto con la rivincita e il colpo di scena finale."
+)
 
 
 def word_count(text):
@@ -150,7 +189,7 @@ class StoryPipeline:
         self.job.log(msg, module=module, progress=progress, level=level)
 
     async def run(self, brief):
-        fmt = FORMATS.get(brief.get("format"), FORMATS["story"])
+        fmt = FORMATS.get(brief.get("format"), FORMATS["reddit"])
         numbers = plan(brief)
         parts_count = int(brief["parts"])
         self.log(f"Obiettivo: ~{numbers['total_words']} parole, {parts_count} parti da {numbers['beats_per_part']} beat (modello {self.llm.model})", 3)
@@ -181,9 +220,11 @@ class StoryPipeline:
             self.log(f"Pianificazione di {parts_count} parti…", 14, module="llm_service")
             raw = await self.llm.generate_json(
                 f"Dividi questo concept in esattamente {parts_count} parti consecutive. Ogni parte diventa un video TikTok autonomo "
-                "ma la sequenza forma un'unica storia. Per ogni parte: part (numero da 1), title, summary (eventi concreti in ordine, "
-                "3-5 frasi), cliffhanger (frase finale che spinge a guardare la parte successiva; nell'ultima parte e la frase conclusiva). "
-                f"Non cambiare il finale previsto.\nConcept: {dumps(concept)}",
+                "ma la sequenza forma un'unica storia (che su YouTube esce intera). Per ogni parte: part (numero da 1), title, "
+                "summary (eventi concreti in ordine, 3-5 frasi), cliffhanger (l'ultima frase della parte: il punto di massima tensione "
+                "dove si taglia la clip; nell'ultima parte è la frase conclusiva).\n"
+                + (CUT_RULES + "\n" if brief.get("format", "reddit") != "explainer" else "")
+                + f"Non cambiare il finale previsto.\nConcept: {dumps(concept)}",
                 structure_schema(parts_count), label="Struttura")
             structure = normalize_structure(raw, parts_count)
             save_json(self.folder / "structure.json", structure)
@@ -222,11 +263,25 @@ class StoryPipeline:
             try:
                 self.log("Titoli, descrizione e hashtag…", 94, module="metadata")
                 meta = await self.llm.generate_json(
-                    "Prepara i metadati social in italiano per questo video. titles: 5 titoli diversi (max 90 caratteri), "
-                    "description: descrizione YouTube di 2-3 frasi (se e fiction dichiaralo), tiktok_caption: didascalia breve, "
-                    f"hashtags: 6-10 hashtag senza spazi.\nConcept: {dumps(concept)}\nParti: {dumps([p['title'] for p in structure['parts']])}",
-                    METADATA_SCHEMA, label="Metadati")
+                    "Prepara i metadati social in italiano.\n"
+                    "youtube_title: il titolo del video lungo su YouTube, nello stile dei canali di storie Reddit: la frase-gancio in prima "
+                    "persona che racconta l'inizio del conflitto, interrotta sul più bello con «...» (max 100 caratteri, niente emoji, "
+                    "es. «Quando chiesi a mio marito cosa volesse per il compleanno, mi rispose che voleva il...»).\n"
+                    "titles: 5 alternative diverse nello stesso stile (max 100 caratteri).\n"
+                    "description: descrizione YouTube di 2-3 frasi che incuriosisce senza svelare il finale; termina con «Storia di fantasia.»\n"
+                    "tiktok_caption: didascalia breve generica.\n"
+                    f"part_captions: esattamente {len(structure['parts'])} didascalie TikTok, una per parte: una frase che stuzzica "
+                    "(max 90 caratteri) seguita da «Parte N» (col numero giusto); per tutte le parti tranne l'ultima aggiungi "
+                    "«👉 Parte N+1 nel profilo», per l'ultima «Storia completa su YouTube, link nel profilo».\n"
+                    "hashtags: 6-10 hashtag senza spazi (includi #reddititalia #storievere #storie).\n"
+                    f"Concept: {dumps(concept)}\nParti: {dumps([{'part': p['part'], 'title': p['title'], 'cliffhanger': p['cliffhanger']} for p in structure['parts']])}",
+                    metadata_schema(len(structure["parts"])), label="Metadati")
                 meta["hashtags"] = ["#" + h.lstrip("#").replace(" ", "") for h in meta.get("hashtags", []) if h.strip()]
+                from app.services.publish_service import short_title
+                meta["youtube_title"] = short_title(meta.get("youtube_title") or (meta.get("titles") or [concept["title"]])[0])
+                caps = [str(c).strip() for c in meta.get("part_captions") or []]
+                n_parts = len(structure["parts"])
+                meta["part_captions"] = (caps + [f"{concept['title']} — Parte {i}" for i in range(len(caps) + 1, n_parts + 1)])[:n_parts]
                 save_json(self.folder / "metadata.json", meta)
             except Exception as exc:  # i metadati non devono far fallire il copione
                 self.log(f"Metadati non generati ({exc}); puoi rigenerarli dopo", level="warn", module="metadata")
@@ -235,8 +290,19 @@ class StoryPipeline:
     async def write_part(self, fmt, concept, structure, part, written, numbers, parts_count):
         n, beats_n, words = part["part"], numbers["beats_per_part"], numbers["words_per_part"]
         previous = written[-1]["beats"][-1]["text"][-700:] if written else ""
-        position = "Questa e la PRIMA parte: apri con il gancio del concept." if n == 1 else f"Riprendi esattamente da dove finisce la parte {n - 1}, senza riassumerla."
-        position += " Questa e l'ULTIMA parte: chiudi la storia." if n == parts_count else " Termina con il cliffhanger previsto, senza anticipare le parti successive."
+        narrative = fmt is not FORMATS["explainer"]
+        if n == 1:
+            position = "Questa è la PRIMA parte: la prima frase è esattamente il gancio del concept, poi arriva subito il primo torto."
+        elif narrative:
+            position = (f"Riprendi da dove finisce la parte {n - 1}. Apri con UNA sola frase-richiamo di massimo 15 parole che rimette "
+                        "dentro chi arriva direttamente da questa clip (es. «Mia suocera aveva appena letto il messaggio ad alta voce…»), poi prosegui.")
+        else:
+            position = f"Riprendi esattamente da dove finisce la parte {n - 1}, senza riassumerla."
+        if n == parts_count:
+            position += " Questa è l'ULTIMA parte: rivincita, reazioni e colpo di scena finale, poi chiudi la storia."
+        else:
+            position += (" Termina ESATTAMENTE sul cliffhanger previsto: l'ultima frase è il punto di massima tensione, "
+                         "senza spiegarlo e senza anticipare le parti successive.")
         prompt = (
             f"Scrivi il testo parlato della parte {n} di {parts_count}.\n{fmt['write']}\n{position}\n"
             f"Lunghezza: circa {words} parole in totale, divise in {beats_n} beat consecutivi di lunghezza simile "

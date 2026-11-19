@@ -1,6 +1,7 @@
 """Sintesi vocale per beat.
 
-Due motori:
+Tre motori:
+- "piper:<file>" voci neurali LOCALI (Piper, ONNX su CPU): nessun dato esce dal PC. File .onnx in models/piper/;
 - "edge:<voce>"  voci neurali Microsoft (pacchetto edge-tts, richiede Internet; il testo viene inviato a Microsoft);
 - "local:<nome>" voci SAPI installate in Windows (offline), sintetizzate in un processo separato
   perche pyttsx3/COM non e affidabile se richiamato piu volte dentro il server.
@@ -9,7 +10,55 @@ import asyncio
 import json
 import subprocess
 import sys
+import wave
 from pathlib import Path
+
+PIPER_DIR = Path(__file__).resolve().parents[2] / "models" / "piper"
+PIPER_LABELS = {"it_IT-paola-medium": "Paola (IT, neurale locale)", "it_IT-riccardo-x_low": "Riccardo (IT, neurale locale)"}
+_PIPER_CACHE = {}
+
+try:
+    import piper  # noqa: F401
+    PIPER_AVAILABLE = True
+except ImportError:
+    PIPER_AVAILABLE = False
+
+
+PIPER_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main/it/it_IT/paola/medium/"
+
+
+def download_piper_voice(name="it_IT-paola-medium"):
+    """Scarica la voce Piper italiana (una volta sola) in models/piper/."""
+    import urllib.request
+    PIPER_DIR.mkdir(parents=True, exist_ok=True)
+    for f in (f"{name}.onnx.json", f"{name}.onnx"):
+        target = PIPER_DIR / f
+        if not target.is_file():
+            urllib.request.urlretrieve(PIPER_URL + f, target.with_suffix(target.suffix + ".part"))
+            target.with_suffix(target.suffix + ".part").replace(target)
+
+
+def piper_voices():
+    if not PIPER_AVAILABLE or not PIPER_DIR.is_dir():
+        return []
+    return [p.stem for p in sorted(PIPER_DIR.glob("*.onnx")) if p.with_suffix(".onnx.json").is_file()]
+
+
+def _piper_synth(name, items, wpm):
+    from piper import PiperVoice, SynthesisConfig
+
+    voice = _PIPER_CACHE.get(name) or PiperVoice.load(str(PIPER_DIR / f"{name}.onnx"))
+    _PIPER_CACHE[name] = voice
+    # length_scale > 1 rallenta: Piper parla a circa 160 parole al minuto con 1.0
+    cfg = SynthesisConfig(length_scale=max(0.6, min(1.6, 160 / max(80, wpm))))
+    created = []
+    for text, path in items:
+        path = Path(path).with_suffix(".wav")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with wave.open(str(path), "wb") as w:
+            voice.synthesize_wav(text, w, syn_config=cfg)
+        created.append(path)
+    return created
 
 EDGE_VOICES = [
     ("it-IT-ElsaNeural", "Elsa (IT, neurale)"),
@@ -39,12 +88,13 @@ def local_voices():
 
 
 def list_voices():
-    voices = []
+    voices = [{"id": f"piper:{n}", "label": PIPER_LABELS.get(n, n + " (neurale locale)"), "engine": "piper", "online": False} for n in piper_voices()]
     if EDGE_AVAILABLE:
         voices += [{"id": f"edge:{vid}", "label": label, "engine": "edge", "online": True} for vid, label in EDGE_VOICES]
     for v in local_voices():
         voices.append({"id": f"local:{v['id']}", "label": v["name"] + " (Windows, offline)", "engine": "local", "online": False, "italian": v.get("italian", False)})
-    voices.sort(key=lambda v: (v["engine"] != "edge", not v.get("italian", True)))
+    order = {"piper": 0, "edge": 1, "local": 2}
+    voices.sort(key=lambda v: (order[v["engine"]], not v.get("italian", True)))
     return voices
 
 
@@ -61,10 +111,20 @@ class TTSService:
     async def synthesize_many(self, items, on_progress=None):
         """items: lista di (testo, percorso_mp3_o_wav). Restituisce l'elenco dei file creati."""
         engine, _, name = self.voice.partition(":")
+        if engine == "piper":
+            if name not in piper_voices():
+                raise RuntimeError(f"Voce locale {name} non trovata in models/piper/")
+            if on_progress:
+                on_progress(f"Voce locale {name}: sintesi di {len(items)} beat…")
+            return await asyncio.to_thread(_piper_synth, name, items, self.wpm)
         if engine == "edge":
             try:
                 return await self._edge(name, items, on_progress)
             except Exception as exc:
+                if piper_voices():
+                    if on_progress:
+                        on_progress(f"Voce online non disponibile ({type(exc).__name__}): uso la voce neurale locale")
+                    return await asyncio.to_thread(_piper_synth, piper_voices()[0], items, self.wpm)
                 if not local_voices():
                     raise RuntimeError(f"Voce online non disponibile ({exc}) e nessuna voce Windows installata.") from exc
                 if on_progress:

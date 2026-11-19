@@ -172,3 +172,108 @@ def test_build_items_shots_and_cache_paths(tmp_path):
     assert len({i["out"] for i in items}) == 3 and len({i["seed"] for i in items}) == 3
     again, _ = build_items([{}, {}], [4.0, 15.0], ["a kitchen", "a garage"], "sketch", tmp_path, 100)
     assert [i["out"] for i in again] == [i["out"] for i in items]  # stessa scena = stesso file in cache
+
+
+# ------------------------------------------------------------------ pubblicazione (server finti)
+@pytest.fixture
+def secrets_dir(tmp_path, monkeypatch):
+    from app.services import publish_service
+    monkeypatch.setattr(publish_service, "SECRETS", tmp_path / "secrets")
+    return publish_service
+
+
+def test_auth_urls_use_pkce_and_state(secrets_dir):
+    ps = secrets_dir
+    assert ps.status()["youtube"]["configured"] is False
+    ps.save_app("youtube", "cid.apps.googleusercontent.com", "sec-1")
+    ps.save_app("tiktok", "ckey", "csec")
+    yt = ps.auth_url("youtube")
+    assert "code_challenge_method=S256" in yt and "access_type=offline" in yt and "youtube.upload" in yt
+    tt = ps.auth_url("tiktok")
+    assert "client_key=ckey" in tt and "video.upload" in tt
+    challenge = tt.split("code_challenge=")[1].split("&")[0]
+    assert len(challenge) == 64 and all(c in "0123456789abcdef" for c in challenge)  # TikTok desktop: SHA256 esadecimale
+    with pytest.raises(ValueError):
+        asyncio.run(ps.finish_auth("youtube", "code", "state-sbagliato"))
+
+
+def test_youtube_texts_have_chapters(tmp_path):
+    from app.core.projects import save_json
+    from app.services.publish_service import youtube_texts
+
+    save_json(tmp_path / "metadata.json", {"youtube_title": "Quando chiesi a mio marito cosa volesse per il compleanno, mi rispose...", "description": "Una cena.", "hashtags": ["#reddititalia", "#storie"]})
+    save_json(tmp_path / "structure.json", {"parts": [{"part": i, "title": f"T{i}"} for i in (1, 2, 3)]})
+    save_json(tmp_path / "render" / "render.json", {"beats": [{"part": 1, "start": 0}, {"part": 1, "start": 20}, {"part": 2, "start": 65.4}, {"part": 3, "start": 3700}]})
+    t = youtube_texts(tmp_path)
+    assert t["title"].startswith("Quando chiesi") and t["tags"] == ["reddititalia", "storie"]
+    assert "00:00 Parte 1 — T1" in t["description"] and "01:05 Parte 2 — T2" in t["description"] and "1:01:40 Parte 3" in t["description"]
+    assert "intelligenza artificiale" in t["description"]
+
+
+def test_upload_youtube_resumable(secrets_dir, tmp_path):
+    ps = secrets_dir
+    ps.save_app("youtube", "cid", "sec")
+    ps._write("youtube_token.json", {"refresh_token": "r1"})
+    video = tmp_path / "v.mp4"
+    video.write_bytes(b"x" * 1000)
+    calls = []
+
+    def handler(req):
+        calls.append((req.method, str(req.url)))
+        if req.url.host == "oauth2.googleapis.com":
+            return httpx.Response(200, json={"access_token": "a1"})
+        if req.method == "POST":
+            body = json.loads(req.content)
+            assert body["status"]["privacyStatus"] == "private" and body["status"]["containsSyntheticMedia"] is True
+            return httpx.Response(200, headers={"Location": "https://upload.test/session"})
+        assert req.headers["content-range"] == "bytes 0-999/1000"
+        return httpx.Response(200, json={"id": "VID123"})
+
+    res = asyncio.run(ps.upload_youtube(video, "Titolo", "Desc", ["a"], log=lambda m: None, transport=httpx.MockTransport(handler)))
+    assert res["url"] == "https://youtu.be/VID123" and len(calls) == 3
+
+
+def test_upload_tiktok_draft_chunks(secrets_dir, tmp_path, monkeypatch):
+    ps = secrets_dir
+    real_sleep = asyncio.sleep
+    monkeypatch.setattr(ps.asyncio, "sleep", lambda *_: real_sleep(0))
+    assert ps.tiktok_chunks(3 * ps.MB) == (3 * ps.MB, 1)
+    assert ps.tiktok_chunks(25 * ps.MB) == (10 * ps.MB, 2)  # l'ultimo blocco assorbe il resto
+    ps.save_app("tiktok", "ck", "cs")
+    ps._write("tiktok_token.json", {"refresh_token": "r", "access_token": "a", "expires_at": 9e12})
+    video = tmp_path / "c.mp4"
+    video.write_bytes(b"y" * (25 * ps.MB))
+    ranges = []
+
+    def handler(req):
+        path = req.url.path
+        if path.endswith("/inbox/video/init/"):
+            src = json.loads(req.content)["source_info"]
+            assert src["total_chunk_count"] == 2 and src["chunk_size"] == 10 * ps.MB
+            return httpx.Response(200, json={"data": {"upload_url": "https://up.test/u", "publish_id": "p1"}, "error": {"code": "ok"}})
+        if req.method == "PUT":
+            ranges.append(req.headers["content-range"])
+            return httpx.Response(201)
+        if path.endswith("/status/fetch/"):
+            return httpx.Response(200, json={"data": {"status": "SEND_TO_USER_INBOX"}})
+        return httpx.Response(404)
+
+    res = asyncio.run(ps.upload_tiktok(video, "Parte 1", "draft", log=lambda m: None, transport=httpx.MockTransport(handler)))
+    size = 25 * ps.MB
+    assert ranges == [f"bytes 0-{10 * ps.MB - 1}/{size}", f"bytes {10 * ps.MB}-{size - 1}/{size}"]
+    assert res["status"] == "SEND_TO_USER_INBOX"
+
+
+def test_reddit_format_is_default_and_has_cut_rules():
+    from app.core.pipeline import CUT_RULES, FORMATS, metadata_schema
+
+    assert "carta nascosta" in FORMATS["reddit"]["concept"] and "massima tensione" in CUT_RULES
+    assert metadata_schema(4)["properties"]["part_captions"]["minItems"] == 4
+
+
+def test_short_title_cuts_on_word():
+    from app.services.publish_service import short_title
+
+    t = short_title("Mia suocera mi ha chiesto di pagare il conto del pranzo di Natale perché, disse, 'la tua paga da impiegata è l'unica che entra'")
+    assert len(t) <= 100 and t.endswith("...") and not t.endswith("imp...")
+    assert short_title("Breve") == "Breve"

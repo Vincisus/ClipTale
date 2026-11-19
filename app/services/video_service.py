@@ -284,7 +284,7 @@ class VideoService:
         for text, dur in zip(beat_texts, durations):
             for chunk, secs in caption_chunks(text, dur, cut_seconds):
                 frame = frames_dir / f"{len(listing):05}.png"
-                render_caption(chunk, header, frame)
+                render_caption(chunk, header if t < 3.0 else "", frame)  # "Parte N/M" solo nei primi secondi: il video lungo resta pulito
                 listing.append((frame, secs))
                 entries.append((offset + t, offset + t + secs - (GAP_SECONDS if secs > GAP_SECONDS + 0.3 else 0), chunk))
                 t += secs

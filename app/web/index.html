@@ -148,7 +148,7 @@
     .side-empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
 
     /* ---------------------------------------------------------------- passi */
-    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
     .step {
       display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 64px; text-align: left;
       border-radius: var(--r); border: 1px solid var(--line); background: var(--surface); cursor: pointer;
@@ -226,6 +226,11 @@
     .lock-note { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--line); color: var(--ink-2); font-size: 14px; }
     .lock-note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
     .lock-note.warn { border-color: rgba(251, 191, 36, .35); }
+    .pub-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .howto { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); font-size: 14px; }
+    code { font-family: var(--mono); font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; word-break: break-all; }
+    .cap-row { display: flex; flex-direction: column; gap: 4px; }
+    .cap-row label { font-size: 13px; color: var(--muted); }
 
     details.more { border-top: 1px solid var(--line); padding-top: 16px; }
     details.more summary { cursor: pointer; font-size: 14px; font-weight: 500; color: var(--ink-2); list-style: none; display: flex; align-items: center; gap: 8px; min-height: 32px; }
@@ -459,7 +464,10 @@
           <span class="step-num">2</span><span class="step-text"><b>Copione</b><span id="sub-script">Rileggi e correggi</span></span>
         </button>
         <button type="button" class="step" role="tab" id="tab-video" data-step="video" aria-controls="panel-video" aria-selected="false">
-          <span class="step-num">3</span><span class="step-text"><b>Video</b><span id="sub-video">Voce, sottotitoli, clip</span></span>
+          <span class="step-num">3</span><span class="step-text"><b>Video</b><span id="sub-video">Voce, disegni, clip</span></span>
+        </button>
+        <button type="button" class="step" role="tab" id="tab-publish" data-step="publish" aria-controls="panel-publish" aria-selected="false">
+          <span class="step-num">4</span><span class="step-text"><b>Pubblica</b><span id="sub-publish">YouTube e TikTok</span></span>
         </button>
       </div>
 
@@ -473,38 +481,39 @@
         <div class="panel-head">
           <div>
             <h2>Di cosa parla il video?</h2>
-            <p>Scrivi l'idea come la racconteresti a un amico. Il modello in LM Studio crea titolo, struttura in parti e testo parlato.</p>
+            <p>Scrivi l'idea in una riga e premi <b>Crea tutto</b>: la tua AI locale scrive la storia, la voce la legge, ogni scena viene disegnata e ottieni il video lungo per YouTube e le clip per TikTok, tagliate sui momenti di massima tensione.</p>
           </div>
         </div>
 
         <div class="card">
           <div class="field">
             <label for="topic-input">La tua idea</label>
-            <textarea id="topic-input" placeholder="Es. una moglie scopre un secondo telefono del marito nascosto nel garage…"></textarea>
+            <textarea id="topic-input" placeholder="Es. mio marito mi ha chiesto il divorzio il giorno del suo compleanno, ma non sapeva che l'azienda era mia…"></textarea>
             <div class="examples" id="examples">
               <span class="hint">Prova con:</span>
-              <button type="button" class="example" data-example="Un ragazzo trova nella soffitta dei nonni una lettera mai spedita del 1974">La lettera mai spedita</button>
-              <button type="button" class="example" data-example="Perché il cervello ricorda meglio le cose imbarazzanti di quelle belle" data-ex-format="explainer">Memoria e imbarazzo</button>
-              <button type="button" class="example" data-example="Una coinquilina che lascia ogni notte biglietti anonimi sul frigo">I biglietti sul frigo</button>
+              <button type="button" class="example" data-example="Mia suocera mi ha umiliata davanti a tutta la famiglia al pranzo di Natale, ma non sapeva che la casa in cui vivevano era intestata a me">Il pranzo di Natale</button>
+              <button type="button" class="example" data-example="Mio fratello ha detto ai miei genitori che ero un fallito e mi hanno escluso dal testamento, ma il notaio aveva una sorpresa">Il testamento</button>
+              <button type="button" class="example" data-example="Ho scoperto dal gruppo WhatsApp del condominio che mio marito aveva una seconda famiglia al piano di sopra">Il gruppo del condominio</button>
             </div>
           </div>
 
           <div class="field">
             <span class="field-label" id="format-label">Tipo di video</span>
-            <div class="options" id="format-group" role="group" aria-labelledby="format-label">
-              <button type="button" class="opt" data-format="story" aria-pressed="true"><b>Racconto</b><span>Storia in prima persona, con colpi di scena</span></button>
-              <button type="button" class="opt" data-format="explainer" aria-pressed="false"><b>Divulgativo</b><span>Spiega un tema in modo chiaro e veloce</span></button>
+            <div class="options three" id="format-group" role="group" aria-labelledby="format-label">
+              <button type="button" class="opt" data-format="reddit" aria-pressed="true"><b>Storia Reddit</b><span>Torto subìto, segreto, rivincita e colpo di scena</span></button>
+              <button type="button" class="opt" data-format="story" aria-pressed="false"><b>Racconto</b><span>Storia in prima persona più libera</span></button>
+              <button type="button" class="opt" data-format="explainer" aria-pressed="false"><b>Divulgativo</b><span>Spiega un tema in modo chiaro</span></button>
             </div>
           </div>
 
           <div class="field-row">
             <div class="field">
               <label for="duration-range">Durata totale <span id="duration-val" class="val">3 min</span></label>
-              <input type="range" id="duration-range" min="0.5" max="30" step="0.5" value="3" />
+              <input type="range" id="duration-range" min="0.5" max="30" step="0.5" value="8" />
             </div>
             <div class="field">
               <label for="parts-range">Parti TikTok <span id="parts-val" class="val">3</span></label>
-              <input type="range" id="parts-range" min="1" max="8" step="1" value="3" />
+              <input type="range" id="parts-range" min="1" max="8" step="1" value="4" />
             </div>
           </div>
           <p class="hint" id="parts-hint">Ogni parte diventa una clip separata di circa 1 min.</p>
@@ -520,13 +529,23 @@
             <span>Idea, durata e parti sono fissate per questo progetto. Per cambiarle usa <b>Riscrivi da zero</b>, oppure crea un nuovo video.</span>
           </div>
 
-          <div class="actions">
-            <button type="button" id="btn-generate" class="btn btn-primary btn-lg">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-              <span id="btn-generate-label">Scrivi il copione</span>
-            </button>
-            <span class="hint" id="generate-hint">Servono circa 3 + N chiamate al modello, di solito pochi minuti.</span>
+          <div class="field" id="auto-publish">
+            <span class="field-label">Al termine pubblica anche</span>
+            <label class="check"><input type="checkbox" id="auto-yt" /> <span id="auto-yt-label">YouTube: video lungo (collega il canale al passo 4)</span></label>
+            <label class="check"><input type="checkbox" id="auto-tt" /> <span id="auto-tt-label">TikTok: le clip (collega l'account al passo 4)</span></label>
           </div>
+
+          <div class="actions">
+            <button type="button" id="btn-auto" class="btn btn-primary btn-lg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <span>Crea tutto</span>
+            </button>
+            <button type="button" id="btn-generate" class="btn btn-lg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              <span id="btn-generate-label">Solo il copione</span>
+            </button>
+          </div>
+          <span class="hint" id="generate-hint">Crea tutto usa la voce e lo stile dei disegni scelti al passo 3.</span>
 
           <details class="more" id="manage" hidden>
             <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Gestisci progetto</summary>
@@ -639,6 +658,101 @@
           <div id="outputs" class="outputs"></div>
         </div>
       </section>
+
+      <!-- 4. Pubblica -->
+      <section class="panel hidden" id="panel-publish" role="tabpanel" aria-labelledby="tab-publish">
+        <div class="panel-head">
+          <div>
+            <h2>Pubblica su YouTube e TikTok</h2>
+            <p>Il video lungo va su YouTube con titolo, descrizione e capitoli già pronti. Le clip vanno su TikTok, ognuna con la sua didascalia che rimanda alla parte successiva.</p>
+          </div>
+        </div>
+
+        <!-- YouTube -->
+        <div class="card" id="yt-card">
+          <div class="pub-head"><h3>YouTube</h3><span class="badge" id="yt-badge">Non collegato</span></div>
+          <details class="more" id="yt-setup">
+            <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Configura (una volta sola, circa 5 minuti)</summary>
+            <div class="more-body">
+              <ol class="howto">
+                <li>Apri <b>console.cloud.google.com</b>, crea un progetto e attiva <b>YouTube Data API v3</b>.</li>
+                <li>In "Schermata consenso OAuth" scegli <b>Esterno</b> e aggiungi il tuo account Google tra gli utenti di test.</li>
+                <li>In "Credenziali" crea un <b>ID client OAuth</b> di tipo <b>App desktop</b>.</li>
+                <li>Copia qui sotto Client ID e Client secret, salva e premi <b>Collega YouTube</b>.</li>
+              </ol>
+              <div class="field-row">
+                <div class="field"><label for="yt-key">Client ID</label><input type="text" id="yt-key" autocomplete="off" spellcheck="false" /></div>
+                <div class="field"><label for="yt-secret">Client secret</label><input type="password" id="yt-secret" autocomplete="off" spellcheck="false" /></div>
+              </div>
+              <div class="actions"><button type="button" class="btn btn-sm" id="yt-save">Salva credenziali</button></div>
+            </div>
+          </details>
+          <div class="actions">
+            <button type="button" class="btn" id="yt-connect">Collega YouTube</button>
+            <button type="button" class="btn btn-ghost btn-sm hidden" id="yt-disconnect">Scollega</button>
+          </div>
+          <div class="field">
+            <label for="yt-title">Titolo <span class="val" id="yt-title-count">0/100</span></label>
+            <input type="text" id="yt-title" maxlength="100" />
+          </div>
+          <div class="field">
+            <label for="yt-desc">Descrizione (con i capitoli delle parti)</label>
+            <textarea id="yt-desc" rows="7"></textarea>
+          </div>
+          <div class="field">
+            <span class="field-label" id="yt-privacy-label">Visibilità</span>
+            <div class="options three" id="yt-privacy" role="group" aria-labelledby="yt-privacy-label">
+              <button type="button" class="opt" data-privacy="private" aria-pressed="true"><b>Privato</b><span>Lo rendi pubblico da YouTube Studio</span></button>
+              <button type="button" class="opt" data-privacy="unlisted" aria-pressed="false"><b>Non in elenco</b><span>Solo chi ha il link</span></button>
+              <button type="button" class="opt" data-privacy="public" aria-pressed="false"><b>Pubblico</b><span>Richiede un progetto Google verificato</span></button>
+            </div>
+            <span class="hint">Finché Google non verifica il tuo progetto API, YouTube tiene privati i video caricati dalle app.</span>
+          </div>
+        </div>
+
+        <!-- TikTok -->
+        <div class="card" id="tt-card">
+          <div class="pub-head"><h3>TikTok</h3><span class="badge" id="tt-badge">Non collegato</span></div>
+          <details class="more" id="tt-setup">
+            <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Configura (una volta sola)</summary>
+            <div class="more-body">
+              <ol class="howto">
+                <li>Apri <b>developers.tiktok.com</b>, crea un'app di tipo <b>Desktop</b> e aggiungi <b>Login Kit</b> e <b>Content Posting API</b>.</li>
+                <li>Come Redirect URI inserisci <code id="tt-redirect">http://127.0.0.1:8000/api/publish/tiktok/callback</code>.</li>
+                <li>Aggiungi il tuo account TikTok tra i tester dell'app (sandbox) o invia l'app in revisione.</li>
+                <li>Copia qui sotto Client key e Client secret, salva e premi <b>Collega TikTok</b>.</li>
+              </ol>
+              <div class="field-row">
+                <div class="field"><label for="tt-key">Client key</label><input type="text" id="tt-key" autocomplete="off" spellcheck="false" /></div>
+                <div class="field"><label for="tt-secret">Client secret</label><input type="password" id="tt-secret" autocomplete="off" spellcheck="false" /></div>
+              </div>
+              <div class="actions"><button type="button" class="btn btn-sm" id="tt-save">Salva credenziali</button></div>
+            </div>
+          </details>
+          <div class="actions">
+            <button type="button" class="btn" id="tt-connect">Collega TikTok</button>
+            <button type="button" class="btn btn-ghost btn-sm hidden" id="tt-disconnect">Scollega</button>
+          </div>
+          <div class="field">
+            <span class="field-label" id="tt-mode-label">Come pubblicare</span>
+            <div class="options" id="tt-mode" role="group" aria-labelledby="tt-mode-label">
+              <button type="button" class="opt" data-mode="draft" aria-pressed="true"><b>Bozze nell'app</b><span>Le clip arrivano nella casella di TikTok: pubblichi con un tocco</span></button>
+              <button type="button" class="opt" data-mode="direct" aria-pressed="false"><b>Pubblica subito</b><span>Privato finché TikTok non approva la tua app</span></button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field-label">Didascalie delle clip</span>
+            <div id="tt-captions" class="copy-list"></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <label class="check"><input type="checkbox" id="pub-yt" checked /> <span>YouTube</span></label>
+          <label class="check"><input type="checkbox" id="pub-tt" checked /> <span>TikTok</span></label>
+          <button type="button" id="btn-publish" class="btn btn-primary btn-lg">Pubblica ora</button>
+        </div>
+        <div id="pub-history" class="outputs"></div>
+      </section>
     </main>
 
     <!-- Anteprima -->
@@ -679,9 +793,10 @@
     <div class="help-in">
       <h2 id="help-title">Come funziona</h2>
       <ol>
-        <li><span class="step-num">1</span><div><b>Scrivi l'idea</b><span>Scegli tipo, durata e numero di parti, poi premi Scrivi il copione.</span></div></li>
-        <li><span class="step-num">2</span><div><b>Correggi il copione</b><span>Modifica ogni blocco di testo e l'indicazione visiva. Si salva da solo.</span></div></li>
-        <li><span class="step-num">3</span><div><b>Crea il video</b><span>Scegli voce e ritmo. Ottieni il video completo, una clip per parte e i sottotitoli .srt.</span></div></li>
+        <li><span class="step-num">1</span><div><b>Scrivi l'idea e premi Crea tutto</b><span>La tua AI locale scrive la storia, la voce locale la legge, ogni scena viene disegnata e il video è pronto, senza altri passaggi.</span></div></li>
+        <li><span class="step-num">2</span><div><b>Copione (facoltativo)</b><span>Puoi rileggere e correggere ogni blocco e poi rifare il video.</span></div></li>
+        <li><span class="step-num">3</span><div><b>Video</b><span>Voce, stile dei disegni e ritmo. Ottieni il video lungo, una clip TikTok per parte e i sottotitoli .srt.</span></div></li>
+        <li><span class="step-num">4</span><div><b>Pubblica</b><span>Collega YouTube e TikTok una volta, poi carichi con un clic o in automatico alla fine di Crea tutto.</span></div></li>
       </ol>
       <p class="req">Prima di iniziare apri LM Studio, carica il modello e avvia il server locale sulla porta 1234 (Developer → Start server). Se un lavoro si interrompe, riapri il progetto e premi Riprendi il copione.</p>
       <form method="dialog" class="actions"><button class="btn btn-primary" value="close">Ho capito</button></form>
@@ -705,12 +820,16 @@
       isPlaying: false,
       playTimer: null,
       activeBeat: 0,
-      format: "story",
+      format: "reddit",
       health: null,
       step: "idea",
       healthError: false,
       style: "cartoon",
       illustrations: null,
+      ytPrivacy: "private",
+      ttMode: "draft",
+      pubStatus: null,
+      publish: null,
     };
 
     // ------------------------------------------------------------ utilità
@@ -901,7 +1020,8 @@
         t.setAttribute("aria-selected", String(on));
         t.tabIndex = on ? 0 : -1;
       });
-      ["idea", "script", "video"].forEach((s) => $(`panel-${s}`).classList.toggle("hidden", s !== step));
+      ["idea", "script", "video", "publish"].forEach((s) => $(`panel-${s}`).classList.toggle("hidden", s !== step));
+      if (step === "publish") loadPublish();
     }
 
     function renderSteps() {
@@ -912,7 +1032,10 @@
       $("tab-video").classList.toggle("done", !!(p && p.has_video));
       $("sub-idea").textContent = p ? (p.concept?.title || p.title || "Idea salvata") : "Di cosa parla il video";
       $("sub-script").textContent = n ? `${n} blocchi · ${fmtTime(totalSeconds())}` : "Rileggi e correggi";
-      $("sub-video").textContent = p && p.has_video ? `${p.outputs?.clips?.length || 0} clip pronte` : "Voce, sottotitoli, clip";
+      $("sub-video").textContent = p && p.has_video ? `${p.outputs?.clips?.length || 0} clip pronte` : "Voce, disegni, clip";
+      const h = state.publish?.history || {};
+      $("tab-publish").classList.toggle("done", !!(h.youtube || h.tiktok));
+      $("sub-publish").textContent = h.youtube || h.tiktok ? "Pubblicato" : "YouTube e TikTok";
     }
 
     function renderHint() {
@@ -920,14 +1043,16 @@
       const p = state.project;
       let kind = "", html;
       if (state.healthError) { kind = "err"; html = "<b>Il server di TiktokFactory non risponde.</b> Riavvialo con Avvia.bat."; }
-      else if (state.job && state.job.kind === "render") html = "<b>Sto creando il video.</b> Voce, sottotitoli e clip arrivano tra poco: puoi seguire i dettagli nel registro in basso.";
+      else if (state.job && state.job.kind === "auto") html = "<b>Sto creando tutto in automatico.</b> Storia, voce, disegni e video: puoi seguire ogni passo nella barra in alto e nel registro.";
+      else if (state.job && state.job.kind === "publish") html = "<b>Sto pubblicando.</b> Il caricamento può richiedere qualche minuto.";
+      else if (state.job && state.job.kind === "render") html = "<b>Sto creando il video.</b> Voce, disegni e clip arrivano tra poco: puoi seguire i dettagli nel registro in basso.";
       else if (state.job) html = "<b>Il modello sta scrivendo il copione.</b> I blocchi di testo compaiono al passo 2 appena finisce.";
       else if (state.health && !state.health.lmstudio && !(p && p.has_script)) { kind = "warn"; html = "<b>LM Studio è spento.</b> Aprilo, carica il modello e avvia il server locale (porta 1234). Questa pagina si aggiorna da sola."; }
-      else if (!p) html = "<b>Scrivi un'idea</b> e premi <b>Scrivi il copione</b>. Ci pensa il modello locale.";
+      else if (!p) html = "<b>Scrivi un'idea</b> in una riga e premi <b>Crea tutto</b>: ci pensa la tua AI locale.";
       else if (p.has_plan && !state.beats.length) { kind = "warn"; html = "<b>Copione interrotto.</b> La struttura è salvata: premi <b>Riprendi il copione</b> al passo 1."; }
       else if (!state.beats.length) html = "<b>Questo progetto non ha ancora un copione.</b> Premi <b>Scrivi il copione</b> al passo 1.";
       else if (!p.has_video) html = "<b>Copione pronto.</b> Rileggilo al passo 2, poi crea il video al passo 3.";
-      else html = "<b>Video pronto.</b> Lo trovi nell'anteprima e puoi scaricare ogni file al passo 3.";
+      else html = "<b>Video pronto.</b> Lo trovi nell'anteprima: scarica i file al passo 3 o pubblicali al passo 4.";
       el.className = "next" + (kind ? " " + kind : "");
       $("next-text").innerHTML = html;
     }
@@ -946,9 +1071,11 @@
       $("btn-to-video").classList.toggle("hidden", !state.beats.length);
 
       const scriptReady = has && p && p.has_script;
-      $("btn-generate-label").textContent = has && p && p.has_plan && !p.has_script ? "Riprendi il copione" : scriptReady ? "Copione già pronto" : "Scrivi il copione";
+      $("btn-generate-label").textContent = has && p && p.has_plan && !p.has_script ? "Riprendi il copione" : scriptReady ? "Copione già pronto" : "Solo il copione";
       $("btn-generate").disabled = busy || scriptReady;
-      $("generate-hint").textContent = scriptReady ? "Vai al passo 2 per rileggerlo." : `Circa ${3 + Number($("parts-range").value)} chiamate al modello, di solito pochi minuti.`;
+      $("btn-auto").disabled = busy || !!(has && p && p.has_plan);
+      $("generate-hint").textContent = has && p && p.has_plan ? "Questo progetto ha già una storia: continua dai passi 2 e 3, oppure premi Nuovo video." : "Crea tutto usa la voce e lo stile dei disegni scelti al passo 3.";
+      $("btn-publish").disabled = busy || !(p && p.has_video);
       $("btn-render").disabled = busy || !state.beats.length;
       $("btn-regenerate").disabled = busy;
       $("btn-delete").disabled = busy;
@@ -1183,7 +1310,7 @@
       state.job = job;
       state.seenLogs = 0;
       setDot("llm-dot", "busy");
-      $("job-title").textContent = job.kind === "render" ? "Creazione del video" : "Scrittura del copione";
+      $("job-title").textContent = { render: "Creazione del video", auto: "Creazione automatica", publish: "Pubblicazione" }[job.kind] || "Scrittura del copione";
       $("activity").textContent = "Avvio…";
       $("progress-fill").style.width = "0%";
       $("job-pct").textContent = "0%";
@@ -1217,9 +1344,9 @@
         await openProject(pid);
         checkHealth();
         if (ok) {
-          toast(job.kind === "render" ? "Video pronto" : "Copione pronto");
-          setStep(job.kind === "render" ? "video" : "script");
-          if (job.kind === "render" && state.project?.outputs?.files.includes("render/full_video.mp4")) {
+          toast({ render: "Video pronto", auto: "Tutto pronto", publish: "Pubblicazione completata" }[job.kind] || "Copione pronto");
+          setStep({ render: "video", auto: "video", publish: "publish" }[job.kind] || "script");
+          if (["render", "auto"].includes(job.kind) && state.project?.outputs?.files.includes("render/full_video.mp4")) {
             showVideo(`/api/projects/${pid}/file/render/full_video.mp4?v=${Date.now()}`);
           }
         } else {
@@ -1248,6 +1375,27 @@
         await openProject(res.project_id);
         attachJob({ id: res.job_id, project_id: res.project_id, kind: "generate" });
       } catch (e) { log("llm_service.py", e.message, "error"); toast(e.message); }
+    });
+
+    $("btn-auto").addEventListener("click", async () => {
+      const model = $("llm-select").value;
+      if (!model) { toast("Scegli prima un modello"); $("llm-select").focus(); return; }
+      const topic = $("topic-input").value.trim();
+      if (!topic) { toast("Scrivi prima un'idea"); $("topic-input").focus(); return; }
+      try {
+        const res = await api("/api/auto", { method: "POST", body: JSON.stringify({
+          topic, format: state.format, model,
+          duration_minutes: Number($("duration-range").value), parts: Number($("parts-range").value), wpm: wpm(),
+          voice: $("voice-select").value || null, visuals: $("no-visuals").checked ? "none" : "ai", style: state.style,
+          cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
+          publish_youtube: $("auto-yt").checked, youtube_privacy: state.ytPrivacy,
+          publish_tiktok: $("auto-tt").checked, tiktok_mode: state.ttMode,
+        }) });
+        log("auto", `Creazione automatica avviata con ${model}`);
+        await loadProjects();
+        await openProject(res.project_id);
+        attachJob({ id: res.job_id, project_id: res.project_id, kind: "auto" });
+      } catch (e) { log("auto", e.message, "error"); toast(e.message); }
     });
 
     $("btn-regenerate").addEventListener("click", async () => {
@@ -1358,9 +1506,92 @@
     }));
     document.querySelectorAll("#examples .example").forEach((b) => b.addEventListener("click", () => {
       $("topic-input").value = b.dataset.example;
-      setFormat(b.dataset.exFormat || "story");
+      setFormat(b.dataset.exFormat || "reddit");
       $("topic-input").focus();
     }));
+    // pubblicazione
+    function pressed(groupId, attr, value) {
+      document.querySelectorAll(`#${groupId} .opt`).forEach((b) => b.setAttribute("aria-pressed", String(b.dataset[attr] === value)));
+    }
+    async function loadPublishStatus() {
+      try { state.pubStatus = await api("/api/publish/status"); } catch { state.pubStatus = null; }
+      const st = state.pubStatus || {};
+      for (const [k, label] of [["yt", "youtube"], ["tt", "tiktok"]]) {
+        const s = st[label] || {};
+        $(`${k}-badge`).textContent = s.connected ? `Collegato${s.account ? " · " + s.account : ""}` : s.configured ? "Da collegare" : "Da configurare";
+        $(`${k}-badge`).className = "badge " + (s.connected ? "video" : s.configured ? "plan" : "");
+        $(`${k}-connect`).classList.toggle("hidden", !!s.connected);
+        $(`${k}-connect`).disabled = !s.configured;
+        $(`${k}-disconnect`).classList.toggle("hidden", !s.connected);
+        if (!s.configured) $(`${k}-setup`).open = true;
+        $(`auto-${k}`).disabled = !s.connected;
+        if (!s.connected) $(`auto-${k}`).checked = false;
+      }
+      if (st.tiktok?.redirect_uri) $("tt-redirect").textContent = st.tiktok.redirect_uri;
+      $("auto-yt-label").textContent = st.youtube?.connected ? "YouTube: il video lungo" : "YouTube: il video lungo (collega il canale al passo 4)";
+      $("auto-tt-label").textContent = st.tiktok?.connected ? "TikTok: le clip" : "TikTok: le clip (collega l'account al passo 4)";
+    }
+    async function loadPublish() {
+      await loadPublishStatus();
+      state.publish = null;
+      if (!state.projectId) { $("tt-captions").innerHTML = '<p class="hint">Apri un progetto con il video pronto.</p>'; $("pub-history").innerHTML = ""; return; }
+      try { state.publish = await api(`/api/projects/${state.projectId}/publish`); } catch { return; }
+      const d = state.publish;
+      $("yt-title").value = d.youtube.title; $("yt-title-count").textContent = `${d.youtube.title.length}/100`;
+      $("yt-desc").value = d.youtube.description;
+      $("tt-captions").innerHTML = d.tiktok.length ? d.tiktok.map((c, i) => `<div class="cap-row"><label for="cap-${i}">Clip ${i + 1}</label><textarea id="cap-${i}" rows="2" data-cap="${i}">${esc(c.caption)}</textarea></div>`).join("")
+        : '<p class="hint">Le clip compaiono qui dopo aver creato il video.</p>';
+      const h = d.history || {};
+      const rows = [];
+      if (h.youtube) rows.push(`<div class="out-row"><span class="n"><b>YouTube · ${esc(h.youtube.privacy)}</b><span>${esc(h.youtube.at || "")}</span></span><span class="acts"><a class="btn btn-sm" href="${esc(h.youtube.url)}" target="_blank" rel="noopener">Apri</a></span></div>`);
+      (h.tiktok?.items || []).forEach((t, i) => rows.push(`<div class="out-row"><span class="n"><b>TikTok clip ${i + 1}</b><span>${esc(t.error ? "errore: " + t.error : t.status === "SEND_TO_USER_INBOX" ? "nella casella dell'app TikTok" : t.status)}</span></span></div>`));
+      $("pub-history").innerHTML = rows.length ? `<h3>Già pubblicato</h3>` + rows.join("") : "";
+      renderSteps();
+    }
+    $("yt-title").addEventListener("input", (e) => ($("yt-title-count").textContent = `${e.target.value.length}/100`));
+    document.querySelectorAll("#yt-privacy .opt").forEach((b) => b.addEventListener("click", () => { state.ytPrivacy = b.dataset.privacy; pressed("yt-privacy", "privacy", b.dataset.privacy); }));
+    document.querySelectorAll("#tt-mode .opt").forEach((b) => b.addEventListener("click", () => { state.ttMode = b.dataset.mode; pressed("tt-mode", "mode", b.dataset.mode); }));
+    for (const [k, platform] of [["yt", "youtube"], ["tt", "tiktok"]]) {
+      $(`${k}-save`).addEventListener("click", async () => {
+        const key = $(`${k}-key`).value.trim(), secret = $(`${k}-secret`).value.trim();
+        if (!key || !secret) { toast("Inserisci entrambi i campi"); return; }
+        try {
+          await api(`/api/publish/${platform}/app`, { method: "POST", body: JSON.stringify({ key, secret }) });
+          $(`${k}-key`).value = ""; $(`${k}-secret`).value = "";
+          $(`${k}-setup`).open = false;
+          toast("Credenziali salvate: ora premi Collega");
+          loadPublishStatus();
+        } catch (e) { toast("Credenziali non valide"); log("publish", e.message, "error"); }
+      });
+      $(`${k}-connect`).addEventListener("click", () => {
+        window.open(`/api/publish/${platform}/connect`, "tf-connect", "width=560,height=720");
+      });
+      $(`${k}-disconnect`).addEventListener("click", async () => {
+        if (!confirm("Scollegare l'account?")) return;
+        await api(`/api/publish/${platform}/disconnect`, { method: "POST" });
+        loadPublishStatus();
+      });
+    }
+    window.addEventListener("message", (e) => { if (e.origin === location.origin && e.data === "tf-connected") { toast("Account collegato"); loadPublishStatus(); } });
+    window.addEventListener("focus", () => { if (state.step === "publish") loadPublishStatus(); });
+    $("btn-publish").addEventListener("click", async () => {
+      if (!state.projectId) return;
+      const yt = $("pub-yt").checked, tt = $("pub-tt").checked;
+      const st = state.pubStatus || {};
+      if (yt && !st.youtube?.connected) { toast("Collega prima YouTube"); return; }
+      if (tt && !st.tiktok?.connected) { toast("Collega prima TikTok"); return; }
+      if (!yt && !tt) { toast("Scegli YouTube, TikTok o entrambi"); return; }
+      const where = [yt && "YouTube", tt && "TikTok"].filter(Boolean).join(" e ");
+      if (!confirm(`Caricare il video su ${where}?`)) return;
+      try {
+        const res = await api(`/api/projects/${state.projectId}/publish`, { method: "POST", body: JSON.stringify({
+          youtube: yt, youtube_title: $("yt-title").value.trim(), youtube_description: $("yt-desc").value, youtube_privacy: state.ytPrivacy,
+          tiktok: tt, tiktok_mode: state.ttMode, tiktok_captions: [...document.querySelectorAll("[data-cap]")].map((t) => t.value.trim()),
+        }) });
+        attachJob({ id: res.job_id, project_id: state.projectId, kind: "publish" });
+      } catch (e) { toast(e.message); log("publish", e.message, "error"); }
+    });
+
     // illustrazioni
     function setStyle(v) {
       state.style = v;
@@ -1432,7 +1663,7 @@
       syncPace();
       setStep("idea");
       log("system", "TiktokFactory Studio: connessione al server locale…");
-      await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus()]);
+      await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus(), loadPublishStatus()]);
       setStyle(localGet("style") || "cartoon");
       await loadProjects();
       const current = await api("/api/jobs/current").catch(() => ({}));
