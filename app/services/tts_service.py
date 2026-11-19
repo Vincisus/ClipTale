@@ -1,6 +1,7 @@
 """Sintesi vocale per beat.
 
-Quattro motori:
+Motori (si sceglie dalla pagina: "Voce del PC" gratis e locale, oppure "ElevenLabs" online):
+- "eleven:<id>" / "eleven:auto" voci ElevenLabs (online, piano dell'utente; se i crediti finiscono si torna al PC);
 - "kokoro:<voce>" voci neurali LOCALI più naturali (Kokoro-82M, ONNX su CPU): if_sara, im_nicola. File in models/kokoro/;
 - "piper:<file>" voci neurali LOCALI (Piper, ONNX su CPU): nessun dato esce dal PC. File .onnx in models/piper/;
 - "edge:<voce>"  voci neurali Microsoft (pacchetto edge-tts, richiede Internet; il testo viene inviato a Microsoft);
@@ -18,7 +19,8 @@ PIPER_DIR = Path(__file__).resolve().parents[2] / "models" / "piper"
 KOKORO_DIR = Path(__file__).resolve().parents[2] / "models" / "kokoro"
 KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
 KOKORO_VOICES = {"if_sara": "Sara (IT, naturale locale)", "im_nicola": "Nicola (IT, naturale locale)"}
-KOKORO_WPM = 200  # velocità di Kokoro con speed=1.0 sull'italiano, misurata
+KOKORO_WPM = 155  # parole al minuto con speed=1.0, misurate sulla lettura frase per frase (pause comprese)
+KOKORO_RATE = {"im_nicola": 1.1}  # Nicola è naturalmente più lento di Sara
 _KOKORO = {}
 
 try:
@@ -44,28 +46,41 @@ def download_kokoro():
 
 
 def speakable(text):
-    """Testo più adatto alla lettura: virgolette caporali e trattini lunghi diventano pause naturali."""
-    import re
-    text = text.replace("«", "").replace("»", "").replace("“", "").replace("”", "")
-    text = re.sub(r"\s*[—–]\s*", ", ", text)
-    text = text.replace("…", "...")
-    return re.sub(r"\s+", " ", text).strip()
+    """Testo pronto per la voce: numeri, cifre, date e sigle scritti in parole (vedi text_norm)."""
+    from app.services.text_norm import normalize
+    return normalize(text)
 
 
-def _kokoro_synth(voice, items, wpm):
-    import numpy as np
+def _kokoro_model():
     from kokoro_onnx import Kokoro
 
     k = _KOKORO.get("model")
     if k is None:
         k = _KOKORO["model"] = Kokoro(str(KOKORO_DIR / "kokoro-v1.0.onnx"), str(KOKORO_DIR / "voices-v1.0.bin"))
-    speed = max(0.6, min(1.4, wpm / KOKORO_WPM))
+    return k
+
+
+def _kokoro_synth(voice, items, wpm):
+    """Sintesi frase per frase: ogni frase ha la sua intonazione e fra una frase e l'altra c'è una pausa naturale
+    (più lunga dopo domande, esclamazioni e puntini), come in una lettura vera."""
+    import numpy as np
+    from app.services.text_norm import sentences
+
+    k = _kokoro_model()
+    speed = max(0.6, min(1.5, wpm / KOKORO_WPM * KOKORO_RATE.get(voice, 1.0)))
     created = []
     for text, path in items:
         path = Path(path).with_suffix(".wav")
         path.parent.mkdir(parents=True, exist_ok=True)
-        samples, rate = k.create(speakable(text), voice=voice, speed=speed, lang="it")
-        pcm = (np.clip(samples, -1, 1) * 32767).astype("<i2")
+        chunks, rate = [], 24000
+        for sentence, pause in sentences(speakable(text)) or [(speakable(text), 0.3)]:
+            if not sentence.strip(" .,;:!?"):
+                continue
+            samples, rate = k.create(sentence, voice=voice, speed=speed, lang="it")
+            chunks.append(np.asarray(samples, dtype=np.float32))
+            chunks.append(np.zeros(int(rate * pause), dtype=np.float32))
+        audio = np.concatenate(chunks) if chunks else np.zeros(rate // 2, dtype=np.float32)
+        pcm = (np.clip(audio, -1, 1) * 32767).astype("<i2")
         with wave.open(str(path), "wb") as w:
             w.setnchannels(1)
             w.setsampwidth(2)
@@ -73,6 +88,28 @@ def _kokoro_synth(voice, items, wpm):
             w.writeframes(pcm.tobytes())
         created.append(path)
     return created
+
+
+AUTO_VOICES = {"F": ["kokoro:if_sara", "edge:it-IT-ElsaNeural", "piper:it_IT-paola-medium"],
+               "M": ["kokoro:im_nicola", "edge:it-IT-DiegoNeural", "piper:it_IT-riccardo-x_low"]}
+
+
+def resolve_voice(voice, gender=""):
+    """'auto' (o vuoto) -> la migliore voce installata del genere di chi racconta (femminile se incerto)."""
+    if voice and voice != "auto":
+        return voice
+    available = {v["id"] for v in list_voices()}
+    for vid in AUTO_VOICES["M" if gender == "M" else "F"]:
+        if vid in available:
+            return vid
+    real = [v for v in available if v != "auto"]
+    return sorted(real)[0] if real else "edge:it-IT-ElsaNeural"
+
+
+PREVIEW_TEXT = ("Quando chiesi a mio marito cosa volesse per il compleanno, mi rispose che voleva il divorzio. "
+                "Ma lui non sapeva una cosa: la casa, con il 51% delle quote, era intestata a me.")
+
+
 PIPER_LABELS = {"it_IT-paola-medium": "Paola (IT, neurale locale)", "it_IT-riccardo-x_low": "Riccardo (IT, neurale locale)"}
 _PIPER_CACHE = {}
 
@@ -115,7 +152,7 @@ def _piper_synth(name, items, wpm):
         path = Path(path).with_suffix(".wav")
         path.parent.mkdir(parents=True, exist_ok=True)
         with wave.open(str(path), "wb") as w:
-            voice.synthesize_wav(text, w, syn_config=cfg)
+            voice.synthesize_wav(speakable(text), w, syn_config=cfg)
         created.append(path)
     return created
 
@@ -147,30 +184,50 @@ def local_voices():
 
 
 def list_voices():
-    voices = [{"id": f"kokoro:{v}", "label": label, "engine": "kokoro", "online": False} for v, label in KOKORO_VOICES.items()] if kokoro_ready() else []
+    voices = [{"id": "auto", "label": "Automatica: maschile o femminile in base a chi racconta", "engine": "auto", "online": False}]
+    voices += [{"id": f"kokoro:{v}", "label": label, "engine": "kokoro", "online": False} for v, label in KOKORO_VOICES.items()] if kokoro_ready() else []
     voices += [{"id": f"piper:{n}", "label": PIPER_LABELS.get(n, n + " (neurale locale)"), "engine": "piper", "online": False} for n in piper_voices()]
     if EDGE_AVAILABLE:
         voices += [{"id": f"edge:{vid}", "label": label, "engine": "edge", "online": True} for vid, label in EDGE_VOICES]
     for v in local_voices():
         voices.append({"id": f"local:{v['id']}", "label": v["name"] + " (Windows, offline)", "engine": "local", "online": False, "italian": v.get("italian", False)})
-    order = {"kokoro": 0, "piper": 1, "edge": 2, "local": 3}
+    order = {"auto": -1, "kokoro": 0, "piper": 1, "edge": 2, "local": 3}
     voices.sort(key=lambda v: (order[v["engine"]], not v.get("italian", True)))
     return voices
 
 
 def default_voice():
-    voices = list_voices()
-    return voices[0]["id"] if voices else "edge:it-IT-ElsaNeural"
+    return resolve_voice("auto")
 
 
 class TTSService:
-    def __init__(self, voice=None, wpm=BASE_WPM):
-        self.voice = voice or default_voice()
+    def __init__(self, voice=None, wpm=BASE_WPM, gender=""):
+        self.gender = gender
+        self.voice = voice if str(voice or "").startswith("eleven:") else resolve_voice(voice, gender)
         self.wpm = int(wpm)
+
+    async def prepare(self):
+        """Risolve 'eleven:auto' nella voce ElevenLabs del genere giusto (serve la lista delle voci dell'account)."""
+        from app.services import eleven_service
+        if self.voice == "eleven:auto":
+            vid = eleven_service.pick_for_gender(await eleven_service.voices(), self.gender)
+            self.voice = f"eleven:{vid}" if vid else resolve_voice("auto", self.gender)
+        return self.voice
 
     async def synthesize_many(self, items, on_progress=None):
         """items: lista di (testo, percorso_mp3_o_wav). Restituisce l'elenco dei file creati."""
+        await self.prepare()
         engine, _, name = self.voice.partition(":")
+        if engine == "eleven":
+            from app.services import eleven_service
+            try:
+                return await eleven_service.synthesize(name, items, speed=self.wpm / 160, on_progress=on_progress)
+            except eleven_service.QuotaError as exc:
+                fallback = resolve_voice("auto", self.gender)
+                if on_progress:
+                    on_progress(f"{exc}. Continuo con la voce del PC ({fallback})")
+                self.voice = fallback
+                engine, _, name = fallback.partition(":")
         if engine == "kokoro":
             if not kokoro_ready():
                 raise RuntimeError("Voce Kokoro non installata: esegui installa_disegni.bat")
@@ -211,7 +268,7 @@ class TTSService:
             path.parent.mkdir(parents=True, exist_ok=True)
             for attempt in range(3):
                 try:
-                    await edge_tts.Communicate(text, voice, rate=rate).save(str(path))
+                    await edge_tts.Communicate(speakable(text), voice, rate=rate).save(str(path))
                     break
                 except Exception:
                     if attempt == 2:

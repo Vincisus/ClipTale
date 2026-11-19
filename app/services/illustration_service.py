@@ -27,7 +27,25 @@ WIDTH, HEIGHT = 576, 1024  # 9:16, poi ingrandite a 1080x1920 con i movimenti di
 # Lo stile va all'inizio del prompt: CLIP legge solo 77 token e taglia la coda.
 # Lo schizzo a matita nasce come disegno a inchiostro e poi passa nel filtro "pencil" di sd_worker:
 # il modello da solo, chiedendo "pencil sketch", produce foto in bianco e nero.
+STYLE_REFS = ROOT / "style_refs"  # immagini di riferimento per lo "Stile reel" (non vanno su Git)
+
 STYLES = {
+    "anim": {
+        "label": "Cartone animato",
+        # sfondi vuoti nello stile dei riferimenti; i personaggi sono disegnati e animati da toon.py
+        "prompt": "flat 2d cartoon background, thick black outlines, warm beige palette, cozy illustrated interior, detailed props",
+        "post": None,
+        "refs": True,
+        "size": (512, 768),
+        "animated": True,
+    },
+    "reel": {
+        "label": "Stile reel",
+        "prompt": "flat 2d cartoon, simple round white head, minimal face, thick black outlines, warm beige palette, cozy illustrated background",
+        "post": None,
+        "refs": True,  # lo stile arriva dalle immagini in style_refs/ (IP-Adapter + InstantStyle)
+        "size": (512, 768),  # più vicino al formato di addestramento di SD 1.5: niente figure doppie; poi ritagliata in 9:16
+    },
     "cartoon": {
         "label": "Cartoon",
         "prompt": "flat 2d cartoon illustration, cozy warm beige and orange palette, thick black outlines, simple round face, big expressive eyes, clean cel shading, detailed cozy illustrated background",
@@ -44,8 +62,10 @@ STYLES = {
         "post": None,
     },
 }
-NEGATIVE = ("photo, photograph, photorealistic, realistic, 3d render, anime, smooth skin, text, letters, words, caption, watermark, signature, logo, "
+NEGATIVE = ("two people stacked, duplicate person, multiple heads, photo, photograph, photorealistic, realistic, 3d render, anime, smooth skin, text, letters, words, caption, watermark, signature, logo, "
             "blurry, lowres, jpeg artifacts, deformed, disfigured, extra limbs, extra fingers, bad hands, cropped head, nsfw, nude")
+BG_NEGATIVE = ("person, people, man, woman, character, face, head, body, crowd, text, letters, watermark, logo, photo, "
+               "photorealistic, 3d render, blurry, deformed")
 FRAMINGS = ["medium shot, ", "close-up on the face, ", "wide shot, ", "over the shoulder shot, "]
 
 CHARACTERS_SCHEMA = {
@@ -64,6 +84,14 @@ def shots_schema(moments, beats):
         },
         "required": ["shots", "stickers"],
     }
+
+
+def style_refs():
+    return sorted(p for p in STYLE_REFS.glob("*") if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"))
+
+
+def default_style():
+    return "anim"
 
 
 def available():
@@ -181,13 +209,138 @@ def build_items(beats, moments, shots, style, folder, seed_base):
             framing = "" if re.search(r"\b(shot|close-up|close up|view)\b", desc, re.I) else FRAMINGS[n % len(FRAMINGS)]
             prompt = f"{style_prompt}, {framing}{desc}"
             seed = seed_base + b * 31 + s
-            key = hashlib.sha1(json.dumps([prompt, seed, WIDTH, HEIGHT, post, "ds8-lcm"]).encode()).hexdigest()[:16]
+            size = spec.get("size", (WIDTH, HEIGHT))
+            refs_sig = [f"{r.name}:{r.stat().st_size}" for r in style_refs()] if spec.get("refs") else []
+            key = hashlib.sha1(json.dumps([prompt, seed, list(size), post, refs_sig, "ds8-lcm"]).encode()).hexdigest()[:16]
             path = out_dir / f"{key}.png"
             items.append({"prompt": prompt, "negative": NEGATIVE, "seed": seed, "post": post, "out": str(path.resolve())})
             row.append((path, "photo", secs))
             n += 1
         per_beat.append(row)
     return items, per_beat
+
+
+# ------------------------------------------------------------------ cartone animato: piano delle inquadrature
+def toon_cast_schema():
+    from app.services import toon
+    char = {"type": "object", "properties": {
+        "name": {"type": "string"}, "gender": {"type": "string", "enum": ["F", "M"]},
+        "age": {"type": "string", "enum": ["young", "adult", "old"]},
+        "hair_style": {"type": "string", "enum": toon.HAIR_STYLES}, "hair_color": {"type": "string", "enum": list(toon.HAIR_COLORS)},
+        "outfit_color": {"type": "string", "enum": list(toon.OUTFIT_COLORS)},
+        "tie": {"type": "boolean"}, "glasses": {"type": "boolean"}, "beard": {"type": "boolean"}, "necklace": {"type": "boolean"},
+    }, "required": ["name", "gender", "age", "hair_style", "hair_color", "outfit_color", "tie", "glasses", "beard", "necklace"]}
+    return {"type": "object", "properties": {
+        "characters": {"type": "array", "minItems": 1, "maxItems": 6, "items": char},
+        "places": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"type": "string"}},
+    }, "required": ["characters", "places"]}
+
+
+def toon_shots_schema(moments, beats, names, places):
+    from app.services import toon
+    on_screen = {"type": "object", "properties": {
+        "name": {"type": "string", "enum": names}, "expression": {"type": "string", "enum": toon.EXPRESSIONS},
+        "pose": {"type": "string", "enum": toon.POSES}}, "required": ["name", "expression", "pose"]}
+    shot = {"type": "object", "properties": {
+        "place": {"type": "integer", "minimum": 0, "maximum": max(0, places - 1)},
+        "chars": {"type": "array", "minItems": 1, "maxItems": 2, "items": on_screen},
+        "speaker": {"type": "string", "enum": names},
+        "framing": {"type": "string", "enum": toon.FRAMINGS}}, "required": ["place", "chars", "speaker", "framing"]}
+    return {"type": "object", "properties": {
+        "shots": {"type": "array", "minItems": moments, "maxItems": moments, "items": shot},
+        "stickers": {"type": "array", "minItems": beats, "maxItems": beats, "items": {"type": "string"}},
+    }, "required": ["shots", "stickers"]}
+
+
+async def toon_plan(llm, beats, concept, moments):
+    """(cast, luoghi, inquadrature per beat, etichette per beat) per il cartone animato.
+
+    cast: schede dei personaggi (toon.design_defaults); luoghi: descrizioni inglesi degli ambienti vuoti;
+    inquadratura: {"place", "chars": [{"name","expression","pose"}], "speaker", "framing"}.
+    """
+    from app.services import toon
+    chars = concept.get("characters") or []
+    char_lines = "\n".join(f"- {c.get('name')}: {c.get('role', '')}" for c in chars if isinstance(c, dict) and c.get("name")) or "- (deducili dalla storia)"
+    story = (f"Storia: {concept.get('title', '')}. Ambientazione: {concept.get('setting', '')}. "
+             f"Chi racconta in prima persona: {'una donna' if concept.get('narrator_gender') == 'F' else 'un uomo' if concept.get('narrator_gender') == 'M' else 'il protagonista'}.")
+    sample = " ".join(b.get("text", "") for b in beats)[:2500]
+    data = await llm.generate_json(
+        f"{story}\nPersonaggi:\n{char_lines}\nInizio del racconto: {sample[:1200]}\n\n"
+        "1) characters: la scheda grafica di ogni personaggio di un cartone animato (incluso chi racconta, con il suo nome): "
+        "genere, età, acconciatura, colore dei capelli, colore del vestito, cravatta, occhiali, barba, collana. "
+        "Rendili molto diversi fra loro e coerenti col ruolo.\n"
+        "2) places: da 2 a 6 luoghi della storia, IN INGLESE, come ambienti vuoti da disegnare (es. 'cozy family kitchen at night', "
+        "'notary office with wooden desk and folders').",
+        toon_cast_schema(), system="Rispondi esclusivamente con un oggetto JSON valido.", temperature=0.4, label="Personaggi e luoghi")
+    cast = [toon.design_defaults(c) for c in data.get("characters") or [] if isinstance(c, dict) and c.get("name")]
+    places = [re.sub(r"\s+", " ", str(p)).strip() for p in data.get("places") or [] if str(p).strip()][:8] or [concept.get("setting") or "cozy living room"]
+    names = [c["name"] for c in cast] or ["Narratore"]
+    if not cast:
+        cast = [toon.design_defaults({"name": "Narratore", "gender": concept.get("narrator_gender", "F")})]
+    cast_lines = "\n".join(f"- {c['name']} ({'donna' if c['gender'] == 'F' else 'uomo'}, {c['age']})" for c in cast)
+    place_lines = "\n".join(f"{i}. {p}" for i, p in enumerate(places))
+    shots, stickers = [], []
+    for part in sorted({b.get("part", 1) for b in beats}):
+        idx = [i for i, b in enumerate(beats) if b.get("part", 1) == part]
+        lines, n = [], 0
+        for i in idx:
+            lines.append(f"BEAT {idx.index(i) + 1}:")
+            for text, _ in moments[i]:
+                n += 1
+                lines.append(f"  {n}. «{text[:220]}»")
+        prompt = (
+            "Sei il regista di un cartone animato verticale. Per ogni frase numerata del racconto decidi l'inquadratura:\n"
+            "- place: il numero del luogo;\n- chars: 1 o 2 personaggi in scena (quelli di cui parla la frase), con espressione e posa adatte "
+            "(esagerate, da cartone: shocked per le rivelazioni, angry per gli insulti, smug per le rivincite, phone se telefona, "
+            "holding se mostra un documento, point se accusa, facepalm se è esasperato, crossed se è sulla difensiva);\n"
+            "- speaker: chi sta parlando in quella frase (chi racconta, se è narrazione);\n"
+            "- framing: single (un personaggio a mezzo busto), close (primo piano sulle reazioni forti), two (due personaggi), wide (scena larga). "
+            "Varia spesso inquadrature ed espressioni.\n"
+            f"stickers: esattamente {len(idx)} etichette, una per BEAT, IN ITALIANO e MAIUSCOLO: la frase chiave o la cifra del beat in 2-4 parole, "
+            "oppure stringa vuota.\n\n"
+            f"{story}\nPersonaggi:\n{cast_lines}\nLuoghi:\n{place_lines}\n\nFrasi:\n" + "\n".join(lines)
+        )
+        data = await llm.generate_json(prompt, toon_shots_schema(n, len(idx), names, len(places)),
+                                       system="Rispondi esclusivamente con un oggetto JSON valido.", temperature=0.5, label=f"Regia parte {part}")
+        got = [s for s in data.get("shots") or [] if isinstance(s, dict)]
+        if len(got) != n:
+            raise ValueError(f"parte {part}: il modello ha pianificato {len(got)} inquadrature invece di {n}")
+        clean = []
+        for s in got:
+            cs = [c for c in s.get("chars") or [] if isinstance(c, dict) and c.get("name") in names][:2] or [{"name": names[0]}]
+            cs = [{"name": c["name"], "expression": c.get("expression") if c.get("expression") in toon.EXPRESSIONS else "neutral",
+                   "pose": c.get("pose") if c.get("pose") in toon.POSES else "rest"} for c in cs]
+            framing = s.get("framing") if s.get("framing") in toon.FRAMINGS else "single"
+            if len(cs) == 2 and framing in ("single", "close"):
+                framing = "two"
+            if len(cs) == 1 and framing == "two":
+                framing = "single"
+            clean.append({"place": min(max(0, int(s.get("place") or 0)), len(places) - 1), "chars": cs,
+                          "speaker": s.get("speaker") if s.get("speaker") in names else cs[0]["name"], "framing": framing})
+        st = [re.sub(r"\s+", " ", str(x)).strip().strip("\"'«»“”").strip().upper()[:28] for x in data.get("stickers") or []]
+        st = (st + [""] * len(idx))[: len(idx)]
+        k = 0
+        for j, i in enumerate(idx):
+            shots.append(clean[k:k + len(moments[i])])
+            stickers.append(st[j])
+            k += len(moments[i])
+    return cast, places, shots, stickers
+
+
+def toon_background_items(places, folder, seed_base):
+    """Uno sfondo vuoto per luogo, nello stile dei riferimenti. Restituisce (items per sd_worker, file per luogo)."""
+    spec = STYLES["anim"]
+    out_dir = Path(folder) / "render" / "scenes"
+    refs_sig = [f"{r.name}:{r.stat().st_size}" for r in style_refs()]
+    items, files = [], []
+    for i, place in enumerate(places):
+        prompt = f"{spec['prompt']}, empty {place}, no people, nobody, interior background"
+        seed = seed_base + 1000 + i
+        key = hashlib.sha1(json.dumps([prompt, seed, list(spec["size"]), refs_sig, "bg-v1"]).encode()).hexdigest()[:16]
+        path = out_dir / f"bg_{key}.png"
+        items.append({"prompt": prompt, "negative": BG_NEGATIVE, "seed": seed, "post": None, "out": str(path.resolve())})
+        files.append(path)
+    return items, files
 
 
 # ------------------------------------------------------------------ LM Studio: libera e riprende la GPU
@@ -261,7 +414,7 @@ async def _draw_once(job, on_line):
     return None
 
 
-async def draw(items, folder, on_line, attempts=3):
+async def draw(items, folder, on_line, attempts=3, style="cartoon"):
     """Lancia sd_worker in un processo separato e inoltra le sue righe di stato. Annullabile.
 
     Se il processo si blocca (sulle GTX 10xx capitano errori CUDA casuali come "misaligned address", che rendono
@@ -270,7 +423,12 @@ async def draw(items, folder, on_line, attempts=3):
     work = Path(folder) / "render" / "scenes"
     work.mkdir(parents=True, exist_ok=True)
     job = work / "job.json"
-    job.write_text(json.dumps({"width": WIDTH, "height": HEIGHT, "steps": 6, "guidance": 2.0, "items": items}, ensure_ascii=False), encoding="utf-8")
+    spec = STYLES.get(style, STYLES["cartoon"])
+    width, height = spec.get("size", (WIDTH, HEIGHT))
+    payload = {"width": width, "height": height, "steps": 6, "guidance": 2.0, "items": items}
+    if spec.get("refs") and style_refs():
+        payload["ip_refs"] = [str(r.resolve()) for r in style_refs()]
+    job.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     last_error = None
     for attempt in range(attempts):
         missing = [i for i in items if not Path(i["out"]).is_file()]

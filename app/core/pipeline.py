@@ -67,10 +67,10 @@ S = {"type": "string"}
 CONCEPT_SCHEMA = {
     "type": "object",
     "properties": {
-        "title": S, "hook": S, "logline": S, "setting": S, "tone": S, "ending": S,
+        "title": S, "hook": S, "logline": S, "setting": S, "tone": S, "ending": S, "narrator_gender": {"type": "string", "enum": ["F", "M"]},
         "characters": {"type": "array", "maxItems": 5, "items": {"type": "object", "properties": {"id": S, "name": S, "role": S}, "required": ["id", "name", "role"]}},
     },
-    "required": ["title", "hook", "logline", "setting", "tone", "ending", "characters"],
+    "required": ["title", "hook", "logline", "setting", "tone", "ending", "narrator_gender", "characters"],
 }
 
 
@@ -136,7 +136,7 @@ def beat_role(part_no, beat_no, parts, beats):
 
 
 def normalize_concept(value, brief):
-    concept = {k: str(value.get(k) or "").strip() for k in ("title", "hook", "logline", "setting", "tone", "ending")}
+    concept = {k: str(value.get(k) or "").strip() for k in ("title", "hook", "logline", "setting", "tone", "ending", "narrator_gender")}
     concept["title"] = concept["title"] or brief["topic"][:80]
     chars, seen = [], set()
     for i, c in enumerate(value.get("characters") or [], 1):
@@ -205,7 +205,7 @@ class StoryPipeline:
                 f"{fmt['concept']}\nArgomento / richiesta dell'utente: {brief['topic']}\n"
                 f"Durata del video: circa {brief['duration_minutes']} minuti, divisa in {parts_count} parti per TikTok.\n"
                 "Campi: title (titolo accattivante), hook (frase d'apertura che cattura in 3 secondi), logline, setting, "
-                "tone, ending (come si chiude), characters (lista di personaggi con id breve, name, role; vuota se non servono).",
+                "tone, ending (come si chiude), narrator_gender (F se chi racconta in prima persona è una donna, M se è un uomo), characters (lista di personaggi con id breve, name, role; vuota se non servono).",
                 CONCEPT_SCHEMA, label="Concept")
             concept = normalize_concept(raw, brief)
             save_json(self.folder / "concept.json", concept)

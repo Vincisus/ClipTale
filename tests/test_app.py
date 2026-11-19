@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import httpx
+import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -339,3 +340,100 @@ def test_draw_restarts_after_crash(tmp_path, monkeypatch):
     asyncio.run(ils.draw(items, tmp_path, lines.append))
     assert len(calls) == 3 and all(Path(i["out"]).is_file() for i in items)
     assert any("riparto dalle 2 immagini mancanti" in ln for ln in lines)
+
+
+# ------------------------------------------------------------------ ElevenLabs (server finto)
+def test_elevenlabs_voices_quota_and_fallback(tmp_path, monkeypatch):
+    from app.services import eleven_service as el
+    from app.services import tts_service as tts
+
+    monkeypatch.setattr(el, "SECRETS", tmp_path)
+    el.save_key("abc123")
+    calls = []
+
+    def handler(req):
+        calls.append(req.url.path)
+        assert req.headers["xi-api-key"] == "abc123"
+        if req.url.path.endswith("/voices"):
+            return httpx.Response(200, json={"voices": [
+                {"voice_id": "v1", "name": "Bella", "labels": {"gender": "female"}},
+                {"voice_id": "v2", "name": "Marco", "labels": {"gender": "male", "accent": "italian"}}]})
+        if req.url.path.endswith("/user/subscription"):
+            return httpx.Response(200, json={"character_count": 900, "character_limit": 10000, "tier": "free"})
+        body = json.loads(req.content)
+        assert body["model_id"] == el.MODEL and body["next_text"] == "Seconda."
+        return httpx.Response(200, content=b"ID3" + b"x" * 2000)
+
+    t = httpx.MockTransport(handler)
+    vs = asyncio.run(el.voices(transport=t))
+    assert el.pick_for_gender(vs, "M") == "v2" and el.pick_for_gender(vs, "F") == "v1"
+    assert asyncio.run(el.status(transport=t))["limit"] == 10000
+    out = asyncio.run(el.synthesize("v1", [("Prima.", tmp_path / "a"), ("Seconda.", tmp_path / "b")], transport=httpx.MockTransport(
+        lambda r: handler(r) if json.loads(r.content).get("text") == "Prima." else httpx.Response(200, content=b"ID3" + b"y" * 2000))))
+    assert [p.suffix for p in out] == [".mp3", ".mp3"]
+
+    def broke(req):
+        return httpx.Response(401, text='{"detail":{"status":"quota_exceeded"}}')
+    with pytest.raises(el.QuotaError):
+        asyncio.run(el.synthesize("v1", [("Ciao.", tmp_path / "c")], transport=httpx.MockTransport(broke)))
+    el.save_key("")
+    assert not el.configured()
+
+
+# ------------------------------------------------------------------ cartone animato, musica, voce
+class FakeDirectorLLM:
+    async def generate_json(self, prompt, schema=None, **kw):
+        if "characters" in schema["properties"]:
+            return {"characters": [
+                {"name": "Luca", "gender": "M", "age": "adult", "hair_style": "bald", "hair_color": "black", "outfit_color": "mustard", "tie": True, "glasses": False, "beard": False, "necklace": False},
+                {"name": "Sara", "gender": "F", "age": "old", "hair_style": "curly", "hair_color": "red", "outfit_color": "red", "tie": False, "glasses": True, "beard": False, "necklace": True}],
+                "places": ["cozy kitchen", "lawyer office"]}
+        n = schema["properties"]["shots"]["minItems"]
+        beats = schema["properties"]["stickers"]["minItems"]
+        return {"shots": [{"place": i % 2, "chars": [{"name": "Luca", "expression": "shocked", "pose": "phone"}, {"name": "Sara", "expression": "angry", "pose": "point"}][: 1 + i % 2],
+                           "speaker": "Luca", "framing": "close"} for i in range(n)], "stickers": ["3.000 € subito?"] * beats}
+
+
+def test_toon_plan_and_render(tmp_path):
+    import wave
+    from app.services import illustration_service as ils, toon
+    from app.services.video_service import ffmpeg_exe
+
+    beats = [{"part": 1, "text": "a"}, {"part": 1, "text": "b"}]
+    moments = [[("uno", 1.0), ("due", 1.0)], [("tre", 1.0)]]
+    cast, places, shots, stickers = asyncio.run(ils.toon_plan(FakeDirectorLLM(), beats, {"title": "t", "narrator_gender": "M"}, moments))
+    assert [c["name"] for c in cast] == ["Luca", "Sara"] and cast[1]["hair_color"] == "gray" and places == ["cozy kitchen", "lawyer office"]
+    assert [len(s) for s in shots] == [2, 1] and shots[0][1]["framing"] == "two" and shots[0][0]["framing"] == "close"
+    assert stickers == ["3.000 € SUBITO?"] * 2
+    wav = tmp_path / "v.wav"
+    with wave.open(str(wav), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000)
+        w.writeframes((np.sin(np.arange(24000 * 2) / 8) * 8000).astype("<i2").tobytes())
+    flat = [{**s, "bg": None, "secs": 1.0} for row in shots for s in row]
+    secs = toon.render_picture(flat[:2], wav, tmp_path / "p.mp4", cast, ffmpeg_exe())
+    assert abs(secs - 2.0) < 0.05 and (tmp_path / "p.mp4").stat().st_size > 1000
+
+
+def test_music_sits_under_voice(tmp_path):
+    import math
+    import wave
+    from app.services import audio_fx as a
+
+    v = (np.sin(np.arange(a.RATE * 4) / 9) * 9000 * (np.arange(a.RATE * 4) % a.RATE < a.RATE * 0.7)).astype("<i2")
+    with wave.open(str(tmp_path / "v.wav"), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(a.RATE); w.writeframes(v.tobytes())
+    out = a.mix_part(tmp_path / "v.wav", tmp_path / "m.wav", [0, 2], [0.2], 3.0, 0.25, True)
+    voice, mixed = a.read_wav(tmp_path / "v.wav"), a.read_wav(out)
+    ratio = 20 * math.log10(a.gated_rms(mixed - voice) / a.gated_rms(voice))
+    assert -16 < ratio < -8  # musica ed effetti ben sotto la voce
+    assert np.max(np.abs(mixed)) <= 0.99
+
+
+def test_italian_normalization_and_gender():
+    from app.services.text_norm import narrator_gender, normalize
+
+    assert normalize("Ho 2.500 € e il 51% delle quote") == "Ho duemilacinquecento euro e il cinquantuno per cento delle quote"
+    assert "ventotto dicembre" in normalize("entro il 28/12") and "diciotto e trenta" in normalize("alle 18:30.")
+    assert narrator_gender("Io ero rimasta zitta. Mio marito urlava.") == "F"
+    assert narrator_gender("Mia moglie rideva. Io ero rimasto seduto.") == "M"
+    assert narrator_gender("Ciao", "M") == "M"

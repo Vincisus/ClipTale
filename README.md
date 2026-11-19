@@ -44,27 +44,47 @@ con «...». La didascalia di ogni clip rimanda alla parte successiva, l'ultima 
 Se un lavoro si interrompe, seleziona il progetto e premi **Riprendi Script**: riparte dal primo passo mancante.
 Tutto è salvato in `projects/<id>/`.
 
-### Disegni AI locali
+### Cartone animato (stile predefinito)
 
-Ogni scena viene **disegnata sul tuo PC** da Stable Diffusion (nessuna foto presa da Internet):
+Personaggi a testa tonda con contorni neri e occhi stanchi (stile dei reel "cartoon"), **disegnati e animati dal codice**
+(`app/services/toon.py`): respirano, sbattono le palpebre, muovono la bocca a tempo con la voce, cambiano espressione
+(8) e posa (8) a ogni inquadratura e restano identici per tutto il video. Il flusso:
 
-1. il modello in LM Studio crea una scheda dei personaggi (aspetto fisso, così restano riconoscibili) e descrive ogni scena;
-2. LM Studio viene messo in pausa (`lms unload`): la GTX 1070 ha 8 GB e non basta per entrambi i modelli;
-3. Stable Diffusion (DreamShaper 8 + LCM, 6 passi) disegna un'illustrazione 576×1024 ogni ~7 secondi di parlato;
-4. LM Studio viene ricaricato con la sua configurazione salvata, mentre FFmpeg anima i disegni con uno zoom lento.
+1. LM Studio fa la **regia**: scheda grafica di ogni personaggio (capelli, colori, occhiali, barba…), i luoghi della storia
+   e, per ogni momento di ~3,5 s del parlato, chi è in scena, con che espressione e posa, chi parla e l'inquadratura
+   (mezzo busto, primo piano, due personaggi, campo largo);
+2. LM Studio va in pausa e **Stable Diffusion disegna solo gli sfondi vuoti** (uno per luogo, ~5 s ciascuno), copiando lo
+   stile delle immagini in `style_refs/` con IP-Adapter Plus + InstantStyle (si copia il modo di disegnare, non i personaggi);
+3. ogni fotogramma viene composto (sfondo con movimento di camera + personaggi animati) e codificato da FFmpeg;
+4. sottotitoli karaoke, etichette con la frase chiave, "PARTE N" e cartello "CONTINUA" sulle clip, video lungo pulito;
+5. **musica di sottofondo ed effetti sonori** sintetizzati (whoosh ai cambi di scena, pop sulle etichette, sting sul
+   cliffhanger), mixati sotto la voce: volume regolabile in "Impostazioni avanzate".
 
-Stili: **Cartoon** (contorni neri e colori pieni), **Schizzo a matita** (disegno a inchiostro passato in un filtro matita), **Fumetto**. I disegni restano in
-`render/scenes/` come cache: rifare il video con lo stesso copione non li ridisegna.
+`style_refs/` contiene le immagini di riferimento dello stile (non vanno su Git). Mettici fotogrammi del tuo stile
+preferito, ritagliati senza testi; usa riferimenti tuoi o di cui hai i diritti se pubblichi i video.
 
-**Installazione (una volta):** chiudi l'app ed esegui `installa_disegni.bat`. Scarica PyTorch con CUDA e i pacchetti
-(circa 4 GB) e il modello di disegno (circa 2 GB, in `models/`). Senza installazione il video ha uno sfondo scuro.
-Per non disegnare: "Impostazioni avanzate" → "Niente disegni".
+Altri stili: **Stile reel** (illustrazioni ferme dai riferimenti), **Cartoon**, **Schizzo a matita**, **Fumetto**.
+
+**Installazione (una volta):** `installa_disegni.bat` (PyTorch CUDA, Stable Diffusion, IP-Adapter, voci locali: ~9 GB).
+Sulla GTX 1070 il modello di testo e quello di disegno non stanno insieme in 8 GB: l'app scarica LM Studio
+durante il disegno (`lms unload`) e lo ricarica alla fine con la sua configurazione.
 
 ### Voce
 
-Predefinita: **Paola (IT, neurale locale)** con Piper, che gira sulla CPU e non invia nulla in rete. Restano disponibili
-le voci Edge (online, il testo va a Microsoft) e le voci di Windows. Altre voci Piper: metti i file `.onnx` e
-`.onnx.json` in `models/piper/`.
+Nel passo 3 scegli il **motore**:
+
+- **Voce del PC (gratis, locale)**: Kokoro (Sara, Nicola), Piper (Paola), voci di Windows; Edge (online) come alternativa.
+  Il testo viene preparato per la lettura: numeri, euro, percentuali, date, orari e sigle in parole, pause naturali fra
+  le frasi (più lunghe dopo domande e puntini).
+- **ElevenLabs (online)**: la più realistica. Incolla la chiave API nella pagina (resta in `secrets/`). Ogni beat viene letto
+  con il testo vicino come contesto, così l'intonazione resta continua. Il piano gratuito (~10 minuti al mese) **non**
+  consente l'uso commerciale e chiede di citare ElevenLabs; per video monetizzati serve almeno Starter. Se i crediti
+  finiscono il video continua con la voce del PC.
+
+**Voce automatica**: "Automatica" sceglie una voce maschile o femminile in base a chi racconta (lo dichiara il modello nel
+concept, altrimenti si capisce dalle concordanze: "sono rimasta" / "sono rimasto"). Il pulsante **Ascolta** fa sentire
+ogni voce prima di scegliere.
+
 
 ## Pubblicazione (passo 4)
 
@@ -141,6 +161,10 @@ app/services/video_service.py render FFmpeg + Pillow (sfondi, sottotitoli in bas
 app/services/illustration_service.py scene descritte da LM Studio e disegnate in locale
 app/services/sd_worker.py   Stable Diffusion in un processo separato (GPU)
 app/services/publish_service.py YouTube Data API e TikTok Content Posting API (OAuth)
+app/services/toon.py        personaggi cartoon disegnati e animati (bocca a tempo con la voce)
+app/services/audio_fx.py    musica ed effetti sonori sintetizzati, mix sotto la voce
+app/services/eleven_service.py voce ElevenLabs (online, facoltativa)
+app/services/text_norm.py   testo italiano pronto per la voce, genere di chi racconta
 app/web/index.html           interfaccia
 legacy/                      versione precedente, non usata
 ```

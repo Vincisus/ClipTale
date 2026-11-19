@@ -358,11 +358,13 @@ def overlay_timeline(chunks, words, beat_starts, durations, stickers, total, hea
 
 # ---------------------------------------------------------------- render
 class VideoService:
-    def __init__(self, log):
+    def __init__(self, log, music=0.25, sfx=True):
         self.log = log  # callable(msg, progress=None)
+        self.music = max(0.0, min(1.0, float(music or 0)))  # volume della musica rispetto alla voce
+        self.sfx = bool(sfx)
 
     async def render_part(self, part_no, parts_total, title, beat_audio, beat_texts, work, output, cut_seconds, offset,
-                          beat_shots=None, stickers=None):
+                          beat_shots=None, stickers=None, cast=None):
         """Crea la clip TikTok della parte (con "Parte N" e cartello finale) e una versione pulita per il video lungo.
 
         beat_shots: per ogni beat una lista di (file, 'video'|'photo'[, secondi]); stickers: etichetta per beat.
@@ -378,11 +380,23 @@ class VideoService:
         total = sum(durations)
         stickers = stickers or [""] * len(durations)
 
-        # 1. sfondo: inquadrature con movimento di camera, codificate in parallelo
         beat_shots = beat_shots or [[] for _ in durations]
+        bg = work / f"bg_{part_no:02}.mp4"
+        animated = any(isinstance(s, dict) for row in beat_shots for s in row)
+        if animated:
+            # cartone animato: sfondi in movimento + personaggi disegnati e animati (toon.py), con la bocca a tempo con la voce
+            from app.services import toon
+            shots = []
+            for dur, row in zip(durations, beat_shots):
+                given = [s["secs"] for s in row]
+                scale = dur / sum(given) if row and sum(given) > 0 else 1.0
+                shots += [{**s, "secs": s["secs"] * scale} for s in row] or [{"bg": None, "secs": dur, "chars": []}]
+            self.log(f"Parte {part_no}: animazione di {len(shots)} inquadrature…")
+            await asyncio.to_thread(toon.render_picture, shots, part_wav, bg, cast or [], ffmpeg_exe(), self.log)
+        # 1. sfondo: inquadrature con movimento di camera, codificate in parallelo
         still = None
         jobs = []
-        for b, (dur, shots) in enumerate(zip(durations, beat_shots)):
+        for b, (dur, shots) in enumerate(zip(durations, [] if animated else beat_shots)):
             shots = [s if len(s) == 3 else (s[0], s[1], None) for s in shots]
             usable, last = [], None
             for src, kind, secs in shots:  # un disegno mancante prende il posto del precedente
@@ -411,11 +425,11 @@ class VideoService:
                 if done[0] % 8 == 0 or done[0] == len(jobs):
                     self.log(f"Parte {part_no}: inquadrature {done[0]}/{len(jobs)}")
 
-        await asyncio.gather(*(one(*j) for j in jobs))
-        bg_list = work / f"bg_{part_no:02}.txt"
-        bg_list.write_text("".join(f"file '{j[3].resolve().as_posix()}'\n" for j in jobs), encoding="utf-8")
-        bg = work / f"bg_{part_no:02}.mp4"
-        await run_ffmpeg(["-f", "concat", "-safe", "0", "-i", bg_list, "-c", "copy", bg])
+        if not animated:
+            await asyncio.gather(*(one(*j) for j in jobs))
+            bg_list = work / f"bg_{part_no:02}.txt"
+            bg_list.write_text("".join(f"file '{j[3].resolve().as_posix()}'\n" for j in jobs), encoding="utf-8")
+            await run_ffmpeg(["-f", "concat", "-safe", "0", "-i", bg_list, "-c", "copy", bg])
 
         # 2. testo: sottotitoli karaoke, etichette, "Parte N" e cartello finale
         chunks, words, beat_starts = word_timeline(beat_texts, durations, cut_seconds)
@@ -440,12 +454,30 @@ class VideoService:
         clip_list = overlay_list("ovclip", overlay_timeline(chunks, words, beat_starts, durations, stickers, total, header, endcard))
         clean_list = overlay_list("ovclean", overlay_timeline(chunks, words, beat_starts, durations, stickers, total, "", None))
 
-        # 3. composizione con la voce: clip TikTok e versione pulita per il video lungo
+        # 3. audio: voce + musica + effetti (cambi d'inquadratura, etichette, sting sul cliffhanger della clip)
+        from app.services import audio_fx
+        if animated:
+            secs_list = [s["secs"] for s in shots]
+        else:
+            secs_list = [j[2] for j in jobs]
+        cuts = [0.0]
+        for sec in secs_list[:-1]:
+            cuts.append(cuts[-1] + sec)
+        sticker_times = [bs + 0.15 for bs, dur, st in zip(beat_starts, durations, stickers) if (st or "").strip() and dur > 1.2]
+        sting_at = total - 2.2 if endcard and total > 6 else None
+        clip_audio, clean_audio = work / f"mix_clip_{part_no:02}.wav", work / f"mix_clean_{part_no:02}.wav"
+        if self.music > 0 or self.sfx:
+            await asyncio.to_thread(audio_fx.mix_part, part_wav, clip_audio, cuts, sticker_times, sting_at, self.music, self.sfx, part_no)
+            await asyncio.to_thread(audio_fx.mix_part, part_wav, clean_audio, cuts, sticker_times, None, self.music, self.sfx, part_no)
+        else:
+            clip_audio = clean_audio = part_wav
+
+        # 4. composizione: clip TikTok e versione pulita per il video lungo
         output.parent.mkdir(parents=True, exist_ok=True)
         clean = work / f"clean_{part_no:02}.mp4"
-        for listing, target in ((clip_list, output), (clean_list, clean)):
+        for listing, target, audio in ((clip_list, output, clip_audio), (clean_list, clean, clean_audio)):
             await run_ffmpeg([
-                "-i", bg, "-f", "concat", "-safe", "0", "-i", listing, "-i", part_wav,
+                "-i", bg, "-f", "concat", "-safe", "0", "-i", listing, "-i", audio,
                 "-filter_complex",
                 f"[0:v]tpad=stop_mode=clone:stop_duration=3[bg];[1:v]fps={FPS},format=rgba[cap];"
                 f"[bg][cap]overlay=0:0:format=auto:eof_action=repeat,scale=in_range=pc:out_range=tv,format=yuv420p[v]",

@@ -13,6 +13,59 @@ from app.services.tts_service import TTSService
 from app.services.video_service import VideoService, clean_beat_audio, wav_duration
 
 
+async def make_toon(folder, beats, durations, concept, model, log):
+    """Cartone animato: regia (LM Studio) -> sfondi vuoti (Stable Diffusion) -> inquadrature con personaggi animati."""
+    def ilog(msg, progress=None, level="info"):
+        log(msg, progress, module="illustrator", level=level)
+
+    scenes_dir = folder / "render" / "scenes"
+    scenes_dir.mkdir(parents=True, exist_ok=True)
+    moments = [illustration_service.beat_moments(b["text"], d) for b, d in zip(beats, durations)]
+    cache_key = hashlib.sha1(json.dumps([[b["text"], len(m)] for b, m in zip(beats, moments)], ensure_ascii=False).encode()).hexdigest()
+    cache = load_json(scenes_dir / "toon_plan.json", {}) or {}
+    llm = LLMService(model=model or None)
+    total = sum(len(m) for m in moments)
+    if cache.get("key") == cache_key:
+        cast, places, plan, stickers = cache["cast"], cache["places"], cache["shots"], cache["stickers"]
+        ilog("Regia del cartone dalla cache", 42)
+    else:
+        ilog(f"LM Studio fa la regia: personaggi, luoghi e {total} inquadrature (una ogni ~{illustration_service.SHOT_SECONDS:g} s)…", 42)
+        cast, places, plan, stickers = await illustration_service.toon_plan(llm, beats, concept, moments)
+        save_json(scenes_dir / "toon_plan.json", {"key": cache_key, "cast": cast, "places": places, "shots": plan, "stickers": stickers})
+    for c in cast:
+        extra = ", ".join(k for k in ("glasses", "tie", "beard", "necklace") if c.get(k))
+        ilog(f"Personaggio {c['name']}: {c['gender']}, {c['age']}, capelli {c['hair_style']} {c['hair_color']}, vestito {c['outfit_color']}{', ' + extra if extra else ''}")
+    seed_base = int(hashlib.sha1(folder.name.encode()).hexdigest()[:6], 16)
+    items, bg_files = illustration_service.toon_background_items(places, folder, seed_base)
+    missing = sum(1 for i in items if not Path(i["out"]).is_file())
+    ilog(f"{len(places)} luoghi da disegnare come sfondi: {missing} nuovi, {len(items) - missing} dalla cache", 44)
+    reload_models = []
+    if missing:
+        reload_models = await illustration_service.free_gpu(llm)
+
+        def on_line(line):
+            if line.startswith("PROGRESS"):
+                parts = line.split()
+                ilog(f"Sfondo {parts[1]}/{parts[2]}", 44 + 14 * int(parts[1]) / max(1, int(parts[2])))
+            elif line.startswith("STATUS"):
+                ilog(line[7:])
+        try:
+            await illustration_service.draw(items, folder, on_line, style="anim")
+        except asyncio.CancelledError:
+            await illustration_service.restore_gpu(reload_models)
+            raise
+        except Exception as exc:
+            ilog(f"{exc}. I luoghi mancanti avranno uno sfondo neutro.", level="error")
+    beat_shots = []
+    for beat_moments_, beat_plan in zip(moments, plan):
+        row = []
+        for (_, secs), shot in zip(beat_moments_, beat_plan):
+            row.append({**shot, "bg": str(bg_files[shot["place"]]), "secs": secs})
+        beat_shots.append(row)
+    ilog(f"Cartone pronto: {len(cast)} personaggi, {len(places)} luoghi, {total} inquadrature", 58, level="ok")
+    return beat_shots, stickers, reload_models, cast
+
+
 async def make_illustrations(folder, beats, durations, concept, style, model, log):
     """Momenti del parlato -> descrizioni (LM Studio) -> disegni (Stable Diffusion).
 
@@ -63,7 +116,7 @@ async def make_illustrations(folder, beats, durations, concept, style, model, lo
             elif line.startswith("STATUS"):
                 ilog(line[7:])
         try:
-            await illustration_service.draw(items, folder, on_line)
+            await illustration_service.draw(items, folder, on_line, style=style)
         except asyncio.CancelledError:
             await illustration_service.restore_gpu(reload_models)
             raise
@@ -74,7 +127,7 @@ async def make_illustrations(folder, beats, durations, concept, style, model, lo
     return beat_shots, stickers, reload_models
 
 
-async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visuals="ai", model=None, style="cartoon"):
+async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visuals="ai", model=None, style="anim", music=0.25, sfx=True):
     beats = load_json(folder / "beats.json", [])
     beats = [b for b in beats if str(b.get("text", "")).strip()]
     if not beats:
@@ -91,7 +144,13 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
         job.log(msg, module=module, progress=progress, level=level)
 
     # 1. voce, con cache per beat (testo + voce + velocita)
-    tts = TTSService(voice, wpm)
+    from app.services.text_norm import narrator_gender
+    gender = narrator_gender(" ".join(b["text"] for b in beats), concept.get("narrator_gender"))
+    tts = TTSService(voice, wpm, gender)
+    await tts.prepare()
+    if not voice or voice == "auto":
+        who = {"F": "una donna", "M": "un uomo"}.get(gender, "non chiaro (uso una voce femminile)")
+        log(f"Chi racconta: {who} → voce {tts.voice}", 2, module="tts_engine")
     index = load_json(audio_dir / "index.json", {}) or {}
     clean_paths, todo = [], []
     for i, beat in enumerate(beats, 1):
@@ -116,16 +175,19 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
     beat_shots = [[] for _ in beats]
     stickers = [""] * len(beats)
     reload_models = []
+    cast = []
     if visuals == "none":
         log("Illustrazioni disattivate: sfondo scuro e sottotitoli", 41, module="illustrator")
     elif not illustration_service.available():
         log("Illustrazioni non installate: esegui installa_disegni.bat. Per ora uso uno sfondo scuro.", 41, module="illustrator", level="warn")
+    elif illustration_service.STYLES.get(style, {}).get("animated"):
+        beat_shots, stickers, reload_models, cast = await make_toon(folder, beats, durations, concept, model, log)
     else:
         beat_shots, stickers, reload_models = await make_illustrations(folder, beats, durations, concept, style, model, log)
     reload_task = asyncio.create_task(illustration_service.restore_gpu(reload_models)) if reload_models else None
 
     # 3. video per parte (= clip TikTok) e video completo
-    video = VideoService(log)
+    video = VideoService(log, music, sfx)
     parts = sorted({b["part"] for b in beats})
     tiktok = render / "tiktok"
     if tiktok.exists():
@@ -138,7 +200,7 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
         out = tiktok / f"part_{n:02}.mp4"
         total, part_entries, clean = await video.render_part(
             n, len(parts), title, [clean_paths[i] for i in idx], [beats[i]["text"] for i in idx], work, out, cut_seconds, offset,
-            [beat_shots[i] for i in idx], [stickers[i] for i in idx])
+            [beat_shots[i] for i in idx], [stickers[i] for i in idx], cast)
         cleans.append(clean)
         t = offset
         for i in idx:
@@ -161,7 +223,8 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
     save_json(render / "render.json", {
         "rendered_at": datetime.now().isoformat(timespec="seconds"),
         "voice": tts.voice, "wpm": wpm, "visuals": visuals, "style": style, "illustrated": sum(1 for s in beat_shots if s),
-        "scenes": [[Path(f).relative_to(folder).as_posix() for f, _, _ in shots if Path(f).is_file()] for shots in beat_shots], "stickers": stickers, "cut_seconds": cut_seconds, "silence_ms": silence_ms,
+        "scenes": [[Path(s["bg"] if isinstance(s, dict) else s[0]).relative_to(folder.resolve() if Path(s["bg"] if isinstance(s, dict) else s[0]).is_absolute() else folder).as_posix()
+                    for s in shots if Path(s["bg"] if isinstance(s, dict) else s[0]).is_file()][:1] for shots in beat_shots], "stickers": stickers, "cut_seconds": cut_seconds, "silence_ms": silence_ms,
         "duration_seconds": round(offset, 2), "beats": timings,
         "clips": [c.relative_to(folder).as_posix() for c in clips],
     })

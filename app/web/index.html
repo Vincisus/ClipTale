@@ -226,6 +226,9 @@
     .lock-note { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--line); color: var(--ink-2); font-size: 14px; }
     .lock-note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
     .lock-note.warn { border-color: rgba(251, 191, 36, .35); }
+    .options.two-two { grid-template-columns: 1fr 1fr; }
+    .voice-row { display: flex; gap: 8px; }
+    .voice-row select { flex: 1; min-width: 0; }
     .pub-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .howto { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; color: var(--ink-2); font-size: 14px; }
     code { font-family: var(--mono); font-size: 13px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; word-break: break-all; }
@@ -597,15 +600,43 @@
 
         <div class="card">
           <div class="field">
+            <span class="field-label" id="engine-label">Motore della voce</span>
+            <div class="options" id="engine-group" role="group" aria-labelledby="engine-label">
+              <button type="button" class="opt" data-engine="pc" aria-pressed="true"><b>Voce del PC</b><span>Gratis e locale: nessun dato esce dal computer</span></button>
+              <button type="button" class="opt" data-engine="eleven" aria-pressed="false"><b>ElevenLabs</b><span id="eleven-sub">La più realistica, online, con limite mensile</span></button>
+            </div>
+            <div id="eleven-box" class="lock-note hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
+              <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:0">
+                <span id="eleven-text">Incolla la tua chiave API di ElevenLabs (elevenlabs.io → Profilo → API Keys). Il testo della storia viene inviato a ElevenLabs.</span>
+                <div class="actions" id="eleven-form">
+                  <input type="password" id="eleven-key" placeholder="Chiave API ElevenLabs" autocomplete="off" spellcheck="false" aria-label="Chiave API ElevenLabs" style="flex:1;min-width:180px" />
+                  <button type="button" id="btn-eleven-save" class="btn btn-sm">Salva chiave</button>
+                </div>
+                <span class="hint">Piano gratuito: circa 10 minuti di voce al mese, solo per uso non commerciale e citando ElevenLabs. Per video monetizzati serve almeno il piano Starter. Se i crediti finiscono, il video continua con la voce del PC.</span>
+                <button type="button" id="btn-eleven-remove" class="btn btn-sm btn-ghost hidden" style="align-self:flex-start">Rimuovi chiave</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
             <label for="voice-select">Voce</label>
-            <select id="voice-select"><option value="">caricamento…</option></select>
+            <div class="voice-row">
+              <select id="voice-select"><option value="">caricamento…</option></select>
+              <button type="button" id="btn-voice-preview" class="btn" aria-label="Ascolta la voce scelta">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4v16l13-8z"/></svg>
+                <span id="voice-preview-label">Ascolta</span>
+              </button>
+            </div>
             <span id="voice-hint" class="hint"></span>
           </div>
 
           <div class="field">
             <span class="field-label" id="style-label">Stile dei disegni</span>
-            <div class="options three" id="style-group" role="group" aria-labelledby="style-label">
-              <button type="button" class="opt" data-style="cartoon" aria-pressed="true"><b>Cartoon</b><span>Contorni neri, colori pieni, stile fumetto web</span></button>
+            <div class="options two-two" id="style-group" role="group" aria-labelledby="style-label">
+              <button type="button" class="opt" data-style="anim" aria-pressed="true"><b>Cartone animato</b><span>Personaggi animati che parlano, sfondi nello stile del tuo esempio</span></button>
+              <button type="button" class="opt" data-style="reel" aria-pressed="false"><b>Stile reel</b><span>Illustrazioni ferme nello stile delle immagini in style_refs/</span></button>
+              <button type="button" class="opt" data-style="cartoon" aria-pressed="false"><b>Cartoon</b><span>Contorni neri, colori pieni, stile fumetto web</span></button>
               <button type="button" class="opt" data-style="sketch" aria-pressed="false"><b>Schizzo a matita</b><span>Tratto a matita su carta, bianco e nero</span></button>
               <button type="button" class="opt" data-style="comic" aria-pressed="false"><b>Fumetto</b><span>Inchiostro, retino, toni scuri</span></button>
             </div>
@@ -635,6 +666,12 @@
                 <label for="cut-range">Durata massima di un sottotitolo <span id="cut-val" class="val">2.2s</span></label>
                 <input type="range" id="cut-range" min="1.0" max="5.0" step="0.2" value="2.2" />
               </div>
+              <div class="field">
+                <label for="music-range">Musica di sottofondo <span id="music-val" class="val">25%</span></label>
+                <input type="range" id="music-range" min="0" max="60" step="5" value="25" />
+                <span class="hint">Volume rispetto alla voce. 0 = senza musica.</span>
+              </div>
+              <label class="check"><input type="checkbox" id="sfx-check" checked /> <span>Effetti sonori (cambi di scena, etichette, colpo di scena finale)</span></label>
               <label class="check"><input type="checkbox" id="no-visuals" /> <span>Niente disegni: solo sfondo scuro e sottotitoli (più veloce)</span></label>
               <div class="field">
                 <label for="silence-range">Taglio dei silenzi <span id="silence-val" class="val">120ms</span></label>
@@ -826,6 +863,9 @@
       healthError: false,
       style: "cartoon",
       illustrations: null,
+      engine: "pc",
+      allVoices: [],
+      eleven: null,
       ytPrivacy: "private",
       ttMode: "draft",
       pubStatus: null,
@@ -914,20 +954,77 @@
     }
 
     async function loadVoices() {
-      const sel = $("voice-select");
       try {
         const data = await api("/api/voices");
-        sel.innerHTML = data.voices.map((v) => `<option value="${esc(v.id)}">${esc(v.label)}</option>`).join("") || `<option value="">nessuna voce</option>`;
-        const saved = localGet("voice");
-        if (saved && data.voices.some((v) => v.id === saved)) sel.value = saved;
-        voiceHint();
-      } catch (e) { sel.innerHTML = `<option value="">errore nel caricare le voci</option>`; }
+        state.allVoices = data.voices;
+      } catch (e) { state.allVoices = []; }
+      fillVoices();
     }
+    function fillVoices() {
+      const sel = $("voice-select");
+      const group = state.engine === "eleven" ? "eleven" : "pc";
+      const list = (state.allVoices || []).filter((v) => (v.group || "pc") === group);
+      sel.innerHTML = list.map((v) => `<option value="${esc(v.id)}">${esc(v.label)}</option>`).join("")
+        || `<option value="">${group === "eleven" ? "salva la chiave ElevenLabs per vedere le voci" : "nessuna voce"}</option>`;
+      const saved = localGet("voice_" + group);
+      if (saved && list.some((v) => v.id === saved)) sel.value = saved;
+      voiceHint();
+    }
+    function setEngine(engine) {
+      state.engine = engine;
+      localSet("engine", engine);
+      $("music-range").addEventListener("input", (e) => { $("music-val").textContent = e.target.value === "0" ? "spenta" : e.target.value + "%"; localSet("music", e.target.value); });
+    $("sfx-check").addEventListener("change", (e) => localSet("sfx", e.target.checked ? "1" : "0"));
+    { const m = localGet("music"); if (m !== null) { $("music-range").value = m; $("music-val").textContent = m === "0" ? "spenta" : m + "%"; } }
+    { const f = localGet("sfx"); if (f !== null) $("sfx-check").checked = f === "1"; }
+    document.querySelectorAll("#engine-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.engine === engine)));
+      $("eleven-box").classList.toggle("hidden", engine !== "eleven");
+      fillVoices();
+    }
+    async function loadEleven() {
+      let st = { configured: false };
+      try { st = await api("/api/eleven/status"); } catch { /* offline */ }
+      state.eleven = st;
+      $("eleven-form").classList.toggle("hidden", !!st.configured);
+      $("btn-eleven-remove").classList.toggle("hidden", !st.configured);
+      if (!st.configured) $("eleven-text").textContent = "Incolla la tua chiave API di ElevenLabs (elevenlabs.io → Profilo → API Keys). Il testo della storia viene inviato a ElevenLabs.";
+      else if (!st.ok) $("eleven-text").textContent = `Chiave salvata ma ElevenLabs non risponde (${st.error || "errore"}). Controlla la chiave o la connessione.`;
+      else {
+        const left = Math.max(0, (st.limit || 0) - (st.used || 0));
+        $("eleven-text").textContent = `Collegato (piano ${st.tier || "?"}). Caratteri rimasti questo mese: ${left.toLocaleString("it-IT")} su ${(st.limit || 0).toLocaleString("it-IT")}, circa ${Math.round(left / 1000)} minuti di voce.`;
+        $("eleven-sub").textContent = `Online, ~${Math.round(left / 1000)} min rimasti questo mese`;
+      }
+    }
+    document.querySelectorAll("#engine-group .opt").forEach((b) => b.addEventListener("click", () => setEngine(b.dataset.engine)));
+    $("btn-eleven-save").addEventListener("click", async () => {
+      const key = $("eleven-key").value.trim();
+      if (!key) { $("eleven-key").focus(); return; }
+      try {
+        await api("/api/eleven/key", { method: "POST", body: JSON.stringify({ key }) });
+        $("eleven-key").value = "";
+        await loadEleven();
+        await loadVoices();
+        toast(state.eleven?.ok ? "ElevenLabs collegato" : "Chiave salvata, ma ElevenLabs non risponde");
+      } catch (e) { toast("Chiave non valida"); }
+    });
+    $("btn-eleven-remove").addEventListener("click", async () => {
+      if (!confirm("Rimuovere la chiave ElevenLabs?")) return;
+      await api("/api/eleven/key", { method: "POST", body: JSON.stringify({ key: "" }) });
+      await loadEleven();
+      await loadVoices();
+    });
     function voiceHint() {
       const online = $("voice-select").value.startsWith("edge:");
       const v = $("voice-select").value;
+      if (v.startsWith("eleven:")) {
+        $("voice-hint").textContent = v === "eleven:auto"
+          ? "Sceglie da sola una voce ElevenLabs maschile o femminile in base a chi racconta. L'anteprima consuma circa 170 caratteri."
+          : "Voce ElevenLabs: il testo viene inviato a ElevenLabs. L'anteprima consuma circa 170 caratteri del tuo piano.";
+        return;
+      }
       $("voice-hint").textContent = online
         ? "Voce neurale online: il testo viene inviato a Microsoft. Senza Internet si usa la voce locale."
+        : v === "auto" ? "Sceglie da sola una voce maschile o femminile in base a chi racconta la storia (voci naturali locali)."
         : v.startsWith("kokoro:") ? "Voce naturale locale (Kokoro): gira sul tuo PC, nessun dato esce."
         : v.startsWith("piper:") ? "Voce neurale locale (Piper): gira sul tuo PC, nessun dato esce."
         : "Voce di Windows, funziona senza Internet.";
@@ -1390,6 +1487,7 @@
           topic, format: state.format, model,
           duration_minutes: Number($("duration-range").value), parts: Number($("parts-range").value), wpm: wpm(),
           voice: $("voice-select").value || null, visuals: $("no-visuals").checked ? "none" : "ai", style: state.style,
+          music: Number($("music-range").value) / 100, sfx: $("sfx-check").checked,
           cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
           publish_youtube: $("auto-yt").checked, youtube_privacy: state.ytPrivacy,
           publish_tiktok: $("auto-tt").checked, tiktok_mode: state.ttMode,
@@ -1419,6 +1517,7 @@
         const res = await api(`/api/projects/${state.projectId}/render`, { method: "POST", body: JSON.stringify({
           voice: voice || null, wpm: wpm(), cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
           visuals, style: state.style, model: $("llm-select").value || null,
+          music: Number($("music-range").value) / 100, sfx: $("sfx-check").checked,
         }) });
         hideVideo();
         log("tts_engine", `Render avviato: voce ${voice}, ${wpm()} WPM, taglio silenzi > ${$("silence-range").value}ms`);
@@ -1598,7 +1697,7 @@
     // illustrazioni
     function setStyle(v) {
       state.style = v;
-      localSet("style", v);
+      localSet("style3", v);
       document.querySelectorAll("#style-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.style === v)));
     }
     async function loadIllustrationStatus() {
@@ -1613,7 +1712,28 @@
     document.querySelectorAll("#style-group .opt").forEach((b) => b.addEventListener("click", () => setStyle(b.dataset.style)));
 
     $("llm-select").addEventListener("change", (e) => localSet("model", e.target.value));
-    $("voice-select").addEventListener("change", (e) => { localSet("voice", e.target.value); voiceHint(); });
+    $("voice-select").addEventListener("change", (e) => { localSet("voice_" + (state.engine === "eleven" ? "eleven" : "pc"), e.target.value); voiceHint(); stopVoicePreview(); });
+    const previewAudio = new Audio();
+    function stopVoicePreview() {
+      previewAudio.pause();
+      $("voice-preview-label").textContent = "Ascolta";
+      $("btn-voice-preview").disabled = false;
+    }
+    previewAudio.addEventListener("ended", stopVoicePreview);
+    $("btn-voice-preview").addEventListener("click", async () => {
+      if (!previewAudio.paused) { stopVoicePreview(); return; }
+      const v = $("voice-select").value;
+      if (!v) return;
+      const gender = v.endsWith("auto") ? (state.project?.concept?.narrator_gender || "") : "";
+      $("voice-preview-label").textContent = "Preparo…";
+      $("btn-voice-preview").disabled = true;
+      try {
+        previewAudio.src = `/api/voices/preview?voice=${encodeURIComponent(v)}&gender=${encodeURIComponent(gender)}`;
+        await previewAudio.play();
+        $("voice-preview-label").textContent = "Ferma";
+        $("btn-voice-preview").disabled = false;
+      } catch (e) { stopVoicePreview(); toast("Anteprima non disponibile per questa voce"); }
+    });
 
     // passi: clic e frecce
     const tabs = [...document.querySelectorAll(".step")];
@@ -1666,8 +1786,9 @@
       syncPace();
       setStep("idea");
       log("system", "TiktokFactory Studio: connessione al server locale…");
-      await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus(), loadPublishStatus()]);
-      setStyle(localGet("style") || "cartoon");
+      await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus(), loadPublishStatus(), loadEleven()]);
+      setEngine(localGet("engine") || "pc");
+      setStyle(localGet("style3") || state.illustrations?.default_style || "anim");
       await loadProjects();
       const current = await api("/api/jobs/current").catch(() => ({}));
       if (current.job) attachJob(current.job);

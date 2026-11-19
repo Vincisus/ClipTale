@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from app.core import jobs, projects
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
-from app.services import illustration_service, publish_service, tts_service
+from app.services import eleven_service, illustration_service, publish_service, tts_service
 from app.services.llm_service import LLMService
 from app.services.video_service import ffmpeg_exe
 
@@ -53,7 +53,53 @@ async def models():
 @router.get("/voices")
 async def voices():
     voices = await asyncio.to_thread(tts_service.list_voices)
+    for v in voices:
+        v["group"] = "pc"
+    eleven = await eleven_service.voices()
+    if eleven:
+        voices.append({"id": "eleven:auto", "label": "Automatica: maschile o femminile in base a chi racconta", "engine": "eleven", "online": True, "group": "eleven"})
+        voices += [{"id": f"eleven:{v['id']}", "label": v["label"], "engine": "eleven", "online": True, "group": "eleven", "gender": v["gender"]} for v in eleven]
     return {"voices": voices, "default": voices[0]["id"] if voices else None}
+
+
+@router.get("/eleven/status")
+async def eleven_status():
+    return await eleven_service.status()
+
+
+class ElevenKey(BaseModel):
+    key: str = Field(default="", max_length=200, pattern=r"^[A-Za-z0-9_\-]*$")
+
+
+@router.post("/eleven/key")
+async def eleven_key(payload: ElevenKey, request: Request):
+    same_origin(request)
+    eleven_service.save_key(payload.key)
+    return await eleven_service.status()
+
+
+@router.get("/voices/preview")
+async def voice_preview(voice: str, gender: str = ""):
+    """Una frase di prova con la voce scelta (salvata in cache), per ascoltarla prima di creare il video."""
+    import hashlib
+    g = gender.upper()[:1]
+    if voice.startswith("eleven:"):
+        tts = tts_service.TTSService(voice, 165, g)
+        vid = await tts.prepare()
+        if not vid.startswith("eleven:"):
+            raise HTTPException(404, "Nessuna voce ElevenLabs disponibile")
+    else:
+        vid = tts_service.resolve_voice(voice, g)
+        if vid not in {v["id"] for v in await asyncio.to_thread(tts_service.list_voices)}:
+            raise HTTPException(404, "Voce non disponibile")
+    folder = projects.ROOT / "_voice_previews"
+    folder.mkdir(parents=True, exist_ok=True)
+    stem = folder / hashlib.sha1(f"{vid}|{tts_service.PREVIEW_TEXT}".encode()).hexdigest()[:16]
+    found = [p for p in (stem.with_suffix(".wav"), stem.with_suffix(".mp3")) if p.is_file()]
+    if not found:
+        found = await tts_service.TTSService(vid, 165).synthesize_many([(tts_service.PREVIEW_TEXT, stem)])
+    path = found[0]
+    return FileResponse(path, media_type="audio/wav" if path.suffix == ".wav" else "audio/mpeg")
 
 
 # ------------------------------------------------------------------ progetti
@@ -172,8 +218,10 @@ async def generate(payload: GenerateRequest, request: Request):
 
 class RenderRequest(BaseModel):
     voice: Optional[str] = Field(default=None, max_length=300)
+    music: float = Field(default=0.25, ge=0, le=1)
+    sfx: bool = True
     visuals: Literal["ai", "none"] = "ai"
-    style: Literal["cartoon", "sketch", "comic"] = "cartoon"
+    style: Literal["anim", "reel", "cartoon", "sketch", "comic"] = "anim"
     model: Optional[str] = Field(default=None, max_length=200)
     wpm: int = Field(default=165, ge=100, le=220)
     cut_seconds: float = Field(default=2.2, ge=0.8, le=6)
@@ -188,7 +236,7 @@ async def render(project_id: str, payload: RenderRequest, request: Request):
         raise HTTPException(400, "FFmpeg non disponibile")
 
     async def worker(job):
-        await render_project(folder, job, payload.voice, payload.wpm, payload.cut_seconds, payload.silence_ms, payload.visuals, payload.model, payload.style)
+        await render_project(folder, job, payload.voice, payload.wpm, payload.cut_seconds, payload.silence_ms, payload.visuals, payload.model, payload.style, payload.music, payload.sfx)
 
     job = jobs.start("render", project_id, worker)
     return {"job_id": job.id, "project_id": project_id}
@@ -223,6 +271,8 @@ async def illustrations_status():
         "available": illustration_service.available(),
         "models_ready": illustration_service.models_ready(),
         "styles": [{"id": k, "label": v["label"]} for k, v in illustration_service.STYLES.items()],
+        "style_refs": len(illustration_service.style_refs()),
+        "default_style": illustration_service.default_style(),
     }
 
 
@@ -230,9 +280,11 @@ async def illustrations_status():
 class AutoRequest(GenerateRequest):
     voice: Optional[str] = Field(default=None, max_length=300)
     visuals: Literal["ai", "none"] = "ai"
-    style: Literal["cartoon", "sketch", "comic"] = "cartoon"
+    style: Literal["anim", "reel", "cartoon", "sketch", "comic"] = "anim"
     cut_seconds: float = Field(default=2.2, ge=0.8, le=6)
     silence_ms: int = Field(default=120, ge=0, le=1000)
+    music: float = Field(default=0.25, ge=0, le=1)
+    sfx: bool = True
     publish_youtube: bool = False
     youtube_privacy: Literal["private", "unlisted", "public"] = "private"
     publish_tiktok: bool = False
@@ -257,7 +309,7 @@ async def auto(payload: AutoRequest, request: Request):
         await StoryPipeline(llm, folder, jobs.Stage(job, 1, 40)).run(brief)
         job.data["activity"] = None
         await render_project(folder, jobs.Stage(job, 40, render_end), payload.voice, payload.wpm, payload.cut_seconds,
-                             payload.silence_ms, payload.visuals, llm.model, payload.style)
+                             payload.silence_ms, payload.visuals, llm.model, payload.style, payload.music, payload.sfx)
         if publish:
             stage = jobs.Stage(job, 95, 100)
             await publish_service.publish_project(
