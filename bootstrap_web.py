@@ -2,6 +2,7 @@
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -10,7 +11,26 @@ import urllib.request
 import webbrowser
 from pathlib import Path
 
-URL = "http://127.0.0.1:8000/"
+HOST = "127.0.0.1"
+PORTS = range(8000, 8011)
+
+
+def port_free(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((HOST, port))
+            return True
+        except OSError:
+            return False
+
+
+def is_tiktokfactory(port):
+    """True se sulla porta risponde già TiktokFactory (avviato da un'altra finestra)."""
+    try:
+        with urllib.request.urlopen(f"http://{HOST}:{port}/api/health", timeout=3) as r:
+            return "lmstudio" in json.load(r)
+    except Exception:
+        return False
 
 
 def lmstudio_models(base):
@@ -46,6 +66,24 @@ def main():
         print(f"ATTENZIONE: LM Studio non risponde su {base} ({exc}).")
         print("Apri LM Studio > Developer > avvia il server locale. L'interfaccia si apre comunque.")
 
+    # già aperto in un'altra finestra? allora basta aprire la pagina
+    for port in PORTS:
+        if not port_free(port) and is_tiktokfactory(port):
+            url = f"http://{HOST}:{port}/"
+            print(f"TiktokFactory Studio è già in esecuzione su {url}: apro la pagina.")
+            print("Per riavviarlo chiudi prima l'altra finestra di Avvia.bat.")
+            webbrowser.open(url)
+            return 0
+    port = next((p for p in PORTS if port_free(p)), None)
+    if port is None:
+        print(f"Le porte {PORTS.start}-{PORTS.stop - 1} sono tutte occupate da altri programmi: chiudine uno e riprova.")
+        return 1
+    if port != PORTS.start:
+        print(f"La porta {PORTS.start} è occupata da un altro programma: uso la {port}.")
+        print("Nota: per YouTube/TikTok il Redirect URI registrato deve usare questa stessa porta.")
+    URL = f"http://{HOST}:{port}/"
+    os.environ["APP_BASE_URL"] = URL.rstrip("/")  # usato per i collegamenti OAuth
+
     def open_page():
         for _ in range(40):
             try:
@@ -57,7 +95,7 @@ def main():
 
     threading.Thread(target=open_page, daemon=True).start()
     print("TiktokFactory Studio su", URL, "(chiudi questa finestra per fermarlo)")
-    return subprocess.call([sys.executable, "-m", "uvicorn", "app.main:app", "--env-file", ".env", "--host", "127.0.0.1", "--port", "8000", "--no-access-log"])
+    return subprocess.call([sys.executable, "-m", "uvicorn", "app.main:app", "--env-file", ".env", "--host", HOST, "--port", str(port), "--no-access-log"])
 
 
 if __name__ == "__main__":
