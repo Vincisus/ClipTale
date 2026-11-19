@@ -10,13 +10,13 @@ if not exist ".venv\Scripts\python.exe" (
         exit /b 1
     )
 )
-if not exist ".venv\factory_v3_ready" (
+if not exist ".venv\factory_v4_ready" (
     ".venv\Scripts\python.exe" -m pip install --upgrade -r requirements.txt
     if errorlevel 1 (
         pause
         exit /b 1
     )
-    type nul > ".venv\factory_v3_ready"
+    type nul > ".venv\factory_v4_ready"
 )
 ".venv\Scripts\python.exe" bootstrap_web.py
 pause

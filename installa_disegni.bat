@@ -21,6 +21,8 @@ if errorlevel 1 (
 )
 echo Scarico la voce italiana locale Paola (circa 63 MB)...
 ".venv\Scripts\python.exe" -c "from app.services.tts_service import download_piper_voice; download_piper_voice()"
+echo Scarico la voce naturale locale Kokoro (circa 340 MB)...
+".venv\Scripts\python.exe" -c "from app.services.tts_service import download_kokoro; download_kokoro()"
 echo.
 echo Fatto. Riavvia l'app con Avvia.bat.
 pause

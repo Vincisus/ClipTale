@@ -139,39 +139,84 @@ def test_render_caption_bottom(tmp_path):
 
 # ------------------------------------------------------------------ illustrazioni locali
 class FakeSceneLLM:
-    def __init__(self, scenes):
-        self.scenes = scenes
+    def __init__(self, shots_per_call=None):
         self.prompts = []
+        self.shots_per_call = shots_per_call
 
     async def generate_json(self, prompt, schema=None, **kw):
         self.prompts.append(prompt)
-        return {"characters": [{"name": "Marta", "look": "a 35-year-old woman with a short red bob and a green coat"}], "scenes": self.scenes}
+        if "characters" in schema["properties"]:
+            return {"characters": [{"name": "Marta", "look": "a 35-year-old woman with a short red bob and a green coat"}]}
+        n = self.shots_per_call or schema["properties"]["shots"]["minItems"]
+        beats = schema["properties"]["stickers"]["minItems"]
+        return {"shots": [f"Marta in scene {i}" for i in range(n)], "stickers": ["pagami a gennaio"] * beats}
 
 
-def test_scene_prompts_keep_character_look():
+def test_beat_moments_follow_sentences():
+    from app.services.illustration_service import beat_moments
+
+    text = "Ho trovato un telefono nel garage. Era acceso. Sullo schermo c'era un messaggio: «Ti aspetto stasera». Non era per me."
+    m = beat_moments(text, 14.0)
+    assert len(m) == 4 and abs(sum(s for _, s in m) - 14.0) < 1e-6
+    assert " ".join(t for t, _ in m) == text  # nessuna parola persa o duplicata
+    assert beat_moments("Breve.", 1.0) == [("Breve.", 1.0)]
+
+
+def test_scene_prompts_per_moment_with_stickers():
     from app.services.illustration_service import scene_prompts
 
-    llm = FakeSceneLLM(["Marta finds a phone in the garage", "close view of a phone on a workbench"])
-    beats = [{"text": "Ho trovato un telefono.", "cue": "garage"}, {"text": "Era acceso.", "cue": "telefono"}]
-    looks, scenes = asyncio.run(scene_prompts(llm, beats, {"title": "t", "characters": [{"name": "Marta", "role": "moglie"}]}))
-    assert "Marta" not in scenes[0] and "short red bob" in scenes[0]
-    assert looks[0]["name"] == "Marta"
-    assert "esattamente 2 descrizioni" in llm.prompts[0]
+    beats = [{"part": 1, "text": "a"}, {"part": 1, "text": "b"}, {"part": 2, "text": "c"}]
+    moments = [[("uno", 3), ("due", 3)], [("tre", 3)], [("quattro", 3), ("cinque", 3), ("sei", 3)]]
+    llm = FakeSceneLLM()
+    looks, shots, stickers = asyncio.run(scene_prompts(llm, beats, {"title": "t"}, moments))
+    assert [len(s) for s in shots] == [2, 1, 3]
+    assert "Marta" not in shots[0][0] and "short red bob" in shots[0][0]
+    assert stickers == ["PAGAMI A GENNAIO"] * 3
+    assert len(llm.prompts) == 3  # personaggi + una chiamata per parte
     with pytest.raises(ValueError):
-        asyncio.run(scene_prompts(FakeSceneLLM(["solo una"]), beats, {}))
+        asyncio.run(scene_prompts(FakeSceneLLM(shots_per_call=1), beats, {}, moments))
 
 
 def test_build_items_shots_and_cache_paths(tmp_path):
-    from app.services.illustration_service import NEGATIVE, STYLES, build_items, shots_for
+    from app.services.illustration_service import NEGATIVE, STYLES, build_items
 
-    assert [shots_for(d) for d in (3, 10, 15, 60)] == [1, 1, 2, 3]
-    items, per_beat = build_items([{}, {}], [4.0, 15.0], ["a kitchen", "a garage"], "sketch", tmp_path, 100)
-    assert [len(s) for s in per_beat] == [1, 2]
-    assert len(items) == 3 and all(STYLES["sketch"]["prompt"] in i["prompt"] for i in items)
-    assert "close-up" in items[2]["prompt"] and items[2]["prompt"].startswith(STYLES["sketch"]["prompt"]) and items[0]["post"] == "pencil" and items[0]["negative"] == NEGATIVE
+    moments = [[("a", 4.0)], [("b", 7.0), ("c", 8.0)]]
+    shots = [["a kitchen"], ["a garage", "close-up on a phone"]]
+    items, per_beat = build_items([{}, {}], moments, shots, "sketch", tmp_path, 100)
+    assert [len(s) for s in per_beat] == [1, 2] and per_beat[1][1][2] == 8.0
+    assert len(items) == 3 and all(i["prompt"].startswith(STYLES["sketch"]["prompt"]) for i in items)
+    assert items[0]["post"] == "pencil" and items[0]["negative"] == NEGATIVE
+    assert "close-up on a phone" in items[2]["prompt"] and "close-up on the face" not in items[2]["prompt"]
     assert len({i["out"] for i in items}) == 3 and len({i["seed"] for i in items}) == 3
-    again, _ = build_items([{}, {}], [4.0, 15.0], ["a kitchen", "a garage"], "sketch", tmp_path, 100)
+    again, _ = build_items([{}, {}], moments, shots, "sketch", tmp_path, 100)
     assert [i["out"] for i in again] == [i["out"] for i in items]  # stessa scena = stesso file in cache
+
+
+def test_karaoke_timeline_and_end_card(tmp_path):
+    from PIL import Image
+    from app.services.video_service import H, overlay_timeline, render_overlay, word_timeline
+
+    texts = ["Paghi tu, cara. La casa è nostra.", "Ma loro non sapevano niente."]
+    durs = [4.0, 3.0]
+    chunks, words, starts = word_timeline(texts, durs, 2.2)
+    assert starts == [0.0, 4.0] and all(len(c[0]) <= 5 for c in chunks)
+    assert len(words) == sum(len(t.split()) for t in texts)
+    tl = overlay_timeline(chunks, words, starts, durs, ["PAGAMI A GENNAIO", ""], 7.0, "PARTE 1", "PARTE 2 NEL PROFILO")
+    assert abs(sum(d for _, d, _ in tl) - 7.0) < 1e-6
+    scales = [st[4] for _, _, st in tl if st[2]]
+    assert scales[:3] == [0.7, 1.14, 1.0]  # l'etichetta entra con un piccolo rimbalzo
+    assert tl[-1][2][6] == "PARTE 2 NEL PROFILO" and tl[0][2][5] == "PARTE 1"
+    highlighted = [st[1] for _, _, st in tl if st[0]]
+    assert highlighted[0] == 0 and max(highlighted) >= 2  # la parola evidenziata avanza
+    clean = overlay_timeline(chunks, words, starts, durs, ["", ""], 7.0, "", None)
+    assert all(st[5] == "" and st[6] is None for _, _, st in clean)
+    out = tmp_path / "o.png"
+    render_overlay((("Paghi", "tu,", "cara."), 1, "PAGAMI A GENNAIO", (46, 158, 68), 1.0, "", None), out)
+    img = Image.open(out)
+    yellow = [p for p in img.crop((0, int(H * 0.6), 1080, int(H * 0.79))).getdata() if p[0] > 240 and 190 < p[1] < 230 and p[2] < 80 and p[3] > 240]
+    assert yellow  # parola pronunciata in giallo
+    green = [p for p in img.crop((0, int(H * 0.12), 1080, int(H * 0.28))).getdata() if p[1] > 140 and p[0] < 80 and p[3] > 240]
+    assert green  # etichetta in alto
 
 
 # ------------------------------------------------------------------ pubblicazione (server finti)
@@ -277,3 +322,20 @@ def test_short_title_cuts_on_word():
     t = short_title("Mia suocera mi ha chiesto di pagare il conto del pranzo di Natale perché, disse, 'la tua paga da impiegata è l'unica che entra'")
     assert len(t) <= 100 and t.endswith("...") and not t.endswith("imp...")
     assert short_title("Breve") == "Breve"
+
+
+def test_draw_restarts_after_crash(tmp_path, monkeypatch):
+    from app.services import illustration_service as ils
+
+    items = [{"out": str(tmp_path / f"{i}.png")} for i in range(3)]
+    calls, lines = [], []
+
+    async def fake_once(job, on_line):
+        calls.append(1)
+        Path(items[len(calls) - 1]["out"]).write_bytes(b"x")  # ogni tentativo disegna un'immagine poi "si blocca"
+        return "CUDA error: misaligned address" if len(calls) < 3 else None
+
+    monkeypatch.setattr(ils, "_draw_once", fake_once)
+    asyncio.run(ils.draw(items, tmp_path, lines.append))
+    assert len(calls) == 3 and all(Path(i["out"]).is_file() for i in items)
+    assert any("riparto dalle 2 immagini mancanti" in ln for ln in lines)

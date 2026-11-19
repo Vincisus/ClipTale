@@ -1,6 +1,7 @@
 """Sintesi vocale per beat.
 
-Tre motori:
+Quattro motori:
+- "kokoro:<voce>" voci neurali LOCALI più naturali (Kokoro-82M, ONNX su CPU): if_sara, im_nicola. File in models/kokoro/;
 - "piper:<file>" voci neurali LOCALI (Piper, ONNX su CPU): nessun dato esce dal PC. File .onnx in models/piper/;
 - "edge:<voce>"  voci neurali Microsoft (pacchetto edge-tts, richiede Internet; il testo viene inviato a Microsoft);
 - "local:<nome>" voci SAPI installate in Windows (offline), sintetizzate in un processo separato
@@ -14,6 +15,64 @@ import wave
 from pathlib import Path
 
 PIPER_DIR = Path(__file__).resolve().parents[2] / "models" / "piper"
+KOKORO_DIR = Path(__file__).resolve().parents[2] / "models" / "kokoro"
+KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
+KOKORO_VOICES = {"if_sara": "Sara (IT, naturale locale)", "im_nicola": "Nicola (IT, naturale locale)"}
+KOKORO_WPM = 200  # velocità di Kokoro con speed=1.0 sull'italiano, misurata
+_KOKORO = {}
+
+try:
+    import kokoro_onnx  # noqa: F401
+    KOKORO_AVAILABLE = True
+except ImportError:
+    KOKORO_AVAILABLE = False
+
+
+def kokoro_ready():
+    return KOKORO_AVAILABLE and (KOKORO_DIR / "kokoro-v1.0.onnx").is_file() and (KOKORO_DIR / "voices-v1.0.bin").is_file()
+
+
+def download_kokoro():
+    """Scarica il modello Kokoro (circa 340 MB, una volta sola) in models/kokoro/."""
+    import urllib.request
+    KOKORO_DIR.mkdir(parents=True, exist_ok=True)
+    for f in ("voices-v1.0.bin", "kokoro-v1.0.onnx"):
+        target = KOKORO_DIR / f
+        if not target.is_file():
+            urllib.request.urlretrieve(KOKORO_URL + f, target.with_suffix(target.suffix + ".part"))
+            target.with_suffix(target.suffix + ".part").replace(target)
+
+
+def speakable(text):
+    """Testo più adatto alla lettura: virgolette caporali e trattini lunghi diventano pause naturali."""
+    import re
+    text = text.replace("«", "").replace("»", "").replace("“", "").replace("”", "")
+    text = re.sub(r"\s*[—–]\s*", ", ", text)
+    text = text.replace("…", "...")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _kokoro_synth(voice, items, wpm):
+    import numpy as np
+    from kokoro_onnx import Kokoro
+
+    k = _KOKORO.get("model")
+    if k is None:
+        k = _KOKORO["model"] = Kokoro(str(KOKORO_DIR / "kokoro-v1.0.onnx"), str(KOKORO_DIR / "voices-v1.0.bin"))
+    speed = max(0.6, min(1.4, wpm / KOKORO_WPM))
+    created = []
+    for text, path in items:
+        path = Path(path).with_suffix(".wav")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        samples, rate = k.create(speakable(text), voice=voice, speed=speed, lang="it")
+        pcm = (np.clip(samples, -1, 1) * 32767).astype("<i2")
+        with wave.open(str(path), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(rate)
+            w.writeframes(pcm.tobytes())
+        created.append(path)
+    return created
 PIPER_LABELS = {"it_IT-paola-medium": "Paola (IT, neurale locale)", "it_IT-riccardo-x_low": "Riccardo (IT, neurale locale)"}
 _PIPER_CACHE = {}
 
@@ -88,12 +147,13 @@ def local_voices():
 
 
 def list_voices():
-    voices = [{"id": f"piper:{n}", "label": PIPER_LABELS.get(n, n + " (neurale locale)"), "engine": "piper", "online": False} for n in piper_voices()]
+    voices = [{"id": f"kokoro:{v}", "label": label, "engine": "kokoro", "online": False} for v, label in KOKORO_VOICES.items()] if kokoro_ready() else []
+    voices += [{"id": f"piper:{n}", "label": PIPER_LABELS.get(n, n + " (neurale locale)"), "engine": "piper", "online": False} for n in piper_voices()]
     if EDGE_AVAILABLE:
         voices += [{"id": f"edge:{vid}", "label": label, "engine": "edge", "online": True} for vid, label in EDGE_VOICES]
     for v in local_voices():
         voices.append({"id": f"local:{v['id']}", "label": v["name"] + " (Windows, offline)", "engine": "local", "online": False, "italian": v.get("italian", False)})
-    order = {"piper": 0, "edge": 1, "local": 2}
+    order = {"kokoro": 0, "piper": 1, "edge": 2, "local": 3}
     voices.sort(key=lambda v: (order[v["engine"]], not v.get("italian", True)))
     return voices
 
@@ -111,6 +171,12 @@ class TTSService:
     async def synthesize_many(self, items, on_progress=None):
         """items: lista di (testo, percorso_mp3_o_wav). Restituisce l'elenco dei file creati."""
         engine, _, name = self.voice.partition(":")
+        if engine == "kokoro":
+            if not kokoro_ready():
+                raise RuntimeError("Voce Kokoro non installata: esegui installa_disegni.bat")
+            if on_progress:
+                on_progress(f"Voce locale {KOKORO_VOICES.get(name, name)}: sintesi di {len(items)} beat…")
+            return await asyncio.to_thread(_kokoro_synth, name, items, self.wpm)
         if engine == "piper":
             if name not in piper_voices():
                 raise RuntimeError(f"Voce locale {name} non trovata in models/piper/")

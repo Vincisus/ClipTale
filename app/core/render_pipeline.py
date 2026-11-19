@@ -14,31 +14,37 @@ from app.services.video_service import VideoService, clean_beat_audio, wav_durat
 
 
 async def make_illustrations(folder, beats, durations, concept, style, model, log):
-    """Descrizioni delle scene (LM Studio) -> disegni (Stable Diffusion). Restituisce (inquadrature per beat, modelli da ricaricare)."""
+    """Momenti del parlato -> descrizioni (LM Studio) -> disegni (Stable Diffusion).
+
+    Restituisce (per beat la lista di (file, 'photo', secondi), etichette per beat, modelli da ricaricare).
+    """
     def ilog(msg, progress=None, level="info"):
         log(msg, progress, module="illustrator", level=level)
 
     scenes_dir = folder / "render" / "scenes"
     scenes_dir.mkdir(parents=True, exist_ok=True)
-    cache_key = hashlib.sha1(json.dumps([[b["text"], b.get("cue", "")] for b in beats], ensure_ascii=False).encode()).hexdigest()
+    moments = [illustration_service.beat_moments(b["text"], d) for b, d in zip(beats, durations)]
+    cache_key = hashlib.sha1(json.dumps([[b["text"], len(m)] for b, m in zip(beats, moments)], ensure_ascii=False).encode()).hexdigest()
     cache = load_json(scenes_dir / "prompts.json", {}) or {}
     llm = LLMService(model=model or None)
-    if cache.get("key") == cache_key and len(cache.get("scenes", [])) == len(beats):
-        scenes = cache["scenes"]
-        ilog("Descrizioni delle scene dalla cache", 42)
+    total_moments = sum(len(m) for m in moments)
+    if cache.get("key") == cache_key and len(cache.get("shots", [])) == len(beats):
+        shots, stickers = cache["shots"], cache.get("stickers") or [""] * len(beats)
+        ilog("Inquadrature dalla cache", 42)
     else:
-        ilog(f"LM Studio descrive {len(beats)} scene e l'aspetto dei personaggi…", 42)
+        ilog(f"LM Studio descrive {total_moments} inquadrature (una ogni ~{illustration_service.SHOT_SECONDS:g} s) e l'aspetto dei personaggi…", 42)
         try:
-            looks, scenes = await illustration_service.scene_prompts(llm, beats, concept)
+            looks, shots, stickers = await illustration_service.scene_prompts(llm, beats, concept, moments)
         except Exception as exc:
             ilog(f"Descrizioni non riuscite ({exc}): uso i visual cue del copione", level="warn")
-            looks, scenes = [], [f"{b.get('cue') or b['text'][:160]}, {concept.get('setting', '')}" for b in beats]
+            shots = [[f"{b.get('cue') or b['text'][:160]}, {concept.get('setting', '')}"] * len(m) for b, m in zip(beats, moments)]
+            stickers = [""] * len(beats)
         else:
-            save_json(scenes_dir / "prompts.json", {"key": cache_key, "characters": looks, "scenes": scenes})
+            save_json(scenes_dir / "prompts.json", {"key": cache_key, "characters": looks, "shots": shots, "stickers": stickers})
             for c in looks:
                 ilog(f"Personaggio {c['name']}: {c['look']}")
     seed_base = int(hashlib.sha1(folder.name.encode()).hexdigest()[:6], 16)
-    items, beat_shots = illustration_service.build_items(beats, durations, scenes, style, folder, seed_base)
+    items, beat_shots = illustration_service.build_items(beats, moments, shots, style, folder, seed_base)
     missing = sum(1 for i in items if not Path(i["out"]).is_file())
     label = illustration_service.STYLES.get(style, illustration_service.STYLES["cartoon"])["label"]
     ilog(f"{len(items)} illustrazioni in stile {label}: {missing} da disegnare, {len(items) - missing} dalla cache", 44)
@@ -62,10 +68,10 @@ async def make_illustrations(folder, beats, durations, concept, style, model, lo
             await illustration_service.restore_gpu(reload_models)
             raise
         except Exception as exc:
-            ilog(f"{exc}. Le scene mancanti avranno uno sfondo scuro.", level="error")
-    beat_shots = [[(p, k) for p, k in shots if Path(p).is_file()] for shots in beat_shots]
-    ilog(f"Illustrazioni pronte per {sum(1 for s in beat_shots if s)}/{len(beats)} scene", 58, level="ok")
-    return beat_shots, reload_models
+            ilog(f"{exc}. Le inquadrature mancanti avranno uno sfondo scuro.", level="error")
+    ready = sum(1 for row in beat_shots for p, _, _ in row if Path(p).is_file())
+    ilog(f"Illustrazioni pronte: {ready}/{len(items)}", 58, level="ok")
+    return beat_shots, stickers, reload_models
 
 
 async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visuals="ai", model=None, style="cartoon"):
@@ -108,13 +114,14 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
 
     # 2. illustrazioni disegnate in locale per ogni scena
     beat_shots = [[] for _ in beats]
+    stickers = [""] * len(beats)
     reload_models = []
     if visuals == "none":
         log("Illustrazioni disattivate: sfondo scuro e sottotitoli", 41, module="illustrator")
     elif not illustration_service.available():
         log("Illustrazioni non installate: esegui installa_disegni.bat. Per ora uso uno sfondo scuro.", 41, module="illustrator", level="warn")
     else:
-        beat_shots, reload_models = await make_illustrations(folder, beats, durations, concept, style, model, log)
+        beat_shots, stickers, reload_models = await make_illustrations(folder, beats, durations, concept, style, model, log)
     reload_task = asyncio.create_task(illustration_service.restore_gpu(reload_models)) if reload_models else None
 
     # 3. video per parte (= clip TikTok) e video completo
@@ -123,13 +130,16 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
     tiktok = render / "tiktok"
     if tiktok.exists():
         shutil.rmtree(tiktok)
-    clips, entries, offset, timings = [], [], 0.0, []
+    clips, cleans, entries, offset, timings = [], [], [], 0.0, []
     for n, part in enumerate(parts, 1):
         idx = [i for i, b in enumerate(beats) if b["part"] == part]
         title = titles.get(part) or concept.get("title", "")
         log(f"Render parte {n}/{len(parts)} ({len(idx)} beat)…", 60 + 32 * (n - 1) / len(parts))
         out = tiktok / f"part_{n:02}.mp4"
-        total, part_entries = await video.render_part(n, len(parts), title, [clean_paths[i] for i in idx], [beats[i]["text"] for i in idx], work, out, cut_seconds, offset, [beat_shots[i] for i in idx])
+        total, part_entries, clean = await video.render_part(
+            n, len(parts), title, [clean_paths[i] for i in idx], [beats[i]["text"] for i in idx], work, out, cut_seconds, offset,
+            [beat_shots[i] for i in idx], [stickers[i] for i in idx])
+        cleans.append(clean)
         t = offset
         for i in idx:
             timings.append({"beat": i, "part": part, "start": round(t, 2), "end": round(t + durations[i], 2)})
@@ -138,19 +148,20 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
         offset += total
         clips.append(out)
         log(f"Parte {n}: {total:.1f}s → {out.relative_to(folder).as_posix()}", 60 + 32 * n / len(parts), level="ok")
+    # il video lungo usa le versioni "pulite" delle parti: senza "Parte N" e senza il cartello di fine parte
     full = render / "full_video.mp4"
-    if len(clips) == 1:
-        shutil.copyfile(clips[0], full)
+    if len(cleans) == 1:
+        shutil.copyfile(cleans[0], full)
     else:
         log("Unione delle parti nel video completo…", 92)
-        await video.concat_videos(clips, full, work)
+        await video.concat_videos(cleans, full, work)
     video.write_srt(entries, render / "subtitles.srt")
     (render / "crediti_immagini.txt").unlink(missing_ok=True)  # file delle vecchie versioni con foto stock
     shutil.rmtree(work, ignore_errors=True)
     save_json(render / "render.json", {
         "rendered_at": datetime.now().isoformat(timespec="seconds"),
         "voice": tts.voice, "wpm": wpm, "visuals": visuals, "style": style, "illustrated": sum(1 for s in beat_shots if s),
-        "scenes": [[Path(f).relative_to(folder).as_posix() for f, _ in shots] for shots in beat_shots], "cut_seconds": cut_seconds, "silence_ms": silence_ms,
+        "scenes": [[Path(f).relative_to(folder).as_posix() for f, _, _ in shots if Path(f).is_file()] for shots in beat_shots], "stickers": stickers, "cut_seconds": cut_seconds, "silence_ms": silence_ms,
         "duration_seconds": round(offset, 2), "beats": timings,
         "clips": [c.relative_to(folder).as_posix() for c in clips],
     })
