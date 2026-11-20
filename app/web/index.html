@@ -410,6 +410,29 @@
     .help-in li span { color: var(--ink-2); font-size: 14px; }
     .help-in .req { font-size: 14px; color: var(--ink-2); padding: 12px 16px; background: var(--bg); border-radius: var(--r); border: 1px solid var(--line); }
 
+    /* ---------------------------------------------------------------- primo avvio e componenti */
+    dialog.setup { width: min(620px, calc(100vw - 32px)); }
+    .comp-list { display: flex; flex-direction: column; gap: 8px; }
+    .comp { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--r); background: var(--bg); cursor: pointer; }
+    .comp:has(input:checked) { border-color: var(--accent); }
+    .comp input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+    .comp-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .comp-txt b { font-weight: 600; }
+    .comp-txt span { font-size: 13px; color: var(--ink-2); }
+    .comp-size { font-size: 13px; color: var(--ink-3, var(--ink-2)); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .comp.done { cursor: default; opacity: .75; }
+    .comp-ok { color: var(--ok, #3ccf7a); font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .setup-sys { font-size: 13px; color: var(--ink-2); display: flex; gap: 16px; flex-wrap: wrap; }
+    .setup-bar { height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+    .setup-bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .4s ease; }
+    .setup-bar.indet i { width: 30%; animation: setup-slide 1.4s ease-in-out infinite; }
+    @keyframes setup-slide { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+    .setup-detail { font-size: 12px; color: var(--ink-2); font-family: ui-monospace, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 1.4em; }
+    .setup-err { font-size: 13px; color: var(--err); white-space: pre-wrap; max-height: 140px; overflow: auto; }
+    .update-chip { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--accent); background: rgba(255,122,0,.1); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+    .update-chip:hover { background: rgba(255,122,0,.18); }
+    .update-chip b { color: var(--accent); }
+
     .toast {
       position: fixed; left: 50%; bottom: 64px; transform: translate(-50%, 12px); opacity: 0; z-index: 60; pointer-events: none;
       padding: 10px 16px; border-radius: var(--r-sm); background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 500;
@@ -568,6 +591,7 @@
       </button>
     </div>
     <div class="nav-status">
+      <button type="button" class="update-chip hidden" id="update-chip"><b>↑</b><span id="update-chip-text">Aggiornamento disponibile</span></button>
       <span class="chip" id="llm-chip" title=""><span id="llm-dot" class="dot"></span><span id="llm-pill">Motore AI: verifica…</span></span>
       <span class="chip ff" id="ff-chip"><span id="ff-dot" class="dot"></span><span id="ff-pill">FFmpeg</span></span>
       <button type="button" class="btn btn-ghost btn-sm" id="btn-help" aria-haspopup="dialog">
@@ -898,7 +922,20 @@
             <span class="field-label">Cartelle</span>
             <div class="actions"><button type="button" id="btn-open-projects" class="btn btn-sm">Apri la cartella dei progetti</button></div>
           </div>
+        </div>
+        <div class="card">
+          <h3>Componenti scaricabili</h3>
+          <p class="hint" id="comp-summary">Disegni locali, voci realistiche e voce Kokoro si scaricano solo se ti servono.</p>
+          <div class="actions"><button type="button" id="btn-components" class="btn btn-sm">Gestisci componenti</button></div>
+        </div>
+        <div class="card">
+          <h3>Versione</h3>
           <p class="hint" id="app-version">ClipTale</p>
+          <p class="hint" id="update-status"></p>
+          <div class="actions">
+            <button type="button" id="btn-update-check" class="btn btn-sm">Cerca aggiornamenti</button>
+            <button type="button" id="btn-update-install" class="btn btn-sm btn-primary hidden">Aggiorna adesso</button>
+          </div>
         </div>
       </section>
       <!-- 4. Pubblica -->
@@ -1091,6 +1128,29 @@
         <button type="button" class="btn btn-primary" id="ai-retry">Riprova</button>
         <button type="button" class="btn" id="ai-change">Cambia motore</button>
         <button type="button" class="btn btn-ghost" id="ai-later">Continua senza</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Primo avvio / componenti -->
+  <dialog class="help setup" id="setup-dialog" aria-labelledby="setup-title">
+    <div class="help-in">
+      <h2 id="setup-title">Benvenuto in ClipTale</h2>
+      <p id="setup-intro">ClipTale funziona già con le voci online gratuite. Scegli cosa scaricare in più: puoi farlo anche dopo, da Impostazioni.</p>
+      <div class="setup-sys" id="setup-sys"></div>
+      <div class="comp-list" id="comp-list"></div>
+      <p class="hint" id="setup-total"></p>
+      <div id="setup-progress" class="hidden" style="display:flex;flex-direction:column;gap:8px">
+        <b id="setup-step">Preparazione…</b>
+        <div class="setup-bar" id="setup-bar"><i></i></div>
+        <div class="setup-detail" id="setup-detail"></div>
+      </div>
+      <p class="setup-err hidden" id="setup-err"></p>
+      <p class="req">Per scrivere le storie serve anche un motore AI: LM Studio, Ollama o Unsloth sul PC, oppure una chiave di OpenAI, Claude o Gemini. Si sceglie in Impostazioni.</p>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="setup-install">Scarica e installa</button>
+        <button type="button" class="btn hidden" id="setup-cancel">Annulla download</button>
+        <button type="button" class="btn btn-ghost" id="setup-skip">Più tardi</button>
       </div>
     </div>
   </dialog>
@@ -1356,7 +1416,7 @@
         clearInterval(aiTimer); aiTimer = null;
         return;
       }
-      if (state.aiDismissed || state.job) return;
+      if (state.aiDismissed || state.job || $("setup-dialog").open) return;
       const p = aiInfo(h.provider) || {};
       $("ai-dialog-text").textContent = p.local
         ? `${h.provider_label} non risponde. Aprilo prima di usare ClipTale, oppure scegli un altro motore.`
@@ -1368,6 +1428,130 @@
     $("ai-retry").addEventListener("click", () => { $("ai-dialog-status").textContent = "Controllo…"; checkHealth().then(() => { $("ai-dialog-status").textContent = "Ricontrollo da solo ogni 5 secondi."; }); });
     $("ai-change").addEventListener("click", () => { state.aiDismissed = true; $("ai-dialog").close(); setStep("idea"); $("ai-provider").focus(); $("ai-provider").scrollIntoView({ behavior: "smooth", block: "center" }); });
     $("ai-later").addEventListener("click", () => { state.aiDismissed = true; $("ai-dialog").close(); clearInterval(aiTimer); aiTimer = null; });
+
+    // ------------------------------------------------------------ primo avvio: componenti da scaricare
+    const COMP_TEXT = {
+      drawings: ["Disegni locali", "Ogni scena disegnata sul tuo PC con Stable Diffusion, senza limiti."],
+      voices: ["Voci realistiche", "Voci naturali ed espressive in 23 lingue, generate sul tuo PC (Chatterbox)."],
+      kokoro: ["Voce naturale locale", "Voce leggera che funziona anche senza scheda NVIDIA (Kokoro)."],
+    };
+    let compTimer = null;
+    async function loadComponents() {
+      try { state.comp = await api("/api/components"); } catch { return null; }
+      renderComponents();
+      return state.comp;
+    }
+    function renderComponents() {
+      const c = state.comp;
+      if (!c) return;
+      const job = c.job, busy = job.running;
+      const g = c.gpu;
+      $("setup-sys").innerHTML = `<span>${g ? `Scheda video: ${esc(g.name)} · ${Math.round(g.vram_mb / 1024)} GB` : "Nessuna scheda NVIDIA trovata"}</span><span>Spazio libero: ${c.free_gb} GB</span>`;
+      const prev = new Set([...document.querySelectorAll("#comp-list input:checked")].map((i) => i.value));
+      const first = !$("comp-list").children.length;
+      $("comp-list").innerHTML = c.components.map((x) => {
+        const [title, sub] = COMP_TEXT[x.id] || [x.label, ""];
+        const noGpu = x.gpu && !g;
+        const lowVram = x.gpu && g && g.vram_mb < 6000;
+        const checked = first ? (!x.installed && !noGpu && (x.id !== "kokoro" || !g)) : prev.has(x.id);
+        const note = noGpu ? "Serve una scheda NVIDIA" : lowVram ? "La tua scheda ha poca memoria: potrebbe essere lento" : sub;
+        return x.installed
+          ? `<div class="comp done"><span class="comp-txt"><b>${esc(title)}</b><span>${esc(sub)}</span></span><span class="comp-ok">✓ Installato</span></div>`
+          : `<label class="comp"><input type="checkbox" value="${x.id}" ${checked ? "checked" : ""} ${noGpu || busy ? "disabled" : ""}><span class="comp-txt"><b>${esc(title)}</b><span>${esc(note)}</span></span><span class="comp-size">${x.size_gb < 1 ? Math.round(x.size_gb * 1000) + " MB" : "~" + x.size_gb + " GB"}</span></label>`;
+      }).join("");
+      updateSetupTotal();
+      $("setup-progress").classList.toggle("hidden", !busy);
+      $("setup-progress").style.display = busy ? "flex" : "none";
+      if (busy) {
+        const pct = job.total_steps ? Math.round((job.done_steps / job.total_steps) * 100) : 0;
+        $("setup-step").textContent = `${Math.min(job.done_steps + 1, job.total_steps || 1)}/${job.total_steps || 1} · ${job.step || "Preparazione…"}`;
+        $("setup-bar").classList.toggle("indet", !job.done_steps);
+        $("setup-bar").firstElementChild.style.width = job.done_steps ? `${Math.max(pct, 4)}%` : "";
+        $("setup-detail").textContent = job.detail || "";
+      }
+      $("setup-err").classList.toggle("hidden", !job.error);
+      $("setup-err").textContent = job.error ? `Non riuscito: ${job.error}` : "";
+      const missing = c.components.some((x) => !x.installed);
+      $("setup-install").classList.toggle("hidden", busy || !missing);
+      $("setup-install").textContent = job.error ? "Riprova" : "Scarica e installa";
+      $("setup-cancel").classList.toggle("hidden", !busy);
+      $("setup-skip").textContent = missing ? (busy ? "Continua in background" : "Più tardi") : "Chiudi";
+      const have = c.components.filter((x) => x.installed).map((x) => (COMP_TEXT[x.id] || [x.label])[0]);
+      $("comp-summary").textContent = busy ? `Download in corso: ${job.step || "…"}` : have.length ? `Installati: ${have.join(", ")}.` : "Nessun componente scaricato: ClipTale usa le voci online gratuite.";
+    }
+    function updateSetupTotal() {
+      const c = state.comp;
+      const picked = [...document.querySelectorAll("#comp-list input:checked")].map((i) => i.value);
+      const gb = c.components.filter((x) => picked.includes(x.id)).reduce((a, x) => a + x.size_gb, 0);
+      $("setup-total").textContent = picked.length ? `Da scaricare: circa ${gb.toFixed(1)} GB${gb > c.free_gb ? " · spazio su disco insufficiente" : ""}. Il PC può restare acceso mentre fai altro.` : "";
+      $("setup-install").disabled = !picked.length || gb > c.free_gb;
+    }
+    function watchComponents() {
+      if (compTimer) return;
+      compTimer = setInterval(async () => {
+        const c = await loadComponents();
+        if (c && !c.job.running) {
+          clearInterval(compTimer); compTimer = null;
+          if (!c.job.error && c.job.finished.length) {
+            toast("Componenti installati");
+            await api("/api/components/setup-done", { method: "POST" }).catch(() => {});
+            loadVoices(); loadIllustrationStatus();
+          }
+        }
+      }, 1500);
+    }
+    async function openSetup() {
+      await loadComponents();
+      if (!$("setup-dialog").open) $("setup-dialog").showModal();
+      if (state.comp?.job.running) watchComponents();
+    }
+    $("comp-list").addEventListener("change", updateSetupTotal);
+    $("setup-install").addEventListener("click", async () => {
+      const items = [...document.querySelectorAll("#comp-list input:checked")].map((i) => i.value);
+      try {
+        await api("/api/components/install", { method: "POST", body: JSON.stringify({ items }) });
+        await loadComponents();
+        watchComponents();
+      } catch (e) { toast(e.message); }
+    });
+    $("setup-cancel").addEventListener("click", async () => {
+      if (!confirm("Interrompere il download? Quello già scaricato resta e si riprende da lì.")) return;
+      await api("/api/components/cancel", { method: "POST" }).catch(() => {});
+    });
+    $("setup-skip").addEventListener("click", async () => {
+      $("setup-dialog").close();
+      await api("/api/components/setup-done", { method: "POST" }).catch(() => {});
+      if (state.health && !state.health.lmstudio) aiDialog(state.health);
+    });
+    $("btn-components").addEventListener("click", openSetup);
+
+    // ------------------------------------------------------------ aggiornamenti
+    async function checkUpdate(force) {
+      let u;
+      try { u = await api(`/api/update${force ? "?force=true" : ""}`); } catch { return; }
+      state.update = u;
+      const show = u.available && u.installed;
+      $("update-chip").classList.toggle("hidden", !show);
+      $("btn-update-install").classList.toggle("hidden", !show);
+      if (show) $("update-chip-text").textContent = `ClipTale ${u.latest} disponibile`;
+      const d = u.download || {};
+      $("update-status").textContent = d.running ? `Download dell'aggiornamento: ${d.done_mb} / ${d.total_mb || "?"} MB`
+        : d.error ? `Aggiornamento non riuscito: ${d.error}`
+        : u.available ? (u.installed ? `È disponibile la versione ${u.latest}.` : `È disponibile la versione ${u.latest}: in questa copia di sviluppo aggiorna con git pull.`)
+        : u.latest ? "Hai la versione più recente." : force ? "Nessuna versione pubblicata da controllare." : "";
+      return u;
+    }
+    async function installUpdate() {
+      if (state.job && !confirm("C'è un video in lavorazione: l'aggiornamento lo interrompe (il lavoro fatto resta salvato). Aggiornare ora?")) return;
+      try {
+        await api("/api/update/install", { method: "POST" });
+        toast("Scarico l'aggiornamento: ClipTale si riaprirà da solo");
+        const t = setInterval(async () => { const u = await checkUpdate(); if (!u?.download?.running) clearInterval(t); }, 1000);
+      } catch (e) { toast(e.message); }
+    }
+    $("update-chip").addEventListener("click", () => { setStep("settings"); $("btn-update-install").focus(); });
+    $("btn-update-install").addEventListener("click", installUpdate);
+    $("btn-update-check").addEventListener("click", async () => { $("update-status").textContent = "Controllo…"; await checkUpdate(true); });
 
     async function loadVoices() {
       try {
@@ -2525,7 +2709,12 @@
         const exists = last && state.projects.some((p) => p.id === last);
         await openProject(exists ? last : "", { autoStep: true });
       }
-      if (!localGet("seen_help")) { localSet("seen_help", "1"); if (!state.projects.length) $("help-dialog").showModal(); }
+      const comp = await loadComponents();
+      if (comp && !comp.setup_done) openSetup();
+      else if (comp?.job.running) watchComponents();
+      else if (!localGet("seen_help")) { localSet("seen_help", "1"); if (!state.projects.length) $("help-dialog").showModal(); }
+      checkUpdate();
+      setInterval(() => checkUpdate(), 6 * 3600 * 1000);
       log("system", state.health?.lmstudio ? "Pronto. Modello e voci caricati." : `${state.health?.provider_label || "Il motore AI"} non risponde: aprilo o scegline un altro in Impostazioni.`, state.health?.lmstudio ? true : "warn");
       setInterval(() => { if (!state.job) checkHealth(); loadQueue(); }, 8000);
     })();

@@ -6,8 +6,9 @@ parlano il formato compatibile OpenAI e passano da llm_service; Claude passa dal
 import json
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-FILE = ROOT / "secrets" / "ai_provider.json"
+from app.core.paths import SECRETS
+
+FILE = SECRETS / "ai_provider.json"
 
 PROVIDERS = {
     "lmstudio": {"label": "LM Studio", "base": "http://127.0.0.1:1234/v1", "local": True,

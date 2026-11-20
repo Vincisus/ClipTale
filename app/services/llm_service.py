@@ -18,6 +18,8 @@ from urllib.parse import urlparse
 import httpx
 from dotenv import load_dotenv
 
+from app.core.paths import ENV_FILE, PROJECTS
+
 logger = logging.getLogger("uvicorn.error")
 THINK_RE = re.compile(r"<think>.*?(</think>|$)", re.DOTALL)
 
@@ -55,7 +57,7 @@ class LLMService:
 
     def __init__(self, model=None, transport=None, provider=None):
         from app.services import ai_providers
-        load_dotenv()
+        load_dotenv(ENV_FILE)
         config = ai_providers.load()
         self.provider = provider or config["provider"]
         spec = ai_providers.PROVIDERS[self.provider]
@@ -79,7 +81,7 @@ class LLMService:
         self.idle_timeout = env_int("LMSTUDIO_IDLE_TIMEOUT", 300)
         self.total_timeout = env_int("LMSTUDIO_TOTAL_TIMEOUT", 3600)
         self.transport = transport
-        self.diagnostic_dir = Path(os.getenv("LLM_DIAGNOSTIC_DIR", "projects/_diagnostics"))
+        self.diagnostic_dir = Path(os.getenv("LLM_DIAGNOSTIC_DIR") or PROJECTS / "_diagnostics")
         self.on_activity = None  # callback(str) per mostrare l'avanzamento nella UI
 
     # ------------------------------------------------------------------ server

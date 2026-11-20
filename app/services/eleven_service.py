@@ -14,8 +14,7 @@ from pathlib import Path
 
 import httpx
 
-ROOT = Path(__file__).resolve().parents[2]
-SECRETS = ROOT / "secrets"
+from app.core.paths import SECRETS
 API = "https://api.elevenlabs.io/v1"
 MODEL = "eleven_multilingual_v2"
 _cache = {"voices": None, "at": 0}

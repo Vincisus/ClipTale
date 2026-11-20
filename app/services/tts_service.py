@@ -15,10 +15,11 @@ import threading
 import wave
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-KOKORO_DIR = ROOT / "models" / "kokoro"
-VOICE_PY = ROOT / ".venv-voice" / "Scripts" / "python.exe"
-CB_REFS = ROOT / "models" / "chatterbox_refs"
+from app.core.paths import CODE as ROOT, MODELS, VOICE_VENV
+
+KOKORO_DIR = MODELS / "kokoro"
+VOICE_PY = VOICE_VENV / "Scripts" / "python.exe"
+CB_REFS = MODELS / "chatterbox_refs"
 # voce: (nome mostrato, lingua, genere, voce Edge da cui si registra il campione da clonare)
 CB_VOICES = {
     "it_F": ("Giulia (IT, realistica)", "it", "F", "it-IT-IsabellaNeural"),
@@ -193,8 +194,8 @@ except ImportError:
 
 
 def chatterbox_ready():
-    """Chatterbox è installato nel suo ambiente (.venv-voice)."""
-    return VOICE_PY.is_file()
+    """Chatterbox è installato nel suo ambiente (.venv-voice), e non c'è un'installazione a metà (file "installing")."""
+    return VOICE_PY.is_file() and (VOICE_VENV / "Lib" / "site-packages" / "chatterbox").is_dir() and not (VOICE_VENV / "installing").exists()
 
 
 def chatterbox_custom():

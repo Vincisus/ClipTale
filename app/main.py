@@ -11,7 +11,9 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 
-load_dotenv()
+from app.core.paths import ENV_FILE  # noqa: E402
+
+load_dotenv(ENV_FILE)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 WEB = Path(__file__).parent / "web"

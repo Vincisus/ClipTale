@@ -26,8 +26,7 @@ from urllib.parse import urlencode
 
 import httpx
 
-ROOT = Path(__file__).resolve().parents[2]
-SECRETS = ROOT / "secrets"
+from app.core.paths import SECRETS
 BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
 YT_AUTH = "https://accounts.google.com/o/oauth2/v2/auth"

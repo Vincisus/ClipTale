@@ -20,8 +20,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-MODELS = ROOT / "models"
+from app.core.paths import MODELS
 BASE = ("Lykon/dreamshaper-8", MODELS / "dreamshaper-8")
 LCM = ("latent-consistency/lcm-lora-sdv1-5", MODELS / "lcm-lora-sdv1-5")
 IPA = ("h94/IP-Adapter", MODELS / "ip-adapter")
