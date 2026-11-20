@@ -60,11 +60,11 @@ en.CloseApp=ClipTale is running. Close it (tray icon menu > Exit ClipTale) and p
 es.CloseApp=ClipTale está abierto. Ciérralo (menú del icono de la barra > Salir de ClipTale) y pulsa Aceptar.
 fr.CloseApp=ClipTale est ouvert. Ferme-le (menu de l'icône de la barre > Quitter ClipTale) puis clique sur OK.
 de.CloseApp=ClipTale ist geöffnet. Schließe es (Menü des Taskleistensymbols > ClipTale beenden) und klicke auf OK.
-it.RemoveData=Vuoi eliminare anche i componenti scaricati e le impostazioni (Python, modelli di disegno e voci, chiavi)?%n%nI tuoi video in Video\ClipTale non vengono toccati.
-en.RemoveData=Do you also want to delete the downloaded components and settings (Python, drawing and voice models, keys)?%n%nYour videos in Videos\ClipTale are not touched.
-es.RemoveData=¿Quieres eliminar también los componentes descargados y la configuración (Python, modelos de dibujo y voz, claves)?%n%nTus vídeos en Vídeos\ClipTale no se tocan.
-fr.RemoveData=Veux-tu aussi supprimer les composants téléchargés et les réglages (Python, modèles de dessin et de voix, clés) ?%n%nTes vidéos dans Vidéos\ClipTale ne sont pas touchées.
-de.RemoveData=Sollen auch die heruntergeladenen Komponenten und Einstellungen gelöscht werden (Python, Zeichen- und Stimmmodelle, Schlüssel)?%n%nDeine Videos in Videos\ClipTale bleiben erhalten.
+it.RemoveData=Vuoi eliminare anche i componenti scaricati e le impostazioni (Python, modelli di disegno e voci, chiavi, file di lavoro dei progetti)?%n%nI video finiti nella tua cartella dei video non vengono toccati.
+en.RemoveData=Do you also want to delete the downloaded components and settings (Python, drawing and voice models, keys, project work files)?%n%nThe finished videos in your videos folder are not touched.
+es.RemoveData=¿Quieres eliminar también los componentes descargados y la configuración (Python, modelos de dibujo y voz, claves, archivos de trabajo de los proyectos)?%n%nLos vídeos terminados en tu carpeta de vídeos no se tocan.
+fr.RemoveData=Veux-tu aussi supprimer les composants téléchargés et les réglages (Python, modèles de dessin et de voix, clés, fichiers de travail des projets) ?%n%nLes vidéos terminées dans ton dossier de vidéos ne sont pas touchées.
+de.RemoveData=Sollen auch die heruntergeladenen Komponenten und Einstellungen gelöscht werden (Python, Zeichen- und Stimmmodelle, Schlüssel, Arbeitsdateien der Projekte)?%n%nDie fertigen Videos in deinem Videoordner bleiben erhalten.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"

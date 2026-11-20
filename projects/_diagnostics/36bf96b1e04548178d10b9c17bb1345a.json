@@ -1,9 +1,0 @@
-{
-  "model": "local-model",
-  "response": "{\"ok\": true, \"issues\": []}",
-  "finish_reason": "stop",
-  "reasoning_characters": 5830,
-  "elapsed_seconds": 82.79,
-  "error": null,
-  "structured": true
-}

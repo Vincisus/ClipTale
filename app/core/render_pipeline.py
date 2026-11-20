@@ -285,7 +285,7 @@ async def render_language(folder, job, voice, wpm, cut_seconds, silence_ms, visu
     elif visuals == "none":
         log("Illustrazioni disattivate: sfondo scuro e sottotitoli", 41, module="illustrator")
     elif not illustration_service.available():
-        log("Illustrazioni non installate: esegui installa_disegni.bat. Per ora uso uno sfondo scuro.", 41, module="illustrator", level="warn")
+        log("Disegni locali non installati: scaricali da Impostazioni › Componenti scaricabili. Per ora uso uno sfondo scuro.", 41, module="illustrator", level="warn")
     elif illustration_service.STYLES.get(style, {}).get("animated"):
         beat_shots, stickers, reload_models, cast = await make_toon(folder, beats, durations, concept, model, log, lang)
     else:

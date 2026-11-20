@@ -1,3 +1,0 @@
-motion_comic_dark:
-  prompt_prefix: "Cinematic 2D animated illustration, moody domestic thriller, soft shadows, muted colors, clean composition, vertical 9:16"
-  negative_prompt: "text, watermark, extra limbs, distorted face, low quality"

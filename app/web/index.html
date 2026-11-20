@@ -2712,7 +2712,7 @@
       try { state.illustrations = await api("/api/illustrations/status"); } catch { state.illustrations = null; }
       const st = state.illustrations;
       $("ill-text").innerHTML = !st ? "Stato del disegnatore non disponibile."
-        : !st.available ? "<b>Disegnatore non installato.</b> Chiudi l'app ed esegui <b>installa_disegni.bat</b> (circa 6 GB, una volta sola). Fino ad allora i video hanno uno sfondo scuro."
+        : !st.available ? "<b>Disegnatore non installato.</b> <span>Scaricalo da Impostazioni › Componenti scaricabili (circa 7 GB, una volta sola). Fino ad allora i video hanno uno sfondo scuro.</span>"
         : !st.models_ready ? "Disegnatore installato. Al primo video scarica il modello di disegno (circa 2 GB), poi lavora senza Internet."
         : "Ogni scena viene disegnata sul tuo PC con Stable Diffusion. Durante il disegno il motore AI locale viene messo in pausa e poi ricaricato.";
       $("ill-box").classList.toggle("warn", !!st && !st.available);

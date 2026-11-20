@@ -1,1 +1,0 @@
-istruzioni e limiti
