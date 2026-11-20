@@ -1,22 +1,44 @@
 """Sintesi vocale per beat.
 
 Motori (si sceglie dalla pagina: "Voce del PC" gratis e locale, oppure "ElevenLabs" online):
+- "chatterbox:<voce>" voci REALISTICHE locali (Chatterbox Multilingual, licenza MIT) sulla scheda video, in un ambiente
+  Python separato (.venv-voice) e in un processo a parte; ogni voce è clonata da un campione di ~12 s in models/chatterbox_refs/;
 - "eleven:<id>" / "eleven:auto" voci ElevenLabs (online, piano dell'utente; se i crediti finiscono si torna al PC);
-- "kokoro:<voce>" voci neurali LOCALI più naturali (Kokoro-82M, ONNX su CPU): if_sara, im_nicola. File in models/kokoro/;
-- "piper:<file>" voci neurali LOCALI (Piper, ONNX su CPU): nessun dato esce dal PC. File .onnx in models/piper/;
-- "edge:<voce>"  voci neurali Microsoft (pacchetto edge-tts, richiede Internet; il testo viene inviato a Microsoft);
-- "local:<nome>" voci SAPI installate in Windows (offline), sintetizzate in un processo separato
-  perche pyttsx3/COM non e affidabile se richiamato piu volte dentro il server.
+- "kokoro:<voce>" voci neurali locali veloci (Kokoro-82M, ONNX su processore): riserva quando Chatterbox non c'è;
+- "edge:<voce>"  voci neurali Microsoft (pacchetto edge-tts, richiede Internet; il testo viene inviato a Microsoft).
 """
 import asyncio
 import json
+import os
 import subprocess
-import sys
+import threading
 import wave
 from pathlib import Path
 
-PIPER_DIR = Path(__file__).resolve().parents[2] / "models" / "piper"
-KOKORO_DIR = Path(__file__).resolve().parents[2] / "models" / "kokoro"
+ROOT = Path(__file__).resolve().parents[2]
+KOKORO_DIR = ROOT / "models" / "kokoro"
+VOICE_PY = ROOT / ".venv-voice" / "Scripts" / "python.exe"
+CB_REFS = ROOT / "models" / "chatterbox_refs"
+# voce: (nome mostrato, lingua, genere, voce Edge da cui si registra il campione da clonare)
+CB_VOICES = {
+    "it_F": ("Giulia (IT, realistica)", "it", "F", "it-IT-IsabellaNeural"),
+    "it_M": ("Marco (IT, realistica)", "it", "M", "it-IT-GiuseppeMultilingualNeural"),
+    "en_F": ("Emma (EN, realistica)", "en", "F", "en-US-AvaMultilingualNeural"),
+    "en_M": ("James (EN, realistica)", "en", "M", "en-US-AndrewNeural"),
+    "es_F": ("Lucía (ES, realistica)", "es", "F", "es-ES-ElviraNeural"),
+    "es_M": ("Diego (ES, realistica)", "es", "M", "es-ES-AlvaroNeural"),
+    "fr_F": ("Claire (FR, realistica)", "fr", "F", "fr-FR-DeniseNeural"),
+    "fr_M": ("Louis (FR, realistica)", "fr", "M", "fr-FR-HenriNeural"),
+    "de_F": ("Anna (DE, realistica)", "de", "F", "de-DE-KatjaNeural"),
+    "de_M": ("Jonas (DE, realistica)", "de", "M", "de-DE-ConradNeural"),
+    "pt_F": ("Ana (PT, realistica)", "pt", "F", "pt-BR-FranciscaNeural"),
+    "pt_M": ("Pedro (PT, realistica)", "pt", "M", "pt-BR-AntonioNeural"),
+}
+# voci Edge di riserva per registrare il campione, se quella scelta non risponde
+REF_BACKUP = {"F": {"it": "it-IT-ElsaNeural", "en": "en-US-JennyNeural", "es": "es-MX-DaliaNeural", "fr": "fr-FR-VivienneMultilingualNeural",
+                    "de": "de-DE-SeraphinaMultilingualNeural", "pt": "pt-PT-RaquelNeural"},
+              "M": {"it": "it-IT-DiegoNeural", "en": "en-US-GuyNeural", "es": "es-MX-JorgeNeural", "fr": "fr-FR-RemyMultilingualNeural",
+                    "de": "de-DE-FlorianMultilingualNeural", "pt": "pt-PT-DuarteNeural"}}
 KOKORO_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
 KOKORO_VOICES = {"if_sara": "Sara (IT, naturale locale)", "im_nicola": "Nicola (IT, naturale locale)",
                  "af_heart": "Heart (EN, naturale locale)", "am_michael": "Michael (EN, naturale locale)",
@@ -98,21 +120,21 @@ def _kokoro_synth(voice, items, wpm):
 
 
 AUTO_VOICES = {
-    "it": {"F": ["kokoro:if_sara", "edge:it-IT-ElsaNeural", "piper:it_IT-paola-medium"],
-           "M": ["kokoro:im_nicola", "edge:it-IT-DiegoNeural", "piper:it_IT-riccardo-x_low"]},
-    "en": {"F": ["edge:en-US-AvaMultilingualNeural", "kokoro:af_heart"], "M": ["edge:en-US-AndrewMultilingualNeural", "kokoro:am_michael"]},
-    "es": {"F": ["edge:es-ES-ElviraNeural", "kokoro:ef_dora"], "M": ["edge:es-ES-AlvaroNeural", "kokoro:em_alex"]},
-    "fr": {"F": ["edge:fr-FR-DeniseNeural", "kokoro:ff_siwis"], "M": ["edge:fr-FR-HenriNeural"]},
-    "de": {"F": ["edge:de-DE-KatjaNeural"], "M": ["edge:de-DE-ConradNeural"]},
-    "pt": {"F": ["edge:pt-BR-FranciscaNeural", "kokoro:pf_dora"], "M": ["edge:pt-BR-AntonioNeural", "kokoro:pm_alex"]},
+    "it": {"F": ["chatterbox:it_F", "kokoro:if_sara", "edge:it-IT-ElsaNeural"], "M": ["chatterbox:it_M", "kokoro:im_nicola", "edge:it-IT-DiegoNeural"]},
+    "en": {"F": ["chatterbox:en_F", "edge:en-US-AvaMultilingualNeural", "kokoro:af_heart"], "M": ["chatterbox:en_M", "edge:en-US-AndrewNeural", "kokoro:am_michael"]},
+    "es": {"F": ["chatterbox:es_F", "edge:es-ES-ElviraNeural", "kokoro:ef_dora"], "M": ["chatterbox:es_M", "edge:es-ES-AlvaroNeural", "kokoro:em_alex"]},
+    "fr": {"F": ["chatterbox:fr_F", "edge:fr-FR-DeniseNeural", "kokoro:ff_siwis"], "M": ["chatterbox:fr_M", "edge:fr-FR-HenriNeural"]},
+    "de": {"F": ["chatterbox:de_F", "edge:de-DE-KatjaNeural"], "M": ["chatterbox:de_M", "edge:de-DE-ConradNeural"]},
+    "pt": {"F": ["chatterbox:pt_F", "edge:pt-BR-FranciscaNeural", "kokoro:pf_dora"], "M": ["chatterbox:pt_M", "edge:pt-BR-AntonioNeural", "kokoro:pm_alex"]},
 }
 
 
-def resolve_voice(voice, gender="", lang="it"):
-    """'auto' (o vuoto) -> la migliore voce installata della lingua e del genere di chi racconta (femminile se incerto)."""
+def resolve_voice(voice, gender="", lang="it", exclude=()):
+    """'auto' (o vuoto) -> la migliore voce installata della lingua e del genere di chi racconta (femminile se incerto).
+    `exclude`: motori da saltare (es. ("chatterbox",) per scegliere la riserva quando Chatterbox non funziona)."""
     if voice and voice != "auto":
         return voice
-    voices = list_voices()
+    voices = [v for v in list_voices() if v.get("engine") not in exclude]
     available = {v["id"] for v in voices}
     auto = AUTO_VOICES.get(lang, AUTO_VOICES["it"])
     for vid in auto["M" if gender == "M" else "F"] + auto["F" if gender == "M" else "M"]:
@@ -141,59 +163,13 @@ PREVIEW_TEXTS = {
 PREVIEW_TEXT = PREVIEW_TEXTS["it"]
 
 
-PIPER_LABELS = {"it_IT-paola-medium": "Paola (IT, neurale locale)", "it_IT-riccardo-x_low": "Riccardo (IT, neurale locale)"}
-_PIPER_CACHE = {}
-
-try:
-    import piper  # noqa: F401
-    PIPER_AVAILABLE = True
-except ImportError:
-    PIPER_AVAILABLE = False
-
-
-PIPER_URL = "https://huggingface.co/rhasspy/piper-voices/resolve/main/it/it_IT/paola/medium/"
-
-
-def download_piper_voice(name="it_IT-paola-medium"):
-    """Scarica la voce Piper italiana (una volta sola) in models/piper/."""
-    import urllib.request
-    PIPER_DIR.mkdir(parents=True, exist_ok=True)
-    for f in (f"{name}.onnx.json", f"{name}.onnx"):
-        target = PIPER_DIR / f
-        if not target.is_file():
-            urllib.request.urlretrieve(PIPER_URL + f, target.with_suffix(target.suffix + ".part"))
-            target.with_suffix(target.suffix + ".part").replace(target)
-
-
-def piper_voices():
-    if not PIPER_AVAILABLE or not PIPER_DIR.is_dir():
-        return []
-    return [p.stem for p in sorted(PIPER_DIR.glob("*.onnx")) if p.with_suffix(".onnx.json").is_file()]
-
-
-def _piper_synth(name, items, wpm):
-    from piper import PiperVoice, SynthesisConfig
-
-    voice = _PIPER_CACHE.get(name) or PiperVoice.load(str(PIPER_DIR / f"{name}.onnx"))
-    _PIPER_CACHE[name] = voice
-    # length_scale > 1 rallenta: Piper parla a circa 160 parole al minuto con 1.0
-    cfg = SynthesisConfig(length_scale=max(0.6, min(1.6, 160 / max(80, wpm))))
-    created = []
-    for text, path in items:
-        path = Path(path).with_suffix(".wav")
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with wave.open(str(path), "wb") as w:
-            voice.synthesize_wav(speakable(text, "it"), w, syn_config=cfg)
-        created.append(path)
-    return created
-
 EDGE_VOICES = [
     ("it-IT-ElsaNeural", "Elsa (IT, neurale)"),
     ("it-IT-DiegoNeural", "Diego (IT, neurale)"),
     ("it-IT-IsabellaNeural", "Isabella (IT, neurale)"),
     ("it-IT-GiuseppeMultilingualNeural", "Giuseppe (IT, neurale)"),
     ("en-US-AvaMultilingualNeural", "Ava (EN, neurale)"),
-    ("en-US-AndrewMultilingualNeural", "Andrew (EN, neurale)"),
+    ("en-US-AndrewNeural", "Andrew (EN, neurale)"),
     ("en-GB-SoniaNeural", "Sonia (EN-GB, neurale)"),
     ("en-GB-RyanNeural", "Ryan (EN-GB, neurale)"),
     ("es-ES-ElviraNeural", "Elvira (ES, neurale)"),
@@ -216,24 +192,58 @@ except ImportError:
     EDGE_AVAILABLE = False
 
 
-def _run_sapi_worker(args, timeout):
-    return subprocess.run([sys.executable, "-m", "app.services.sapi_worker", *args], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+def chatterbox_ready():
+    """Chatterbox è installato nel suo ambiente (.venv-voice)."""
+    return VOICE_PY.is_file()
 
 
-def local_voices():
-    try:
-        result = _run_sapi_worker(["--list"], 30)
-        return json.loads(result.stdout or "[]") if result.returncode == 0 else []
-    except (OSError, ValueError, subprocess.TimeoutExpired):
-        return []
+def chatterbox_custom():
+    """Voci clonate dall'utente: models/chatterbox_refs/custom_<nome>.wav (10-20 s di parlato pulito)."""
+    return sorted(p.stem for p in CB_REFS.glob("custom_*.wav")) if CB_REFS.is_dir() else []
 
 
-SAPI_LANG = {"ital": "it", "english": "en", "spanish": "es", "español": "es", "french": "fr", "fran": "fr", "german": "de", "deutsch": "de", "portug": "pt"}
+async def ensure_reference(vid):
+    """Il campione da clonare per una voce Chatterbox. Le voci di base si registrano la prima volta da una voce Edge
+    (frase neutra di ~12 s); le voci dell'utente sono già file. None = voce predefinita del modello."""
+    path = CB_REFS / f"{vid}.wav"
+    if path.is_file() or vid not in CB_VOICES:
+        return path if path.is_file() else None
+    if not EDGE_AVAILABLE:
+        return None
+    from app.services.video_service import ffmpeg_exe
+    _, lang, gender, edge_voice = CB_VOICES[vid]
+    CB_REFS.mkdir(parents=True, exist_ok=True)
+    mp3 = path.with_suffix(".mp3")
+    import edge_tts
+    for attempt, voice in enumerate([edge_voice, edge_voice, REF_BACKUP[gender][lang]]):
+        try:
+            await edge_tts.Communicate(speakable(PREVIEW_TEXTS[lang], lang), voice, rate="-4%").save(str(mp3))
+            break
+        except Exception:
+            mp3.unlink(missing_ok=True)
+            await asyncio.sleep(1 + attempt)
+    else:
+        return None  # nessun campione: Chatterbox usa la sua voce predefinita
+    flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+    await asyncio.to_thread(subprocess.run, [ffmpeg_exe(), "-y", "-loglevel", "error", "-i", str(mp3), "-ac", "1", "-ar", "24000", str(path)],
+                            capture_output=True, creationflags=flags)
+    mp3.unlink(missing_ok=True)
+    return path if path.is_file() else None
 
 
-def _sapi_lang(name, italian=False):
-    low = name.lower()
-    return "it" if italian else next((code for key, code in SAPI_LANG.items() if key in low), "")
+def emotion(sentence, role=""):
+    """Intensità della voce per frase (Chatterbox): esclamazioni e colpi di scena più accesi, puntini più sommessi.
+    Restituisce (exaggeration, cfg_weight): un cfg più basso rallenta e dà più espressione."""
+    s = sentence.strip()
+    if s.endswith(("!", "!»", "!\"", "?!")):
+        return 0.75, 0.35
+    if s.endswith(("...", "…")):
+        return 0.4, 0.5
+    if s.endswith(("?", "?»", "?\"")):
+        return 0.6, 0.45
+    if role in ("HOOK", "CLIFFHANGER", "FINALE"):
+        return 0.62, 0.45
+    return 0.5, 0.5
 
 
 def list_voices():
@@ -241,14 +251,15 @@ def list_voices():
     voices = [{"id": "auto", "label": "Automatica: maschile o femminile in base a chi racconta", "engine": "auto", "online": False, "lang": "*"}]
     voices += [{"id": f"kokoro:{v}", "label": label, "engine": "kokoro", "online": False, "lang": KOKORO_LANG.get(v[:1], ("it",))[0]}
                for v, label in KOKORO_VOICES.items()] if kokoro_ready() else []
-    voices += [{"id": f"piper:{n}", "label": PIPER_LABELS.get(n, n + " (neurale locale)"), "engine": "piper", "online": False, "lang": n[:2]} for n in piper_voices()]
+    if chatterbox_ready():
+        voices += [{"id": f"chatterbox:{vid}", "label": label, "engine": "chatterbox", "online": False, "lang": lang, "gender": g}
+                   for vid, (label, lang, g, _) in CB_VOICES.items()]
+        voices += [{"id": f"chatterbox:{vid}", "label": vid[7:].replace("_", " ").title() + " (tua voce, realistica)", "engine": "chatterbox",
+                    "online": False, "lang": "*"} for vid in chatterbox_custom()]
     if EDGE_AVAILABLE:
         voices += [{"id": f"edge:{vid}", "label": label, "engine": "edge", "online": True, "lang": vid[:2]} for vid, label in EDGE_VOICES]
-    for v in local_voices():
-        voices.append({"id": f"local:{v['id']}", "label": v["name"] + " (Windows, offline)", "engine": "local", "online": False,
-                       "italian": v.get("italian", False), "lang": _sapi_lang(v["name"], v.get("italian", False))})
-    order = {"auto": -1, "kokoro": 0, "piper": 1, "edge": 2, "local": 3}
-    voices.sort(key=lambda v: (order[v["engine"]], not v.get("italian", True)))
+    order = {"auto": -1, "chatterbox": 0, "kokoro": 1, "edge": 2}
+    voices.sort(key=lambda v: order[v["engine"]])
     return voices
 
 
@@ -271,10 +282,22 @@ class TTSService:
             self.voice = f"eleven:{vid}" if vid else resolve_voice("auto", self.gender, self.lang)
         return self.voice
 
-    async def synthesize_many(self, items, on_progress=None):
-        """items: lista di (testo, percorso_mp3_o_wav). Restituisce l'elenco dei file creati."""
+    async def synthesize_many(self, items, on_progress=None, roles=None):
+        """items: lista di (testo, percorso_mp3_o_wav). Restituisce l'elenco dei file creati.
+        roles: ruolo di ogni beat (HOOK, CLIFFHANGER…), per dare più intensità ai momenti forti con Chatterbox."""
         await self.prepare()
         engine, _, name = self.voice.partition(":")
+        if engine == "chatterbox":
+            try:
+                return await self._chatterbox(name, items, on_progress, roles)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                fallback = resolve_voice("auto", self.gender, self.lang, exclude=("chatterbox",))
+                if on_progress:
+                    on_progress(f"Voce realistica non disponibile ({exc}). Continuo con {fallback}")
+                self.voice = fallback
+                engine, _, name = fallback.partition(":")
         if engine == "eleven":
             from app.services import eleven_service
             try:
@@ -291,29 +314,62 @@ class TTSService:
             if on_progress:
                 on_progress(f"Voce locale {KOKORO_VOICES.get(name, name)}: sintesi di {len(items)} beat…")
             return await asyncio.to_thread(_kokoro_synth, name, items, self.wpm)
-        if engine == "piper":
-            if name not in piper_voices():
-                raise RuntimeError(f"Voce locale {name} non trovata in models/piper/")
-            if on_progress:
-                on_progress(f"Voce locale {name}: sintesi di {len(items)} beat…")
-            return await asyncio.to_thread(_piper_synth, name, items, self.wpm)
         if engine == "edge":
             try:
                 return await self._edge(name, items, on_progress)
             except Exception as exc:
-                if piper_voices() and self.lang == "it":
-                    if on_progress:
-                        on_progress(f"Voce online non disponibile ({type(exc).__name__}): uso la voce neurale locale")
-                    return await asyncio.to_thread(_piper_synth, piper_voices()[0], items, self.wpm)
-                if not local_voices():
-                    raise RuntimeError(f"Voce online non disponibile ({exc}) e nessuna voce Windows installata.") from exc
+                local = next((v for v in AUTO_VOICES.get(self.lang, {}).get(self.gender or "F", []) if v.startswith("kokoro:")), None)
+                if not (local and kokoro_ready()):
+                    raise RuntimeError(f"Voce online non disponibile ({exc}) e nessuna voce locale per questa lingua.") from exc
                 if on_progress:
-                    on_progress(f"Voce online non disponibile ({type(exc).__name__}): uso la voce di Windows")
-                fallback = next((v for v in local_voices() if _sapi_lang(v["name"], v.get("italian", False)) == self.lang), local_voices()[0])
-                engine, name = "local", fallback["id"]
-        if engine == "local":
-            return await self._local(name, items, on_progress)
+                    on_progress(f"Voce online non disponibile ({type(exc).__name__}): uso la voce locale {local}")
+                self.voice = local
+                return await asyncio.to_thread(_kokoro_synth, local.partition(":")[2], items, self.wpm)
         raise ValueError(f"Voce non riconosciuta: {self.voice}")
+
+    async def _chatterbox(self, vid, items, on_progress, roles=None, device=None):
+        """Sintesi con Chatterbox nel suo processo. Sulla scheda video LM Studio viene scaricato prima e ricaricato dopo
+        (8 GB non bastano per entrambi)."""
+        from app.services.text_norm import sentences
+        if not chatterbox_ready():
+            raise RuntimeError("Chatterbox non installato")
+        label, lang, _, _ = CB_VOICES.get(vid, (vid, self.lang, "", ""))
+        lang = self.lang if vid.startswith("custom_") else lang
+        ref = await ensure_reference(vid)
+        out_dir = Path(items[0][1]).parent
+        out_dir.mkdir(parents=True, exist_ok=True)
+        job_items = []
+        for k, (text, path) in enumerate(items):
+            role = (roles or [""] * len(items))[k] if roles and k < len(roles) else ""
+            parts = sentences(speakable(text, lang)) or [(speakable(text, lang), 0.3)]
+            job_items.append({"out": str(Path(path).with_suffix(".wav")), "sentences": [
+                {"text": t, "pause": p, "exaggeration": emotion(t, role)[0], "cfg": emotion(t, role)[1]} for t, p in parts]})
+        device = device or os.getenv("CHATTERBOX_DEVICE", "cuda")
+        job = out_dir / "_chatterbox_job.json"
+        job.write_text(json.dumps({"lang": lang, "ref": str(ref) if ref else None, "device": device, "items": job_items}, ensure_ascii=False), encoding="utf-8")
+        reload_models = []
+        if device == "cuda":
+            from app.services import illustration_service
+            from app.services.llm_service import LLMService
+            reload_models = await illustration_service.free_gpu(LLMService())
+            if reload_models and on_progress:
+                on_progress("LM Studio messo in pausa per far posto alla voce realistica (verrà ricaricato)")
+        if on_progress:
+            on_progress(f"Voce realistica {label}: {len(items)} beat…")
+        try:
+            error = await run_voice_worker(job, lambda line: on_progress and _forward(line, on_progress, len(items)))
+        finally:
+            job.unlink(missing_ok=True)
+            if reload_models:
+                from app.services import illustration_service
+                await illustration_service.restore_gpu(reload_models)
+        if error:
+            raise RuntimeError(error)
+        created = [Path(i["out"]) for i in job_items]
+        missing = [p.name for p in created if not p.is_file() or p.stat().st_size < 1000]
+        if missing:
+            raise RuntimeError("audio non creato per " + ", ".join(missing))
+        return created
 
     async def _edge(self, voice, items, on_progress):
         import edge_tts
@@ -338,20 +394,48 @@ class TTSService:
                 on_progress(f"Voce: beat {i}/{len(items)}")
         return created
 
-    async def _local(self, voice_id, items, on_progress):
-        jobs = [{"text": t, "path": str(Path(p).with_suffix(".wav"))} for t, p in items]
-        for j in jobs:
-            Path(j["path"]).parent.mkdir(parents=True, exist_ok=True)
-        spec = Path(jobs[0]["path"]).parent / "_sapi_jobs.json"
-        spec.write_text(json.dumps({"voice": voice_id, "rate": self.wpm, "items": jobs}, ensure_ascii=False), encoding="utf-8")
-        if on_progress:
-            on_progress(f"Voce Windows: sintesi di {len(jobs)} beat…")
-        result = await asyncio.to_thread(_run_sapi_worker, [str(spec)], 60 + 30 * len(jobs))
-        spec.unlink(missing_ok=True)
-        if result.returncode != 0:
-            raise RuntimeError("Sintesi vocale Windows fallita: " + (result.stderr or result.stdout)[-400:])
-        created = [Path(j["path"]) for j in jobs]
-        missing = [p.name for p in created if not p.is_file() or p.stat().st_size < 500]
-        if missing:
-            raise RuntimeError("Audio non creato per: " + ", ".join(missing))
-        return created
+
+def _forward(line, on_progress, total):
+    if line.startswith("PROGRESS"):
+        parts = line.split()
+        speed = f" · {float(parts[3]):.1f}× tempo reale" if len(parts) > 3 else ""
+        on_progress(f"Voce realistica: beat {parts[1]}/{parts[2]}{speed}")
+    elif line.startswith("STATUS"):
+        on_progress(line[7:])
+
+
+async def run_voice_worker(job, on_line, timeout=3600):
+    """Lancia chatterbox_worker con il Python di .venv-voice e inoltra le righe di stato. Annullabile.
+    Restituisce il messaggio d'errore, o None se è andato tutto bene."""
+    flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "HF_HUB_DISABLE_TELEMETRY": "1", "PYTHONUNBUFFERED": "1", "TOKENIZERS_PARALLELISM": "false"}
+    proc = subprocess.Popen([str(VOICE_PY), "-m", "app.services.chatterbox_worker", str(job)], cwd=str(ROOT), stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace", creationflags=flags, env=env)
+    lines = []
+    loop = asyncio.get_running_loop()
+
+    def reader():
+        for line in proc.stdout:
+            line = line.strip()
+            if line:
+                lines.append(line)
+                loop.call_soon_threadsafe(on_line, line)
+    t = threading.Thread(target=reader, daemon=True)
+    t.start()
+    waited = 0.0
+    try:
+        while proc.poll() is None:
+            await asyncio.sleep(0.3)
+            waited += 0.3
+            if waited > timeout:
+                proc.kill()
+                return "la voce non ha finito in tempo"
+    except BaseException:
+        proc.kill()
+        proc.wait()
+        raise
+    t.join(timeout=5)
+    error = [ln for ln in lines if ln.startswith("ERROR")]
+    if proc.returncode != 0 or error:
+        return error[-1][6:] if error else (lines[-1] if lines else f"codice {proc.returncode}")
+    return None

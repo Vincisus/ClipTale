@@ -1202,10 +1202,10 @@
       }
       $("voice-hint").textContent = online
         ? "Voce neurale online: il testo viene inviato a Microsoft. Senza Internet si usa la voce locale."
-        : v === "auto" ? "Sceglie da sola una voce maschile o femminile in base a chi racconta la storia (voci naturali locali)."
+        : v === "auto" ? "Sceglie da sola una voce maschile o femminile in base a chi racconta la storia (voci realistiche locali, se installate)."
         : v.startsWith("kokoro:") ? "Voce naturale locale (Kokoro): gira sul tuo PC, nessun dato esce."
-        : v.startsWith("piper:") ? "Voce neurale locale (Piper): gira sul tuo PC, nessun dato esce."
-        : "Voce di Windows, funziona senza Internet.";
+        : v.startsWith("chatterbox:") ? "Voce realistica locale (Chatterbox): gira sulla tua scheda video, nessun dato esce. Mentre parla, LM Studio viene messo in pausa."
+        : "Voce locale.";
     }
 
     // ------------------------------------------------------------ progetti

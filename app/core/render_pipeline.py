@@ -259,7 +259,8 @@ async def render_language(folder, job, voice, wpm, cut_seconds, silence_ms, visu
             todo.append((i, beat["text"], key))
     log(f"Voce {tts.voice} a {wpm} WPM: {len(todo)} beat da sintetizzare, {len(beats) - len(todo)} dalla cache", 3, module="tts_engine")
     if todo:
-        raw = await tts.synthesize_many([(text, audio_dir / f"beat_{i:03}_raw") for i, text, _ in todo], on_progress=lambda m: log(m, module="tts_engine"))
+        raw = await tts.synthesize_many([(text, audio_dir / f"beat_{i:03}_raw") for i, text, _ in todo], on_progress=lambda m: log(m, module="tts_engine"),
+                                        roles=[beats[i - 1].get("role", "") for i, _, _ in todo])
         for (i, _, key), source in zip(todo, raw):
             duration = await clean_beat_audio(source, clean_paths[i - 1], silence_ms)
             source.unlink(missing_ok=True)

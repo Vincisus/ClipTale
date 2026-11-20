@@ -579,7 +579,9 @@ def test_language_texts_voices_and_prompts(tmp_path):
     assert p.startswith("LINGUA:") and "Spagna" in p and "spagnolo parlato" in p and "nomi italiani" not in p
     assert localize_prompt("in italiano", "it") == "in italiano"
     # voci automatiche della lingua giusta
-    assert tts_service.resolve_voice("auto", "M", "es").startswith(("edge:es-", "kokoro:em_"))
+    assert tts_service.resolve_voice("auto", "M", "es") in ("chatterbox:es_M", "edge:es-ES-AlvaroNeural", "kokoro:em_alex")
+    assert tts_service.resolve_voice("auto", "M", "es", exclude=("chatterbox",)).startswith(("edge:es-", "kokoro:em_"))
+    assert tts_service.emotion("Non pago un centesimo!")[0] > tts_service.emotion("Era martedì.")[0] > tts_service.emotion("E poi...")[0]
     voices = [{"id": "a", "gender": "F", "lang": "it", "italian": True, "label": "A"}, {"id": "b", "gender": "F", "lang": "en", "label": "B"}]
     assert eleven_service.pick_for_gender(voices, "F", "en") == "b" and eleven_service.pick_for_gender(voices, "F", "it") == "a"
     # testi YouTube nella lingua della cartella
@@ -641,3 +643,50 @@ def test_part_length_kept_near_target():
     p = StoryPipeline(ShortLLM(), Path("."), FakeJob())
     out = asyncio.run(p.fit_length(1, "scrivi", long_beats, 300, 3))
     assert sum(word_count(b["text"]) for b in out) == 300
+
+
+def test_chatterbox_job_and_fallback(tmp_path, monkeypatch):
+    from app.services import chatterbox_worker as cw
+    from app.services import tts_service as ts
+    assert cw.plausible(3.0, "x" * 42) and not cw.plausible(12.0, "x" * 42) and not cw.plausible(0.3, "x" * 42)
+    monkeypatch.setattr(ts, "chatterbox_ready", lambda: True)
+
+    async def no_ref(vid):
+        return None
+    monkeypatch.setattr(ts, "ensure_reference", no_ref)
+    jobs = []
+
+    async def fake_worker(job, on_line, timeout=3600):
+        spec = json.loads(Path(job).read_text(encoding="utf-8"))
+        jobs.append(spec)
+        for item in spec["items"]:
+            Path(item["out"]).write_bytes(b"x" * 2000)
+        on_line("PROGRESS 1 1 0.80")
+        return None
+    monkeypatch.setattr(ts, "run_voice_worker", fake_worker)
+    tts = ts.TTSService("chatterbox:it_F", 165, "F", "it")
+    msgs = []
+    out = asyncio.run(tts._chatterbox("it_F", [("Ho 2.500 €. Non pago!", tmp_path / "b1")], msgs.append, ["HOOK"], device="cpu"))
+    assert out == [tmp_path / "b1.wav"]
+    sents = jobs[0]["items"][0]["sentences"]
+    assert jobs[0]["lang"] == "it" and sents[0]["text"].startswith("Ho duemilacinquecento euro")
+    assert sents[1]["exaggeration"] > sents[0]["exaggeration"]  # l'esclamazione è più accesa
+    assert any("0.8× tempo reale" in m for m in msgs)
+
+    async def broken_worker(job, on_line, timeout=3600):
+        return "CUDA out of memory"
+    monkeypatch.setattr(ts, "run_voice_worker", broken_worker)
+    used = []
+
+    async def fake_edge(self, voice, items, on_progress):
+        used.append(voice)
+        return [Path(p).with_suffix(".mp3") for _, p in items]
+    monkeypatch.setattr(ts.TTSService, "_edge", fake_edge)
+    monkeypatch.setattr(ts, "kokoro_ready", lambda: False)
+    monkeypatch.setattr(ts, "list_voices", lambda: [{"id": "chatterbox:it_F", "engine": "chatterbox", "lang": "it"},
+                                                    {"id": "edge:it-IT-ElsaNeural", "engine": "edge", "lang": "it"}])
+    tts = ts.TTSService("chatterbox:it_F", 165, "F", "it")
+    msgs = []
+    asyncio.run(tts.synthesize_many([("Ciao.", tmp_path / "b2")], msgs.append))
+    assert used == ["it-IT-ElsaNeural"] and tts.voice == "edge:it-IT-ElsaNeural"
+    assert any("CUDA out of memory" in m for m in msgs)
