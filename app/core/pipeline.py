@@ -166,6 +166,60 @@ def normalize_structure(value, count):
     return {"parts": [{"part": i, "title": str(p.get("title") or f"Parte {i}").strip(), "summary": str(p.get("summary") or "").strip(), "cliffhanger": str(p.get("cliffhanger") or "").strip()} for i, p in enumerate(parts, 1)]}
 
 
+MAX_OVER = 1.3  # una parte può essere al massimo il 30% più lunga del previsto
+
+
+def _sentences(text):
+    return [s for s in re.split(r"(?<=[.!?…])\s+", (text or "").strip()) if s]
+
+
+LEAK = re.compile(r'"?\s*\}\s*,?\s*\{?\s*"(?:text|visual)"\s*:\s*"?|"visual"\s*:\s*"[^"]*"\s*,?|"(?:beats?|text|part|cue)"\s*:\s*"?|[{}\[\]]')
+
+
+def clean_leak(text):
+    """Toglie pezzi di JSON finiti nel testo (es. `"}, {"text": "`), che la voce leggerebbe ad alta voce."""
+    t = LEAK.sub(" ", text or "")
+    t = re.sub(r'([.!?…»])\s*"\s*,', r"\1", t)  # resto di `."` + `,` prima del campo successivo
+    return re.sub(r"\s+", " ", t).strip(" ,\"")
+
+
+def dedupe_sentences(text):
+    """Toglie le frasi già dette (stessa frase, maiuscole e spazi a parte): il segno tipico del modello in loop.
+    Toglie anche eventuali pezzi di JSON finiti nel testo."""
+    text = clean_leak(text)
+    seen, out = set(), []
+    for s in _sentences(text):
+        key = re.sub(r"\W+", " ", s.lower()).strip()
+        if len(key) > 12 and key in seen:
+            continue
+        seen.add(key)
+        out.append(s)
+    return " ".join(out)
+
+
+def trim_beats(beats, limit):
+    """Accorcia i beat a circa `limit` parole in tutto, dividendo il taglio fra i beat in proporzione.
+    Di ogni beat tiene le prime frasi e l'ultima (che porta al beat successivo o al cliffhanger)."""
+    total = sum(word_count(b["text"]) for b in beats)
+    if total <= limit:
+        return beats
+    out = []
+    for b in beats:
+        sents = _sentences(b["text"])
+        budget = max(20, round(word_count(b["text"]) * limit / total))
+        if len(sents) < 3 or word_count(b["text"]) <= budget:
+            out.append(b)
+            continue
+        last, kept, used = sents[-1], [], word_count(sents[-1])
+        for s in sents[:-1]:
+            if used + word_count(s) > budget and kept:
+                break
+            kept.append(s)
+            used += word_count(s)
+        out.append({**b, "text": " ".join(kept + [last])})
+    return out
+
+
 def split_text(text, pieces):
     """Divide un testo in N blocchi di frasi di lunghezza simile."""
     sentences = [s for s in re.split(r"(?<=[.!?…])\s+", text.strip()) if s]
@@ -339,10 +393,40 @@ class StoryPipeline:
                 beats = longer
         if not beats:
             raise ValueError(f"Parte {n}: il modello non ha prodotto testo.")
+        beats = await self.fit_length(n, prompt, beats, words, beats_n)
         if len(beats) == 1 and beats_n > 1:  # tutto in un solo beat: lo dividiamo noi
             beats = [{"text": t, "visual": beats[0]["visual"]} for t in split_text(beats[0]["text"], beats_n) if t]
         beats = await self.polish(n, part, beats, previous)
         return {"part": n, "title": part["title"], "beats": beats}
+
+    async def fit_length(self, n, prompt, beats, words, beats_n):
+        """Tiene la parte vicina alla durata scelta: via le frasi ripetute (il modello a volte va in loop),
+        poi, se è ancora troppo lunga, una riscrittura più corta; come ultima risorsa un taglio sulle frasi."""
+        cleaned = [{**b, "text": dedupe_sentences(b["text"])} for b in beats]
+        before, got = sum(word_count(b["text"]) for b in beats), sum(word_count(b["text"]) for b in cleaned)
+        if got < before * 0.9:
+            self.log(f"Parte {n}: tolte {before - got} parole di frasi ripetute", level="warn")
+        beats = cleaned
+        if got <= words * MAX_OVER:
+            return beats
+        self.log(f"Parte {n}: troppo lunga ({got} parole invece di circa {words}), chiedo di accorciarla", level="warn")
+        try:
+            data = await self.ask(
+                prompt + f"\nLa versione precedente era troppo lunga ({got} parole). Riscrivila condensandola a circa {words} parole "
+                f"in tutto ({beats_n} beat da circa {round(words / beats_n)} parole), stessi eventi, stessa fine della parte, "
+                f"nessuna frase ripetuta.\nVersione precedente: {dumps(trim_beats(beats, round(words * 1.5)))}",
+                part_schema(beats_n), temperature=0.5, label=f"Parte {n} (accorciamento)")
+            shorter = [{"text": dedupe_sentences(str(b.get("text") or "").strip()), "visual": str(b.get("visual") or "").strip()}
+                       for b in data.get("beats", []) if isinstance(b, dict) and b.get("text")]
+            new = sum(word_count(b["text"]) for b in shorter)
+            if shorter and words * 0.6 <= new <= words * MAX_OVER:
+                self.log(f"Parte {n}: accorciata a {new} parole", level="ok")
+                return shorter
+        except Exception as exc:
+            self.log(f"Parte {n}: accorciamento non riuscito ({exc})", level="warn")
+        trimmed = trim_beats(beats, round(words * 1.1))
+        self.log(f"Parte {n}: tagliata a {sum(word_count(b['text']) for b in trimmed)} parole (frasi finali dei blocchi tenute)", level="warn")
+        return trimmed
 
     async def polish(self, n, part, beats, previous):
         """Revisione rapida: refusi, grammatica e contraddizioni evidenti. Mai bloccante."""
@@ -358,7 +442,8 @@ class StoryPipeline:
                 + f"Beat: {dumps(beats)}",
                 part_schema(len(beats)), temperature=0.3, label=f"Parte {n} (revisione)")
             fixed = [str(b.get("text") or "").strip() for b in data.get("beats", []) if isinstance(b, dict)]
-            if len(fixed) == len(beats) and all(word_count(f) >= 0.8 * word_count(b["text"]) for f, b in zip(fixed, beats)):
+            if len(fixed) == len(beats) and all(0.8 * word_count(b["text"]) <= word_count(f) <= 1.25 * word_count(b["text"]) + 10
+                                                for f, b in zip(fixed, beats)):
                 return [{"text": f, "visual": b["visual"]} for f, b in zip(fixed, beats)]
             self.log(f"Parte {n}: revisione scartata (testo accorciato o incompleto)", level="warn")
         except Exception as exc:
