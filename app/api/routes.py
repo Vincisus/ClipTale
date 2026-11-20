@@ -43,7 +43,19 @@ async def health():
     except Exception as exc:
         info["lmstudio_error"] = str(exc)
     info["busy"] = jobs.active().data if jobs.active() else None
+    from app.core.desktop import VERSION
+    info["version"] = VERSION
     return info
+
+
+@router.post("/open-projects-folder")
+async def open_projects_folder(request: Request):
+    """Apre in Esplora risorse la cartella con tutti i progetti (solo dalla pagina locale)."""
+    same_origin(request)
+    projects.ROOT.mkdir(parents=True, exist_ok=True)
+    if hasattr(os, "startfile"):
+        os.startfile(str(projects.ROOT.resolve()))  # noqa: S606 - cartella dei progetti di ClipTale
+    return {"ok": True, "path": str(projects.ROOT.resolve())}
 
 
 @router.get("/models")

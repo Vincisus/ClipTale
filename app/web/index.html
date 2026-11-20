@@ -417,6 +417,81 @@
     }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+    /* ---------------------------------------------------------------- fase 4: barra laterale e schermate */
+    :root { --nav: 232px; }
+    .nav {
+      position: fixed; left: 0; top: 0; bottom: 0; width: var(--nav); z-index: 35; display: flex; flex-direction: column; gap: 6px;
+      padding: 20px 14px; background: #0d0d0d; border-right: 1px solid var(--line);
+    }
+    .nav .brand { padding: 4px 8px 18px; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+    .nav .brand-mark { width: 32px; height: 32px; border-radius: 9px; }
+    .nav-new { width: 100%; margin-bottom: 14px; }
+    .nav-list { display: flex; flex-direction: column; gap: 2px; }
+    .nav .step {
+      display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid transparent;
+      background: transparent; color: var(--ink-2); font-size: 14px; cursor: pointer; text-align: left; transition: background .15s ease, color .15s ease, box-shadow .2s ease;
+    }
+    .nav .step svg { width: 18px; height: 18px; flex: none; }
+    .nav .step:hover { background: var(--surface); color: var(--ink); transform: none; }
+    .nav .step[aria-selected="true"] { background: var(--surface-2); color: var(--ink); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+    .nav .step-text { flex: 1; min-width: 0; font-size: 14px; }
+    .nav-badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: var(--surface-3); color: var(--ink); font-family: var(--mono); }
+    .nav-dot { width: 8px; height: 8px; border-radius: 4px; background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    .nav-check { color: var(--ok); font-weight: 700; }
+    .nav-status { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+    .nav-status .chip { max-width: 100%; }
+    .work { margin-left: var(--nav); min-height: 100vh; }
+    :root { --top: 0px; }
+    .jobbar { top: 0; }
+    .layout { grid-template-columns: minmax(0, 1fr) 320px; max-width: 1500px; min-height: 100vh; }
+    body.no-preview .layout { grid-template-columns: minmax(0, 1fr); }
+    body.no-preview .preview { display: none; }
+    .main { padding-top: 28px; }
+    .sec-title { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+    .project-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+    .project-grid .project-item {
+      height: 100%; min-height: 96px; justify-content: space-between; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+      padding: 14px 16px; transition: border-color .15s ease, transform .2s var(--ease), background .15s ease;
+    }
+    .project-grid .project-item:hover { border-color: var(--line-2); transform: translateY(-2px); background: var(--surface-2); }
+    .project-grid .project-item.active { border-color: var(--accent); background: var(--surface-2); }
+    .phases { list-style: none; margin: 0; padding: 22px 20px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px;
+              background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+    .phase { display: flex; flex-direction: column; gap: 10px; position: relative; min-width: 0; transition: opacity .3s ease; }
+    .phase:not(:last-child)::after { content: ""; position: absolute; top: 14px; left: 36px; right: -6px; height: 2px; background: var(--line-2); transition: background .4s ease; }
+    .phase.done:not(:last-child)::after { background: var(--ok); }
+    .ph-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line-2); display: grid; place-items: center; background: var(--bg); transition: border-color .3s ease, background .3s ease; z-index: 1; }
+    .phase.done .ph-dot { border-color: var(--ok); background: rgba(52, 211, 153, .14); }
+    .phase.done .ph-dot::after { content: "✓"; color: var(--ok); font-size: 13px; font-weight: 700; }
+    .phase.active .ph-dot { border-color: var(--accent); animation: phpulse 1.6s ease-out infinite; }
+    .phase.active .ph-dot::after { content: ""; width: 10px; height: 10px; border-radius: 5px; background: var(--accent); }
+    .phase.skip { opacity: .35; }
+    .ph-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .ph-text b { font-size: 14px; font-weight: 600; }
+    .ph-sub { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .phase.active .ph-sub { color: var(--accent-hover); }
+    @keyframes phpulse { 0% { box-shadow: 0 0 0 0 rgba(255, 122, 0, .5); } 100% { box-shadow: 0 0 0 10px rgba(255, 122, 0, 0); } }
+    .panel.enter { animation: screen-in .24s var(--ease); }
+    @keyframes screen-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .voice-engine-line a { color: var(--accent-hover); }
+    @media (max-width: 1060px) {
+      .layout { grid-template-columns: minmax(0, 1fr) 280px; }
+      .phases { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .phase:nth-child(3)::after { display: none; }
+    }
+    @media (max-width: 780px) {
+      .nav { top: auto; width: 100%; height: 64px; flex-direction: row; padding: 6px 8px; border-right: none; border-top: 1px solid var(--line); }
+      .nav .brand, .nav-new, .nav-status { display: none; }
+      .nav-list { flex-direction: row; width: 100%; justify-content: space-between; }
+      .nav .step { flex-direction: column; gap: 2px; min-height: 52px; padding: 4px 6px; font-size: 11px; flex: 1; }
+      .nav .step-text { font-size: 11px; text-align: center; }
+      .nav .step[aria-selected="true"] { box-shadow: inset 0 -3px 0 var(--accent); }
+      .nav-badge, .nav-dot, .nav-check { position: absolute; margin-left: 28px; margin-top: -26px; }
+      .work { margin-left: 0; padding-bottom: 64px; }
+      .phases { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .phase::after { display: none; }
+    }
+
     /* ---------------------------------------------------------------- schermi più piccoli */
     @media (max-width: 1240px) {
       .layout { grid-template-columns: 240px minmax(0, 1fr) 280px; }
@@ -459,13 +534,40 @@
 </head>
 <body>
   <!-- Interfaccia di lavoro (software): sistema nero e arancione: l'arancione solo su pulsante principale, avanzamento e focus; tre passi guidati. -->
-  <header class="top">
+
+  <nav class="nav" aria-label="ClipTale">
     <a class="skip-link" href="#main">Vai al contenuto</a>
     <div class="brand">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2.5 1v10L11 6z" fill="#0a0a0a"/></svg></span>
       <span>ClipTale</span>
     </div>
-    <div class="top-right">
+    <button type="button" id="btn-new" class="btn btn-primary nav-new">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Nuovo video
+    </button>
+    <div class="nav-list" role="tablist" aria-label="Schermate" aria-orientation="vertical">
+      <button type="button" class="step" role="tab" id="tab-idea" data-step="idea" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span class="step-text">Home</span><span class="nav-badge hidden" id="sub-idea"></span>
+      </button>
+      <button type="button" class="step" role="tab" id="tab-script" data-step="script" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>
+        <span class="step-text">Studio</span><span class="nav-dot hidden" id="sub-script" aria-label="lavoro in corso"></span>
+      </button>
+      <button type="button" class="step" role="tab" id="tab-publish" data-step="publish" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+        <span class="step-text">Pubblica</span><span class="nav-check hidden" id="sub-publish" aria-label="pubblicato">✓</span>
+      </button>
+      <button type="button" class="step" role="tab" id="tab-queue" data-step="queue" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span class="step-text">Coda</span><span class="nav-badge hidden" id="sub-queue"></span>
+      </button>
+      <button type="button" class="step" role="tab" id="tab-settings" data-step="settings" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+        <span class="step-text">Impostazioni</span>
+      </button>
+    </div>
+    <div class="nav-status">
       <span class="chip" id="llm-chip" title=""><span id="llm-dot" class="dot"></span><span id="llm-pill">Motore AI: verifica…</span></span>
       <span class="chip ff" id="ff-chip"><span id="ff-dot" class="dot"></span><span id="ff-pill">FFmpeg</span></span>
       <button type="button" class="btn btn-ghost btn-sm" id="btn-help" aria-haspopup="dialog">
@@ -473,8 +575,8 @@
         <span>Come funziona</span>
       </button>
     </div>
-  </header>
-
+  </nav>
+  <div class="work">
   <div id="jobbar" class="jobbar hidden" role="status" aria-live="polite">
     <span class="spinner" aria-hidden="true"></span>
     <div class="jobbar-text"><b id="job-title">Lavoro in corso</b><span id="activity">Avvio…</span></div>
@@ -485,33 +587,9 @@
   </div>
 
   <div class="layout">
-    <!-- Progetti -->
-    <aside class="side" aria-label="Progetti">
-      <button type="button" id="btn-new" class="btn" style="width:100%">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        Nuovo video
-      </button>
-      <div class="side-head"><span class="label">I tuoi progetti</span><span id="project-count" class="label"></span></div>
-      <ul id="project-list" class="project-list"></ul>
-    </aside>
 
     <!-- Passi -->
     <main class="main" id="main" tabindex="-1">
-      <div class="steps" role="tablist" aria-label="Passi">
-        <button type="button" class="step" role="tab" id="tab-idea" data-step="idea" aria-controls="panel-idea" aria-selected="true">
-          <span class="step-num">1</span><span class="step-text"><b>Idea</b><span id="sub-idea">Idea e voce</span></span>
-        </button>
-        <button type="button" class="step" role="tab" id="tab-script" data-step="script" aria-controls="panel-script" aria-selected="false">
-          <span class="step-num">2</span><span class="step-text"><b>Copione</b><span id="sub-script">Rileggi e correggi</span></span>
-        </button>
-        <button type="button" class="step" role="tab" id="tab-video" data-step="video" aria-controls="panel-video" aria-selected="false">
-          <span class="step-num">3</span><span class="step-text"><b>Video</b><span id="sub-video">Disegni, ritmo, clip</span></span>
-        </button>
-        <button type="button" class="step" role="tab" id="tab-publish" data-step="publish" aria-controls="panel-publish" aria-selected="false">
-          <span class="step-num">4</span><span class="step-text"><b>Pubblica</b><span id="sub-publish">YouTube e TikTok</span></span>
-        </button>
-      </div>
-
       <div id="lang-bar" class="lang-bar hidden" role="tablist" aria-label="Lingua del video"></div>
 
       <div id="next-hint" class="next" role="status">
@@ -520,7 +598,7 @@
       </div>
 
       <!-- 1. Idea -->
-      <section class="panel" id="panel-idea" role="tabpanel" aria-labelledby="tab-idea">
+      <section class="panel" id="panel-idea" aria-label="Nuovo video">
         <div class="panel-head">
           <div>
             <h2>Di cosa parla il video?</h2>
@@ -561,25 +639,6 @@
           </div>
           <p class="hint" id="parts-hint">Ogni parte diventa una clip separata di circa 1 min.</p>
 
-          <div class="field-row">
-            <div class="field">
-              <label for="ai-provider">Motore AI che scrive</label>
-              <select id="ai-provider"><option value="">caricamento…</option></select>
-            </div>
-            <div class="field">
-              <label for="llm-select">Modello</label>
-              <select id="llm-select"><option value="">caricamento…</option></select>
-            </div>
-          </div>
-          <div class="voice-row hidden" id="ai-key-row">
-            <input type="password" id="ai-key" placeholder="Chiave API" autocomplete="off" spellcheck="false" aria-label="Chiave API del motore AI" style="flex:1;min-width:0" />
-            <button type="button" id="btn-ai-save" class="btn">Salva e prova</button>
-          </div>
-          <span class="hint" id="ai-hint">Il pallino ● indica i modelli già caricati sul PC.</span>
-          <div id="ai-gpu-note" class="lock-note warn hidden" role="note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
-            <span><b>Con Unsloth la scheda video va liberata a mano.</b> ClipTale non può mettere in pausa Unsloth Studio: quando la storia è scritta, il lavoro si ferma e aspetta che tu scarichi il modello in Unsloth (Unload). Poi voce e disegni partono da soli. Sulle schede da 8 GB è indispensabile.</span>
-          </div>
 
           <div class="field" id="lang-field">
             <label for="lang-main">Lingua della storia</label>
@@ -589,25 +648,6 @@
             <span class="hint" id="lang-hint"></span>
           </div>
 
-          <div class="field">
-            <span class="field-label" id="engine-label">Motore della voce</span>
-            <div class="options" id="engine-group" role="group" aria-labelledby="engine-label">
-              <button type="button" class="opt" data-engine="pc" aria-pressed="true"><b>Voce del PC</b><span>Gratis e locale: nessun dato esce dal computer</span></button>
-              <button type="button" class="opt" data-engine="eleven" aria-pressed="false"><b>ElevenLabs</b><span id="eleven-sub">La più realistica, online, con limite mensile</span></button>
-            </div>
-            <div id="eleven-box" class="lock-note hidden">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
-              <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:0">
-                <span id="eleven-text">Incolla la tua chiave API di ElevenLabs (elevenlabs.io → Profilo → API Keys). Il testo della storia viene inviato a ElevenLabs.</span>
-                <div class="actions" id="eleven-form">
-                  <input type="password" id="eleven-key" placeholder="Chiave API ElevenLabs" autocomplete="off" spellcheck="false" aria-label="Chiave API ElevenLabs" style="flex:1;min-width:180px" />
-                  <button type="button" id="btn-eleven-save" class="btn btn-sm">Salva chiave</button>
-                </div>
-                <span class="hint">Piano gratuito: circa 10 minuti di voce al mese, solo per uso non commerciale e citando ElevenLabs. Per video monetizzati serve almeno il piano Starter. Se i crediti finiscono, il video continua con la voce del PC.</span>
-                <button type="button" id="btn-eleven-remove" class="btn btn-sm btn-ghost hidden" style="align-self:flex-start">Rimuovi chiave</button>
-              </div>
-            </div>
-          </div>
 
           <div class="field">
             <label for="voice-select" id="voice-label">Voce</label>
@@ -621,6 +661,18 @@
             <span id="voice-hint" class="hint"></span>
           </div>
           <div id="voice-extra" class="voice-extra"></div>
+          <div class="voice-engine-line hint" id="voice-engine-line">Motore della voce: <b id="voice-engine-name">Voce del PC</b> · <a href="#settings" data-goto-screen="settings">cambia in Impostazioni</a></div>
+          <div class="field">
+            <span class="field-label" id="style-label">Stile dei disegni</span>
+            <div class="options" id="style-group" role="group" aria-labelledby="style-label">
+              <button type="button" class="opt" data-style="anim" aria-pressed="true"><b>Cartone animato</b><span>Personaggi animati che parlano, sfondi nello stile del tuo esempio</span></button>
+              <button type="button" class="opt" data-style="cartoon" aria-pressed="false"><b>Illustrazione</b><span>Una scena disegnata per ogni momento, con zoom lento: contorni neri e colori pieni</span></button>
+            </div>
+            <div id="ill-box" class="lock-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+              <span id="ill-text">Verifica del disegnatore locale…</span>
+            </div>
+          </div>
 
           <div id="idea-lock" class="lock-note hidden">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -629,8 +681,8 @@
 
           <div class="field" id="auto-publish">
             <span class="field-label">Al termine pubblica anche</span>
-            <label class="check"><input type="checkbox" id="auto-yt" /> <span id="auto-yt-label">YouTube: video lungo (collega il canale al passo 4)</span></label>
-            <label class="check"><input type="checkbox" id="auto-tt" /> <span id="auto-tt-label">TikTok: le clip (collega l'account al passo 4)</span></label>
+            <label class="check"><input type="checkbox" id="auto-yt" /> <span id="auto-yt-label">YouTube: video lungo (collega il canale in Pubblica)</span></label>
+            <label class="check"><input type="checkbox" id="auto-tt" /> <span id="auto-tt-label">TikTok: le clip (collega l'account in Pubblica)</span></label>
           </div>
 
           <div class="actions">
@@ -643,12 +695,7 @@
               <span>Aggiungi alla coda</span>
             </button>
           </div>
-          <div id="queue-box" class="queue-box hidden" aria-live="polite">
-            <div class="queue-head"><b id="queue-title">In coda</b><button type="button" id="btn-queue-pause" class="btn btn-sm btn-ghost">Metti in pausa</button></div>
-            <ol id="queue-list" class="queue-list"></ol>
-            <span class="hint" id="queue-hint">ClipTale le crea una dopo l'altra, anche a finestra chiusa.</span>
-          </div>
-          <span class="hint" id="generate-hint">Crea usa le lingue e le voci scelte qui sopra e lo stile dei disegni scelto al passo 3.</span>
+          <span class="hint" id="generate-hint">Crea usa le lingue, le voci e lo stile scelti qui sopra; ritmo e musica si regolano in Studio.</span>
 
           <details class="more" id="manage" hidden>
             <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Gestisci progetto</summary>
@@ -662,8 +709,31 @@
         </div>
       </section>
 
+
+      <!-- Home: progetti -->
+      <section class="panel" id="panel-projects" aria-label="I tuoi progetti">
+        <div class="side-head"><h2 class="sec-title">I tuoi progetti</h2><span id="project-count" class="label"></span></div>
+        <ul id="project-list" class="project-grid"></ul>
+      </section>
+
+      <!-- Studio: avanzamento a fasi -->
+      <section class="panel hidden" id="panel-progress" aria-label="Avanzamento">
+        <div class="panel-head">
+          <div>
+            <h2 id="studio-title">Studio</h2>
+            <p id="studio-sub">Segui la creazione, correggi il copione e rifai il video.</p>
+          </div>
+        </div>
+        <ol class="phases" id="phases">
+          <li class="phase" data-phase="story"><span class="ph-dot"></span><span class="ph-text"><b>Storia</b><span class="ph-sub"></span></span></li>
+          <li class="phase" data-phase="translate"><span class="ph-dot"></span><span class="ph-text"><b>Traduzione</b><span class="ph-sub"></span></span></li>
+          <li class="phase" data-phase="voice"><span class="ph-dot"></span><span class="ph-text"><b>Voce</b><span class="ph-sub"></span></span></li>
+          <li class="phase" data-phase="draw"><span class="ph-dot"></span><span class="ph-text"><b>Disegni</b><span class="ph-sub"></span></span></li>
+          <li class="phase" data-phase="edit"><span class="ph-dot"></span><span class="ph-text"><b>Montaggio</b><span class="ph-sub"></span></span></li>
+        </ol>
+      </section>
       <!-- 2. Copione -->
-      <section class="panel hidden" id="panel-script" role="tabpanel" aria-labelledby="tab-script">
+      <section class="panel hidden" id="panel-script" aria-label="Copione">
         <div class="panel-head">
           <div>
             <h2>Rileggi e correggi il copione</h2>
@@ -684,14 +754,14 @@
             Aggiungi blocco
           </button>
           <button type="button" id="btn-to-video" class="btn btn-primary hidden">
-            Passa al video
+            Vai alle impostazioni del video
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
       </section>
 
       <!-- 3. Video -->
-      <section class="panel hidden" id="panel-video" role="tabpanel" aria-labelledby="tab-video">
+      <section class="panel hidden" id="panel-video" aria-label="Impostazioni del video">
         <div class="panel-head">
           <div>
             <h2>Crea il video</h2>
@@ -704,21 +774,10 @@
             <span class="field-label">Voce</span>
             <div class="voice-row" style="align-items:center">
               <span id="voice-summary" class="hint" style="flex:1;min-width:0"></span>
-              <button type="button" class="btn btn-sm" id="btn-voice-change">Cambia al passo 1</button>
+              <button type="button" class="btn btn-sm" id="btn-voice-change">Cambia in Home</button>
             </div>
           </div>
 
-          <div class="field">
-            <span class="field-label" id="style-label">Stile dei disegni</span>
-            <div class="options" id="style-group" role="group" aria-labelledby="style-label">
-              <button type="button" class="opt" data-style="anim" aria-pressed="true"><b>Cartone animato</b><span>Personaggi animati che parlano, sfondi nello stile del tuo esempio</span></button>
-              <button type="button" class="opt" data-style="cartoon" aria-pressed="false"><b>Illustrazione</b><span>Una scena disegnata per ogni momento, con zoom lento: contorni neri e colori pieni</span></button>
-            </div>
-            <div id="ill-box" class="lock-note">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-              <span id="ill-text">Verifica del disegnatore locale…</span>
-            </div>
-          </div>
 
           <div class="field">
             <span class="field-label" id="pace-label">Ritmo</span>
@@ -757,8 +816,93 @@
         </div>
       </section>
 
+
+      <!-- Coda -->
+      <section class="panel hidden" id="panel-queue" aria-label="Coda di video">
+        <div class="panel-head">
+          <div>
+            <h2>Coda di video</h2>
+            <p>Metti in fila le idee: ClipTale le crea una dopo l'altra, anche di notte e a finestra chiusa. Si aggiungono dalla Home con <b>Aggiungi alla coda</b>.</p>
+          </div>
+        </div>
+          <div id="queue-box" class="queue-box" aria-live="polite">
+            <div class="queue-head"><b id="queue-title">In coda</b><button type="button" id="btn-queue-pause" class="btn btn-sm btn-ghost">Metti in pausa</button></div>
+            <ol id="queue-list" class="queue-list"></ol>
+            <span class="hint" id="queue-hint">ClipTale le crea una dopo l'altra, anche a finestra chiusa.</span>
+          </div>
+        <p class="hint" id="queue-empty">La coda è vuota.</p>
+      </section>
+
+      <!-- Impostazioni -->
+      <section class="panel hidden" id="panel-settings" aria-label="Impostazioni">
+        <div class="panel-head">
+          <div>
+            <h2>Impostazioni</h2>
+            <p>Si configurano una volta: valgono per tutti i video.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Motore AI che scrive le storie</h3>
+          <div class="field-row">
+            <div class="field">
+              <label for="ai-provider">Motore AI che scrive</label>
+              <select id="ai-provider"><option value="">caricamento…</option></select>
+            </div>
+            <div class="field">
+              <label for="llm-select">Modello</label>
+              <select id="llm-select"><option value="">caricamento…</option></select>
+            </div>
+          </div>
+          <div class="voice-row hidden" id="ai-key-row">
+            <input type="password" id="ai-key" placeholder="Chiave API" autocomplete="off" spellcheck="false" aria-label="Chiave API del motore AI" style="flex:1;min-width:0" />
+            <button type="button" id="btn-ai-save" class="btn">Salva e prova</button>
+          </div>
+          <span class="hint" id="ai-hint">Il pallino ● indica i modelli già caricati sul PC.</span>
+          <div id="ai-gpu-note" class="lock-note warn hidden" role="note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            <span><b>Con Unsloth la scheda video va liberata a mano.</b> ClipTale non può mettere in pausa Unsloth Studio: quando la storia è scritta, il lavoro si ferma e aspetta che tu scarichi il modello in Unsloth (Unload). Poi voce e disegni partono da soli. Sulle schede da 8 GB è indispensabile.</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Voce</h3>
+          <div class="field">
+            <span class="field-label" id="engine-label">Motore della voce</span>
+            <div class="options" id="engine-group" role="group" aria-labelledby="engine-label">
+              <button type="button" class="opt" data-engine="pc" aria-pressed="true"><b>Voce del PC</b><span>Gratis e locale: nessun dato esce dal computer</span></button>
+              <button type="button" class="opt" data-engine="eleven" aria-pressed="false"><b>ElevenLabs</b><span id="eleven-sub">La più realistica, online, con limite mensile</span></button>
+            </div>
+            <div id="eleven-box" class="lock-note hidden">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4"/></svg>
+              <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:0">
+                <span id="eleven-text">Incolla la tua chiave API di ElevenLabs (elevenlabs.io → Profilo → API Keys). Il testo della storia viene inviato a ElevenLabs.</span>
+                <div class="actions" id="eleven-form">
+                  <input type="password" id="eleven-key" placeholder="Chiave API ElevenLabs" autocomplete="off" spellcheck="false" aria-label="Chiave API ElevenLabs" style="flex:1;min-width:180px" />
+                  <button type="button" id="btn-eleven-save" class="btn btn-sm">Salva chiave</button>
+                </div>
+                <span class="hint">Piano gratuito: circa 10 minuti di voce al mese, solo per uso non commerciale e citando ElevenLabs. Per video monetizzati serve almeno il piano Starter. Se i crediti finiscono, il video continua con la voce del PC.</span>
+                <button type="button" id="btn-eleven-remove" class="btn btn-sm btn-ghost hidden" style="align-self:flex-start">Rimuovi chiave</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Interfaccia</h3>
+          <div class="field">
+            <label for="ui-lang">Lingua di ClipTale</label>
+            <select id="ui-lang">
+              <option value="it">Italiano</option><option value="en">English</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option>
+            </select>
+            <span class="hint">Cambia i testi dell'app. La lingua dei video si sceglie in Home.</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Cartelle</span>
+            <div class="actions"><button type="button" id="btn-open-projects" class="btn btn-sm">Apri la cartella dei progetti</button></div>
+          </div>
+          <p class="hint" id="app-version">ClipTale</p>
+        </div>
+      </section>
       <!-- 4. Pubblica -->
-      <section class="panel hidden" id="panel-publish" role="tabpanel" aria-labelledby="tab-publish">
+      <section class="panel hidden" id="panel-publish" aria-label="Pubblica">
         <div class="panel-head">
           <div>
             <h2>Pubblica su YouTube e TikTok</h2>
@@ -919,15 +1063,17 @@
     </div>
   </div>
 
+  </div>
+
   <!-- Guida -->
   <dialog class="help" id="help-dialog" aria-labelledby="help-title">
     <div class="help-in">
       <h2 id="help-title">Come funziona</h2>
       <ol>
-        <li><span class="step-num">1</span><div><b>Scrivi l'idea e premi Crea</b><span>La tua AI scrive la storia, la voce locale la legge, ogni scena viene disegnata e il video è pronto, senza altri passaggi.</span></div></li>
-        <li><span class="step-num">2</span><div><b>Copione (facoltativo)</b><span>Puoi rileggere e correggere ogni blocco e poi rifare il video.</span></div></li>
-        <li><span class="step-num">3</span><div><b>Video</b><span>Voce, stile dei disegni e ritmo. Ottieni il video lungo, una clip TikTok per parte e i sottotitoli .srt.</span></div></li>
-        <li><span class="step-num">4</span><div><b>Pubblica</b><span>Collega YouTube e TikTok una volta, poi carichi con un clic o in automatico alla fine di Crea.</span></div></li>
+        <li><span class="step-num">1</span><div><b>Home: scrivi l'idea e premi Crea</b><span>La tua AI scrive la storia, la voce la legge, ogni scena viene disegnata e il video è pronto in ogni lingua scelta. Con Aggiungi alla coda ne metti in fila altri.</span></div></li>
+        <li><span class="step-num">2</span><div><b>Studio</b><span>Segui le fasi della creazione, correggi il copione, cambia ritmo o stile e rifai il video. Ottieni il video lungo, una clip per parte e i sottotitoli.</span></div></li>
+        <li><span class="step-num">3</span><div><b>Pubblica</b><span>Collega YouTube e TikTok una volta, poi carichi video, Shorts e clip con un clic, lingua per lingua.</span></div></li>
+        <li><span class="step-num">4</span><div><b>Impostazioni</b><span>Motore AI, voce, lingua di ClipTale. Chiudendo la finestra ClipTale resta nella barra e continua a lavorare.</span></div></li>
       </ol>
       <p class="req">Prima di iniziare apri il tuo motore AI: LM Studio (server locale, porta 1234) o Ollama, oppure scegli un servizio cloud e inserisci la sua chiave. Se un lavoro si interrompe, riapri il progetto e premi Riprendi.</p>
       <form method="dialog" class="actions"><button class="btn btn-primary" value="close">Ho capito</button></form>
@@ -995,6 +1141,94 @@
     const wpm = () => state.pace.wpm;
     const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
 
+    // ------------------------------------------------------------ lingua dell'interfaccia
+    // I testi della pagina sono in italiano; per le altre lingue un pacchetto (/static/i18n/<lingua>.json) traduce ogni testo
+    // visibile, anche quelli che il codice aggiunge dopo (avvisi, pulsanti che cambiano). {0}, {1}… = parti variabili.
+    const UI = { lang: "it", dict: {}, pats: [] };
+    const UI_LANGS = ["it", "en", "es", "fr", "de"];
+    const ORIG = new WeakMap(), ORIG_ATTR = new WeakMap();
+    const I18N_ATTRS = ["placeholder", "aria-label", "title"];
+    const I18N_SKIP = new Set(["SCRIPT", "STYLE", "TEXTAREA", "CODE"]);
+    let i18nObserver = null;
+    const i18nKey = (t) => String(t).replace(/\s+/g, " ").trim();
+    function trUI(text) {
+      if (UI.lang === "it" || !text) return null;
+      const k = i18nKey(text);
+      if (!k) return null;
+      if (UI.dict[k] != null) return UI.dict[k];
+      for (const pat of UI.pats) {
+        const m = k.match(pat.re);
+        if (m) return pat.tr.replace(/\{(\d)\}/g, (_, n) => m[pat.nums.indexOf(n) + 1] ?? "");
+      }
+      return null;
+    }
+    function i18nText(node) {
+      if (!ORIG.has(node)) ORIG.set(node, node.nodeValue);
+      const orig = ORIG.get(node), tr = trUI(orig);
+      const val = tr ? orig.match(/^\s*/)[0] + tr + orig.match(/\s*$/)[0] : orig;
+      if (node.nodeValue !== val) node.nodeValue = val;
+    }
+    function i18nEl(el) {
+      let saved = ORIG_ATTR.get(el);
+      for (const a of I18N_ATTRS) {
+        if (!el.hasAttribute(a)) continue;
+        if (!saved) { saved = {}; ORIG_ATTR.set(el, saved); }
+        if (!(a in saved)) saved[a] = el.getAttribute(a);
+        const val = trUI(saved[a]) || saved[a];
+        if (el.getAttribute(a) !== val) el.setAttribute(a, val);
+      }
+    }
+    function i18nTree(root) {
+      if (!root) return;
+      if (root.nodeType === 3) { if (!I18N_SKIP.has(root.parentNode?.nodeName)) i18nText(root); }
+      else if (root.nodeType === 1 && !I18N_SKIP.has(root.nodeName)) {
+        i18nEl(root);
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+          acceptNode: (n) => (n.nodeType === 1 && I18N_SKIP.has(n.nodeName)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+        let n;
+        while ((n = walker.nextNode())) {
+          if (n.nodeType === 3) { if (/[A-Za-zÀ-ÿ]/.test(n.nodeValue)) i18nText(n); } else i18nEl(n);
+        }
+      }
+      i18nObserver?.takeRecords();  // le modifiche appena fatte sono nostre: non vanno ritradotte
+    }
+    function startI18nObserver() {
+      i18nObserver = new MutationObserver((records) => {
+        for (const r of records) {
+          if (r.type === "characterData") { ORIG.set(r.target, r.target.nodeValue); i18nTree(r.target); }
+          else if (r.type === "attributes") { const o = ORIG_ATTR.get(r.target); if (o) o[r.attributeName] = r.target.getAttribute(r.attributeName); i18nTree(r.target); }
+          else r.addedNodes.forEach(i18nTree);
+        }
+      });
+      i18nObserver.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: I18N_ATTRS });
+    }
+    async function setUILang(lang) {
+      lang = UI_LANGS.includes(lang) ? lang : "it";
+      let dict = {};
+      if (lang !== "it") {
+        try { dict = await (await fetch(`/static/i18n/${lang}.json`)).json(); } catch { lang = "it"; }
+      }
+      UI.lang = lang;
+      UI.dict = dict;
+      UI.pats = Object.keys(dict).filter((k) => /\{\d\}/.test(k)).map((k) => ({
+        nums: [...k.matchAll(/\{(\d)\}/g)].map((m) => m[1]), tr: dict[k],
+        re: new RegExp("^" + k.replace(/[.*+?^$()|[\]\\]/g, "\\$&").replace(/\{\d\}/g, "(.+?)") + "$"),
+      }));
+      document.documentElement.lang = lang;
+      localSet("ui_lang", lang);
+      if ($("ui-lang")) $("ui-lang").value = lang;
+      i18nTree(document.body);
+      if (typeof renderLangPicker === "function" && $("lang-main").options.length) { renderLangPicker(); voiceSummary(); renderAll(); }
+    }
+    function initialUILang() {
+      const saved = localGet("ui_lang");
+      if (UI_LANGS.includes(saved)) return saved;
+      const sys = (navigator.language || "it").slice(0, 2).toLowerCase();  // al primo avvio: la lingua di Windows
+      return UI_LANGS.includes(sys) ? sys : "it";
+    }
+    const nativeConfirm = window.confirm.bind(window);
+    window.confirm = (msg) => nativeConfirm(trUI(msg) || msg);
+
     async function api(path, options = {}) {
       const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
       let data = null;
@@ -1004,6 +1238,7 @@
     }
 
     function log(mod, msg, level = "info", ts = null) {
+      if (state.job && PHASE_OF[mod]) state.phase = PHASE_OF[mod];
       const cls = level === true ? "ok" : String(level);
       const line = document.createElement("div");
       line.className = "log-line";
@@ -1072,6 +1307,9 @@
     }
 
     // ------------------------------------------------------------ motore AI e avviso all'avvio
+    async function loadVersion() {
+      try { const h = state.health || await api("/api/health"); $("app-version").textContent = `ClipTale ${h.version || ""}`.trim(); } catch { /* offline */ }
+    }
     async function loadAI() {
       try { state.ai = await api("/api/ai"); } catch { return; }
       const sel = $("ai-provider");
@@ -1149,9 +1387,18 @@
       state.langMain = LANG_NAMES[main] ? main : "it";
       state.langExtra = (localGet("lang_extra") || "").split(",").filter((c) => LANG_NAMES[c] && c !== state.langMain);
     }
+    const LANG_WORDS = {
+      it: LANG_IT,
+      en: { it: "Italian", en: "English", es: "Spanish", fr: "French", de: "German", pt: "Portuguese" },
+      es: { it: "italiano", en: "inglés", es: "español", fr: "francés", de: "alemán", pt: "portugués" },
+      fr: { it: "italien", en: "anglais", es: "espagnol", fr: "français", de: "allemand", pt: "portugais" },
+      de: { it: "Italienisch", en: "Englisch", es: "Spanisch", fr: "Französisch", de: "Deutsch", pt: "Portugiesisch" },
+    };
+    const langWord = (c) => (LANG_WORDS[UI.lang] || LANG_IT)[c] || LANG_IT[c];
+    const AND = { it: "e", en: "and", es: "y", fr: "et", de: "und" };
     function listNames(codes) {
-      const n = codes.map((c) => LANG_IT[c]);
-      return n.length > 1 ? n.slice(0, -1).join(", ") + " e " + n[n.length - 1] : n.join("");
+      const n = codes.map(langWord);
+      return n.length > 1 ? n.slice(0, -1).join(", ") + ` ${AND[UI.lang] || "e"} ` + n[n.length - 1] : n.join("");
     }
     function renderLangPicker() {
       const p = state.project;
@@ -1170,11 +1417,11 @@
         fillVoices();
       }));
       const langs = selectedLangs();
-      let hint = langs.length > 1
-        ? `La storia viene scritta in ${LANG_IT[langs[0]]} e tradotta in ${listNames(langs.slice(1))}. Per ogni lingua ottieni video completo, clip TikTok, sottotitoli e testi social, con gli stessi disegni.`
+      const hint = langs.length > 1
+        ? `La storia viene scritta in ${langWord(langs[0])} e tradotta in ${listNames(langs.slice(1))}. Per ogni lingua ottieni video completo, clip TikTok, sottotitoli e testi social, con gli stessi disegni.`
         : "Scegli altre lingue per avere lo stesso video tradotto, ognuno con la sua voce.";
-      if (fixedMain) hint += ` La lingua della storia è fissata per questo progetto: per aggiungere una lingua selezionala e premi Crea il video al passo 3.`;
-      $("lang-hint").textContent = hint;
+      // due frasi in due nodi: ognuna si traduce da sola
+      $("lang-hint").innerHTML = `<span>${esc(hint)}</span>` + (fixedMain ? ` <span>La lingua della storia è fissata per questo progetto: per aggiungere una lingua selezionala e premi Crea il video in Studio.</span>` : "");
       $("render-hint").textContent = langs.length > 1
         ? `Crea il video in ${listNames(langs)}. Formato 1080×1920, 30 fps, H.264.`
         : "Formato 1080×1920, 30 fps, H.264.";
@@ -1232,6 +1479,7 @@
     }
     function setEngine(engine) {
       state.engine = engine;
+      $("voice-engine-name").textContent = engine === "eleven" ? "ElevenLabs" : "Voce del PC";
       localSet("engine", engine);
       document.querySelectorAll("#engine-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.engine === engine)));
       $("eleven-box").classList.toggle("hidden", engine !== "eleven");
@@ -1277,10 +1525,13 @@
       const langs = selectedLangs();
       const parts = langs.map((c) => {
         const sel = c === state.langMain ? $("voice-select") : $(`voice-${c}`);
-        const label = sel && sel.value ? (sel.selectedOptions[0]?.textContent || "").split(":")[0] : "nessuna voce scelta";
+        const opt = sel && sel.value ? sel.selectedOptions[0] : null;
+        const raw = opt ? (ORIG.get(opt.firstChild) ?? opt.textContent) : "nessuna voce scelta";
+        const label = (trUI(raw) || raw).split(":")[0];
         return langs.length > 1 ? `${LANG_NAMES[c]}: ${label}` : label;
       });
-      $("voice-summary").textContent = `${state.engine === "eleven" ? "ElevenLabs" : "Voce del PC"} · ${parts.join(" · ")}`;
+      const engine = state.engine === "eleven" ? "ElevenLabs" : (trUI("Voce del PC") || "Voce del PC");
+      $("voice-summary").textContent = `${engine} · ${parts.join(" · ")}`;
     }
     $("btn-voice-change").addEventListener("click", () => { setStep("idea"); $("engine-group").scrollIntoView({ behavior: "smooth", block: "center" }); });
     function voiceHint() {
@@ -1390,16 +1641,36 @@
     }
 
     // ------------------------------------------------------------ passi
+    const SCREENS = {
+      idea: ["panel-idea", "panel-projects"],
+      script: ["panel-progress", "panel-script", "panel-video"],
+      publish: ["panel-publish"],
+      queue: ["panel-queue"],
+      settings: ["panel-settings"],
+    };
+    const ALL_PANELS = [...new Set(Object.values(SCREENS).flat())];
     function setStep(step) {
+      if (step === "video") step = "script";  // Studio unisce copione e video
+      if (!SCREENS[step]) step = "idea";
+      const changed = state.step !== step;
       state.step = step;
-      document.querySelectorAll(".step").forEach((t) => {
+      document.querySelectorAll(".nav .step").forEach((t) => {
         const on = t.dataset.step === step;
         t.setAttribute("aria-selected", String(on));
         t.tabIndex = on ? 0 : -1;
       });
-      ["idea", "script", "video", "publish"].forEach((s) => $(`panel-${s}`).classList.toggle("hidden", s !== step));
+      ALL_PANELS.forEach((id) => {
+        const el = $(id), on = SCREENS[step].includes(id);
+        el.classList.toggle("hidden", !on);
+        if (on && changed) { el.classList.remove("enter"); void el.offsetWidth; el.classList.add("enter"); }
+      });
+      document.body.classList.toggle("no-preview", !["script", "publish"].includes(step));
+      $("next-hint").classList.toggle("hidden", ["queue", "settings"].includes(step));
       renderLangBar();
+      renderPhases();
       if (step === "publish") loadPublish();
+      if (step === "queue") loadQueue();
+      if (changed) window.scrollTo({ top: 0 });
     }
 
     function isTranslation() {
@@ -1409,7 +1680,7 @@
     function renderLangBar() {
       const bar = $("lang-bar");
       const langs = state.project?.languages || [];
-      const show = langs.length > 1 && state.step !== "idea";
+      const show = langs.length > 1 && ["script", "publish"].includes(state.step);
       bar.classList.toggle("hidden", !show);
       if (!show) { bar.innerHTML = ""; return; }
       bar.innerHTML = `<span class="lb-label">Lingua</span>` + langs.map((l) => {
@@ -1436,17 +1707,40 @@
     }
 
     function renderSteps() {
-      const p = state.project;
-      const n = state.beats.length;
-      $("tab-idea").classList.toggle("done", !!(p && p.has_plan));
-      $("tab-script").classList.toggle("done", n > 0);
-      $("tab-video").classList.toggle("done", !!(p && p.has_video));
-      $("sub-idea").textContent = p ? (p.concept?.title || p.title || "Idea salvata") : "Di cosa parla il video";
-      $("sub-script").textContent = n ? `${n} blocchi · ${fmtTime(totalSeconds())}` : "Rileggi e correggi";
-      $("sub-video").textContent = p && p.has_video ? `${p.outputs?.clips?.length || 0} clip pronte` : "Voce, disegni, clip";
       const h = state.publish?.history || {};
-      $("tab-publish").classList.toggle("done", !!(h.youtube || h.shorts || h.tiktok));
-      $("sub-publish").textContent = h.youtube || h.shorts || h.tiktok ? "Pubblicato" : "YouTube, Shorts e TikTok";
+      $("sub-script").classList.toggle("hidden", !state.job);
+      $("sub-publish").classList.toggle("hidden", !(h.youtube || h.shorts || h.tiktok));
+      const q = state.queue?.items?.length || 0;
+      $("sub-queue").textContent = q;
+      $("sub-queue").classList.toggle("hidden", !q);
+      renderPhases();
+    }
+
+    // Studio: fasi della creazione, dedotte dal registro del lavoro in corso o dallo stato del progetto
+    const PHASE_ORDER = ["story", "translate", "voice", "draw", "edit"];
+    const PHASE_OF = { story_brain: "story", llm_service: "story", metadata: "story", auto: "story", translate: "translate",
+                       tts_engine: "voice", illustrator: "draw", compositor: "edit", publish: "edit" };
+    function renderPhases() {
+      const p = state.project;
+      const multi = (p?.languages?.length || selectedLangs().length) > 1;
+      let current = null, doneUntil = -1;
+      if (state.job && ["auto", "render", "generate"].includes(state.job.kind)) {
+        current = state.phase || (state.job.kind === "render" ? "voice" : "story");
+        doneUntil = PHASE_ORDER.indexOf(current) - 1;
+      } else if (p) {
+        doneUntil = p.has_video ? 4 : p.has_script ? 1 : -1;
+      }
+      document.querySelectorAll("#phases .phase").forEach((li, i) => {
+        const ph = li.dataset.phase, skip = ph === "translate" && !multi, active = ph === current;
+        li.classList.toggle("skip", skip);
+        li.classList.toggle("done", !skip && !active && i <= doneUntil);
+        li.classList.toggle("active", active);
+        li.querySelector(".ph-sub").textContent = active ? ($("activity").textContent || "in corso…").slice(0, 70)
+          : skip ? "una sola lingua" : i <= doneUntil ? "fatto" : "in attesa";
+      });
+      $("studio-title").textContent = p ? (p.concept?.title || p.title || "Studio") : "Studio";
+      $("studio-sub").textContent = state.job ? "Creazione in corso: puoi chiudere la finestra, ClipTale continua nella barra."
+        : p ? "Correggi il copione, cambia ritmo o stile e premi Crea il video per rifarlo." : "Apri un progetto dalla Home o creane uno nuovo.";
     }
 
     function renderHint() {
@@ -1457,14 +1751,14 @@
       else if (state.job && state.job.kind === "auto") html = "<b>Sto creando tutto in automatico.</b> Storia, voce, disegni e video: puoi seguire ogni passo nella barra in alto e nel registro.";
       else if (state.job && state.job.kind === "publish") html = "<b>Sto pubblicando.</b> Il caricamento può richiedere qualche minuto.";
       else if (state.job && state.job.kind === "render") html = "<b>Sto creando il video.</b> Voce, disegni e clip arrivano tra poco: puoi seguire i dettagli nel registro in basso.";
-      else if (state.job) html = "<b>Il modello sta scrivendo il copione.</b> I blocchi di testo compaiono al passo 2 appena finisce.";
-      else if (state.health && !state.health.lmstudio && !(p && p.has_script)) { kind = "warn"; html = `<b>${esc(state.health.provider_label || "Il motore AI")} non risponde.</b> Aprilo o scegli un altro motore al passo 1. Questa pagina si aggiorna da sola.`; }
+      else if (state.job) html = "<b>Il modello sta scrivendo il copione.</b> I blocchi di testo compaiono in Studio appena finisce.";
+      else if (state.health && !state.health.lmstudio && !(p && p.has_script)) { kind = "warn"; html = `<b>${esc(state.health.provider_label || "Il motore AI")} non risponde.</b> Aprilo o scegli un altro motore in Impostazioni. Questa pagina si aggiorna da sola.`; }
       else if (!p) html = "<b>Scrivi un'idea</b> in una riga e premi <b>Crea</b>: ci pensa la tua AI.";
-      else if (p.has_plan && !state.beats.length) { kind = "warn"; html = "<b>Copione interrotto.</b> La struttura è salvata: premi <b>Riprendi</b> al passo 1."; }
-      else if (!state.beats.length) html = "<b>Questo progetto non ha ancora un copione.</b> Premi <b>Scrivi il copione</b> al passo 1.";
-      else if (!p.has_video) html = "<b>Copione pronto.</b> Rileggilo al passo 2, poi crea il video al passo 3.";
-      else html = "<b>Video pronto.</b> Lo trovi nell'anteprima: scarica i file al passo 3 o pubblicali al passo 4.";
-      el.className = "next" + (kind ? " " + kind : "");
+      else if (p.has_plan && !state.beats.length) { kind = "warn"; html = "<b>Copione interrotto.</b> La struttura è salvata: premi <b>Riprendi</b> in Home."; }
+      else if (!state.beats.length) html = "<b>Questo progetto non ha ancora un copione.</b> Premi <b>Crea</b> in Home.";
+      else if (!p.has_video) html = "<b>Copione pronto.</b> Rileggilo qui in Studio, poi premi Crea il video.";
+      else html = "<b>Video pronto.</b> Lo trovi nell'anteprima: scarica i file qui in Studio o pubblicali in Pubblica.";
+      el.className = "next" + (kind ? " " + kind : "") + (["queue", "settings"].includes(state.step) ? " hidden" : "");
       $("next-text").innerHTML = html;
     }
 
@@ -1481,7 +1775,7 @@
       $("btn-add-beat").classList.toggle("hidden", !has || !state.beats.length || isTranslation());
       $("lang-note").classList.toggle("hidden", !isTranslation());
       if (isTranslation()) {
-        $("lang-note-text").textContent = `Stai correggendo la traduzione in ${LANG_IT[p.lang]}. Puoi cambiare le frasi ma non il numero di blocchi, perché i disegni sono gli stessi della lingua principale. Se modifichi il copione principale, la traduzione viene rifatta da capo alla prossima creazione del video.`;
+        $("lang-note-text").textContent = `Stai correggendo la traduzione in ${langWord(p.lang)}. Puoi cambiare le frasi ma non il numero di blocchi, perché i disegni sono gli stessi della lingua principale. Se modifichi il copione principale, la traduzione viene rifatta da capo alla prossima creazione del video.`;
       }
       $("btn-to-video").classList.toggle("hidden", !state.beats.length);
 
@@ -1489,9 +1783,9 @@
       $("btn-auto-label").textContent = resumable ? (p.has_script ? "Crea il video" : "Riprendi") : "Crea";
       $("btn-auto").disabled = busy || !!(has && p && p.has_video);
       $("generate-hint").textContent = has && p && p.has_video
-        ? "Questo video è già pronto: correggi il copione e premi Crea il video al passo 3, oppure Riscrivi da zero, oppure Nuovo video."
+        ? "Questo video è già pronto: correggi il copione e premi Crea il video in Studio, oppure Riscrivi da zero, oppure Nuovo video."
         : resumable ? "Riprende da dove si era fermato: storia, voce, disegni e video."
-        : "Crea usa le lingue e le voci scelte qui sopra e lo stile dei disegni scelto al passo 3.";
+        : "Crea usa le lingue, le voci e lo stile scelti qui sopra; ritmo e musica si regolano in Studio.";
       $("btn-publish").disabled = busy || !(p && p.has_video);
       $("btn-pub-shorts").disabled = $("btn-pub-ytall").disabled = busy || !(state.publish?.shorts?.length);
       $("btn-render").disabled = busy || !state.beats.length;
@@ -1545,9 +1839,9 @@
       list.innerHTML = "";
       if (!state.beats.length) {
         const p = state.project;
-        let msg = "<b>Ancora nessun copione</b><p>Scrivi la tua idea al passo 1 e premi Scrivi il copione. Qui potrai correggere ogni frase prima di creare il video.</p><button type=\"button\" class=\"btn\" data-goto=\"idea\">Vai al passo 1</button>";
+        let msg = "<b>Ancora nessun copione</b><p>Scrivi la tua idea in Home e premi Crea. Qui potrai correggere ogni frase e rifare il video.</p><button type=\"button\" class=\"btn\" data-goto=\"idea\">Vai alla Home</button>";
         if (state.job && state.job.kind === "generate") msg = "<b>Il modello sta scrivendo…</b><p>Segui l'avanzamento nella barra in alto. I blocchi compaiono qui al termine.</p>";
-        else if (p && p.has_plan) msg = "<b>Copione incompleto</b><p>La struttura è salvata: premi Riprendi al passo 1 per continuare da dove si era fermato.</p><button type=\"button\" class=\"btn\" data-goto=\"idea\">Vai al passo 1</button>";
+        else if (p && p.has_plan) msg = "<b>Copione incompleto</b><p>La struttura è salvata: premi Riprendi in Home per continuare da dove si era fermato.</p><button type=\"button\" class=\"btn\" data-goto=\"idea\">Vai alla Home</button>";
         list.innerHTML = `<div class="empty">${msg}</div>`;
         list.querySelectorAll("[data-goto]").forEach((b) => b.addEventListener("click", () => setStep(b.dataset.goto)));
         updateMetrics();
@@ -1730,6 +2024,7 @@
     // ------------------------------------------------------------ lavori
     function attachJob(job) {
       state.job = job;
+      state.phase = null;
       state.seenLogs = 0;
       setDot("llm-dot", "busy");
       $("job-title").textContent = { render: "Creazione del video", auto: "Creazione automatica", publish: "Pubblicazione" }[job.kind] || "Scrittura del copione";
@@ -1828,6 +2123,9 @@
       try { state.queue = data || await api("/api/queue"); } catch { return; }
       const q = state.queue;
       $("queue-box").classList.toggle("hidden", !q.items.length);
+      $("queue-empty").classList.toggle("hidden", !!q.items.length);
+      $("sub-queue").textContent = q.items.length;
+      $("sub-queue").classList.toggle("hidden", !q.items.length);
       $("queue-title").textContent = q.items.length ? `In coda: ${q.items.length} ${q.items.length === 1 ? "video" : "video"}${q.paused ? " · in pausa" : ""}` : "In coda";
       $("btn-queue-pause").textContent = q.paused ? "Riprendi" : "Metti in pausa";
       $("queue-hint").textContent = q.last_error || (q.paused ? "La coda è in pausa: premi Riprendi per continuare." : "ClipTale le crea una dopo l'altra, anche a finestra chiusa.");
@@ -1922,7 +2220,11 @@
       log("system", "Payload JSON copiato negli appunti.", true);
     });
 
-    $("btn-to-video").addEventListener("click", () => { setStep("video"); window.scrollTo({ top: 0, behavior: "smooth" }); });
+    $("btn-to-video").addEventListener("click", () => $("panel-video").scrollIntoView({ behavior: "smooth", block: "start" }));
+    document.querySelectorAll("[data-goto-screen]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); setStep(a.dataset.gotoScreen); }));
+    $("btn-open-projects").addEventListener("click", async () => {
+      try { await api("/api/open-projects-folder", { method: "POST" }); } catch (e) { toast(e.message); }
+    });
     $("btn-new").addEventListener("click", newProject);
 
     // ------------------------------------------------------------ controlli
@@ -1982,8 +2284,8 @@
         if (!s.connected) $(`auto-${k}`).checked = false;
       }
       if (st.tiktok?.redirect_uri) $("tt-redirect").textContent = st.tiktok.redirect_uri;
-      $("auto-yt-label").textContent = st.youtube?.connected ? "YouTube: il video lungo" : "YouTube: il video lungo (collega il canale al passo 4)";
-      $("auto-tt-label").textContent = st.tiktok?.connected ? "TikTok: le clip" : "TikTok: le clip (collega l'account al passo 4)";
+      $("auto-yt-label").textContent = st.youtube?.connected ? "YouTube: il video lungo" : "YouTube: il video lungo (collega il canale in Pubblica)";
+      $("auto-tt-label").textContent = st.tiktok?.connected ? "TikTok: le clip" : "TikTok: le clip (collega l'account in Pubblica)";
     }
     async function loadPublish() {
       await loadPublishStatus();
@@ -2020,7 +2322,7 @@
       renderSteps();
     }
     function langTag(sep = " ") {
-      return (state.project?.languages?.length || 0) > 1 ? `${sep}${LANG_IT[state.project.lang] || ""}` : "";
+      return (state.project?.languages?.length || 0) > 1 ? `${sep}${langWord(state.project.lang) || ""}` : "";
     }
     async function copyCaption(i) {
       const text = $(`cap-${i}`).value;
@@ -2157,12 +2459,12 @@
     $("btn-voice-preview").addEventListener("click", () => playPreview($("voice-select").value, state.langMain, $("btn-voice-preview")));
 
     // passi: clic e frecce
-    const tabs = [...document.querySelectorAll(".step")];
+    const tabs = [...document.querySelectorAll(".nav .step")];
     tabs.forEach((t, i) => {
       t.addEventListener("click", () => setStep(t.dataset.step));
       t.addEventListener("keydown", (e) => {
-        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-        const n = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+        if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(e.key)) return;
+        const n = tabs[(i + (["ArrowRight", "ArrowDown"].includes(e.key) ? 1 : tabs.length - 1)) % tabs.length];
         setStep(n.dataset.step); n.focus(); e.preventDefault();
       });
     });
@@ -2205,9 +2507,13 @@
       syncLabels();
       setStep("idea");
       log("system", "ClipTale: avvio…");
+      startI18nObserver();
+      await setUILang(initialUILang());
+      $("ui-lang").addEventListener("change", (e) => setUILang(e.target.value));
       loadStoredLangs();
       await loadAI();
       loadQueue();
+      loadVersion();
       await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus(), loadPublishStatus(), loadEleven()]);
       setEngine(localGet("engine") || "pc");
       setStyle(localGet("style3") || state.illustrations?.default_style || "anim");
@@ -2220,7 +2526,7 @@
         await openProject(exists ? last : "", { autoStep: true });
       }
       if (!localGet("seen_help")) { localSet("seen_help", "1"); if (!state.projects.length) $("help-dialog").showModal(); }
-      log("system", state.health?.lmstudio ? "Pronto. Modello e voci caricati." : `${state.health?.provider_label || "Il motore AI"} non risponde: aprilo o scegline un altro al passo 1.`, state.health?.lmstudio ? true : "warn");
+      log("system", state.health?.lmstudio ? "Pronto. Modello e voci caricati." : `${state.health?.provider_label || "Il motore AI"} non risponde: aprilo o scegline un altro in Impostazioni.`, state.health?.lmstudio ? true : "warn");
       setInterval(() => { if (!state.job) checkHealth(); loadQueue(); }, 8000);
     })();
   </script>

@@ -2,6 +2,7 @@
 
 Il launcher (desktop/launcher.py) registra qui le sue funzioni; se il server gira da solo (Avvia.bat, test) restano vuote.
 """
+VERSION = "0.4.0"
 HOOKS = {"show": None}
 
 
