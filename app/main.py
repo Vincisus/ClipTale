@@ -30,6 +30,16 @@ app.include_router(router)
 app.mount("/static", StaticFiles(directory=WEB, html=True), name="static")
 
 
+@app.middleware("http")
+async def no_stale_pages(request, call_next):
+    """La finestra dell'app non deve tenersi una pagina vecchia dopo un aggiornamento: ricontrolla sempre col server.
+    (I file non cambiati tornano lo stesso dalla memoria: il server risponde 304 grazie all'etag.)"""
+    response = await call_next(request)
+    if request.url.path == "/" or request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 @app.get("/", include_in_schema=False)
 async def home():
     return FileResponse(WEB / "index.html")

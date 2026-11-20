@@ -243,7 +243,8 @@ class App:
         desktop.HOOKS["show"] = lambda pid=None: self.show(pid)
         desktop.HOOKS["pick_folder"] = self.pick_folder
         desktop.HOOKS["quit"] = lambda: self.quit(force=True)  # aggiornamento: l'installer prende il posto dell'app
-        self.window = webview.create_window("ClipTale", URL, width=1400, height=880, min_size=(1000, 680), background_color="#0a0a0a")
+        # ?v=versione: dopo un aggiornamento la finestra non può riusare la pagina della versione prima
+        self.window = webview.create_window("ClipTale", f"{URL}/?v={desktop.VERSION}", width=1400, height=880, min_size=(1000, 680), background_color="#0a0a0a")
         self.window.events.closing += self.on_closing
         self.build_tray()
         threading.Thread(target=self.watch, name="watch", daemon=True).start()
