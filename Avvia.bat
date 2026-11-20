@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title TiktokFactory Studio
+title ClipTale
 if not exist ".venv\Scripts\python.exe" (
     py -3.12 -m venv .venv
     if errorlevel 1 (
@@ -10,13 +10,13 @@ if not exist ".venv\Scripts\python.exe" (
         exit /b 1
     )
 )
-if not exist ".venv\factory_v5_ready" (
+if not exist ".venv\factory_v6_ready" (
     ".venv\Scripts\python.exe" -m pip install --upgrade -r requirements.txt
     if errorlevel 1 (
         pause
         exit /b 1
     )
-    type nul > ".venv\factory_v5_ready"
+    type nul > ".venv\factory_v6_ready"
 )
-".venv\Scripts\python.exe" bootstrap_web.py
-pause
+rem ClipTale come programma: finestra propria e icona nella barra (vedi desktop\launcher.py)
+start "" ".venv\Scripts\pythonw.exe" desktop\launcher.py

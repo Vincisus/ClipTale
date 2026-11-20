@@ -114,7 +114,7 @@ def auth_url(platform):
 async def finish_auth(platform, code, state, transport=None):
     entry = _pending.pop(state or "", None)
     if not entry or entry[0] != platform or entry[2] < time.time():
-        raise ValueError("Collegamento scaduto o non valido: riprova da TiktokFactory.")
+        raise ValueError("Collegamento scaduto o non valido: riprova da ClipTale.")
     verifier = entry[1]
     async with httpx.AsyncClient(timeout=30, transport=transport) as c:
         if platform == "youtube":

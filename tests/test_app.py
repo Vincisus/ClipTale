@@ -742,3 +742,50 @@ def test_unsloth_waits_for_free_gpu(monkeypatch):
     monkeypatch.setattr(ils, "_free_vram_mb", lambda: 100)
     logs.clear()
     assert asyncio.run(ils.wait_for_manual_gpu(SimpleNamespace(provider="lmstudio"), lambda m, lvl: logs.append(m))) and not logs
+
+
+def test_video_queue_order_pause_and_start(tmp_path, monkeypatch):
+    from app.core import video_queue as vq
+    monkeypatch.setattr(vq, "FILE", tmp_path / "_queue.json")
+    a = vq.add({"topic": "Prima idea", "languages": ["it", "en"], "duration_minutes": 8})
+    b = vq.add({"topic": "Seconda idea"})
+    assert [i["title"] for i in vq.status()["items"]] == ["Prima idea", "Seconda idea"] and "payload" not in vq.status()["items"][0]
+    vq.move(b["id"], 0)
+    assert vq.items()[0]["id"] == b["id"]
+    started = []
+    import app.api.routes as routes
+    monkeypatch.setattr(routes, "start_auto", lambda payload: started.append(payload.topic))
+    from app.core import jobs
+    monkeypatch.setattr(jobs, "active", lambda: None)
+    ready = {"ok": False}
+
+    async def ai_ready():
+        return ready["ok"]
+    monkeypatch.setattr(vq, "_ai_ready", ai_ready)
+
+    async def one_round():  # un giro del ciclo della coda
+        task = asyncio.create_task(vq.run_forever(every=0))
+        await asyncio.sleep(0.05)
+        task.cancel()
+    asyncio.run(one_round())
+    assert started == [] and "non risponde" in vq.status()["last_error"]  # motore spento: la coda aspetta
+    vq.set_paused(True)
+    ready["ok"] = True
+    asyncio.run(one_round())
+    assert started == []  # in pausa
+    vq.set_paused(False)
+    asyncio.run(one_round())
+    assert started == ["Seconda idea", "Prima idea"] and vq.items() == []  # nell'ordine scelto, finché la coda si svuota
+    c = vq.add({"topic": "Terza"})
+    assert vq.remove(c["id"]) and not vq.remove("nope")
+
+
+def test_tray_icon_and_texts():
+    from desktop.launcher import App, make_icon
+    img = make_icon(progress=50, error=True)
+    assert img.size == (64, 64) and img.getpixel((32, 8))[:3] == (255, 122, 0)  # arancione
+    app = App()
+    assert app.status_text() == "Nessun lavoro in corso" and app.speed_text() == "Coda vuota"
+    app.job = {"kind": "auto", "progress": 62, "current_step": "Disegni 34/120"}
+    app.llm = {"tps": 31.2, "active": True}
+    assert app.status_text() == "Creazione automatica · 62% · Disegni 34/120" and app.speed_text() == "Motore AI: 31.2 tok/s"
