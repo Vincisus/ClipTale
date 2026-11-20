@@ -618,3 +618,26 @@ def test_youtube_shorts_from_tiktok_clips(tmp_path, monkeypatch):
     assert uploads == [("part_01.mp4", items[0]["title"], "unlisted", True), ("part_02.mp4", "Titolo mio #Shorts", "unlisted", True)]
     assert [i["url"] for i in record["shorts"]["items"]] == ["https://youtube.com/shorts/S1", "https://youtube.com/shorts/S2"]
     assert any(level == "warn" and "3 minuti" in m for level, m in logs)  # la parte 2 dura più di 3 minuti
+
+
+def test_part_length_kept_near_target():
+    from app.core.pipeline import StoryPipeline, clean_leak, dedupe_sentences, trim_beats, word_count
+    loop = "Lui non si è mosso. Il conto era sul tavolo di marmo nero. " * 40 + "Ma lei sapeva tutto."
+    assert dedupe_sentences(loop) == "Lui non si è mosso. Il conto era sul tavolo di marmo nero. Ma lei sapeva tutto."
+    assert clean_leak('fine del blocco."\n},\n{"text": "Inizio del nuovo') == "fine del blocco. Inizio del nuovo"
+    assert clean_leak('Ha detto «Basta così», poi è uscita.') == 'Ha detto «Basta così», poi è uscita.'
+    long_beats = [{"text": " ".join(f"Frase numero {i} del blocco {k} con qualche parola in più." for i in range(60)), "visual": "v"} for k in range(3)]
+    cut = trim_beats(long_beats, 300)
+    assert 200 <= sum(word_count(b["text"]) for b in cut) <= 330
+    assert all(b["text"].endswith(f"Frase numero 59 del blocco {k} con qualche parola in più.") for k, b in enumerate(cut))  # finale tenuto
+
+    class ShortLLM:  # risponde alla richiesta di accorciare con la lunghezza giusta
+        model = "m"
+
+        async def generate_json(self, prompt, schema=None, **kw):
+            assert "troppo lunga" in prompt
+            return {"beats": [{"text": "Parola " * 99 + "fine.", "visual": "v"} for _ in range(3)]}
+
+    p = StoryPipeline(ShortLLM(), Path("."), FakeJob())
+    out = asyncio.run(p.fit_length(1, "scrivi", long_beats, 300, 3))
+    assert sum(word_count(b["text"]) for b in out) == 300
