@@ -17,8 +17,9 @@ import httpx
 
 from app.core import desktop, paths
 
-REPO = os.getenv("CLIPTALE_UPDATE_REPO", "Vincisus/TiktokFactory")
-API = f"https://api.github.com/repos/{REPO}/releases/latest"
+# l'id numerico del repository (Vincisus/ClipTale) non cambia se il repository viene rinominato
+REPO_ID = os.getenv("CLIPTALE_UPDATE_REPO_ID", "1454114294")
+API = f"https://api.github.com/repositories/{REPO_ID}/releases/latest"
 EVERY = 6 * 3600
 
 _cache = {"at": 0.0, "info": None}
@@ -34,7 +35,7 @@ async def check(force=False):
         return _cache["info"]
     info = {"current": desktop.VERSION, "latest": None, "available": False, "installed": paths.INSTALLED, "notes": "", "asset": None}
     try:
-        async with httpx.AsyncClient(timeout=10, headers={"Accept": "application/vnd.github+json", "User-Agent": "ClipTale-updater"}) as client:
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True, headers={"Accept": "application/vnd.github+json", "User-Agent": "ClipTale-updater"}) as client:
             data = (await client.get(API)).raise_for_status().json()
         asset = next((a for a in data.get("assets", []) if a.get("name", "").lower().endswith(".exe") and "setup" in a["name"].lower()), None)
         info.update(latest=data.get("tag_name", "").lstrip("v"), notes=(data.get("body") or "")[:2000],
