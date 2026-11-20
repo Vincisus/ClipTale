@@ -294,12 +294,18 @@ async def render(project_id: str, payload: RenderRequest, request: Request):
 @router.get("/jobs/current")
 async def current_job():
     job = jobs.active()
-    return {"job": job.data if job else None}
+    return {"job": {**job.data, "llm": llm_live()} if job else None}
+
+
+def llm_live():
+    from app.services.llm_service import live_stats
+    return live_stats()
 
 
 @router.get("/jobs/{job_id}")
 async def job_status(job_id: str):
-    return jobs.get(job_id)
+    data = jobs.get(job_id)
+    return {**data, "llm": llm_live() if data.get("status") in ("queued", "running") else None}
 
 
 @router.post("/jobs/{job_id}/cancel")

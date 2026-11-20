@@ -29,6 +29,18 @@ def env_int(name, default):
         return default
 
 
+# Velocità dell'ultima chiamata al modello (token al secondo), letta dalla pagina durante i lavori.
+LIVE = {"tps": None, "tokens": 0, "model": None, "at": 0.0, "streaming": False}
+
+
+def live_stats(max_age=30):
+    """{'tps', 'tokens', 'model', 'active'} dell'ultima generazione, o None se è troppo vecchia."""
+    if LIVE["tps"] is None or time.monotonic() - LIVE["at"] > max_age:
+        return None
+    return {"tps": LIVE["tps"], "tokens": LIVE["tokens"], "model": LIVE["model"],
+            "active": LIVE["streaming"] and time.monotonic() - LIVE["at"] < 5}
+
+
 class LLMError(RuntimeError):
     pass
 
@@ -106,6 +118,8 @@ class LLMService:
         diagnostic = self.diagnostic_dir / f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.json"
         content, reasoning, finish, error = [], 0, None, None
         started = last_report = time.monotonic()
+        tokens, first_token, last_speed = 0, None, started  # ogni pezzo dello streaming di LM Studio è circa un token
+        usage = None
         try:
             timeout = httpx.Timeout(connect=15, read=self.idle_timeout, write=60, pool=30)
             async with asyncio.timeout(self.total_timeout):
@@ -125,13 +139,22 @@ class LLMService:
                             event = json.loads(raw)
                             if event.get("error"):
                                 raise LLMError(str(event["error"]))
+                            if event.get("usage"):
+                                usage = event["usage"]
                             for choice in event.get("choices", []):
                                 delta = choice.get("delta") or {}
+                                if delta.get("content") or delta.get("reasoning_content") or delta.get("reasoning"):
+                                    tokens += 1
+                                    first_token = first_token or time.monotonic()
                                 if isinstance(delta.get("content"), str):
                                     content.append(delta["content"])
                                 reasoning += len(delta.get("reasoning_content") or delta.get("reasoning") or "")
                                 finish = choice.get("finish_reason") or finish
                             now = time.monotonic()
+                            if first_token and tokens > 1 and now - last_speed >= 1:
+                                last_speed = now
+                                LIVE.update(tps=round((tokens - 1) / max(0.05, now - first_token), 1), tokens=tokens,
+                                            model=self.model, at=now, streaming=True)
                             if now - last_report >= 3:
                                 last_report = now
                                 chars = sum(map(len, content))
@@ -147,6 +170,11 @@ class LLMService:
             error = f"{type(exc).__name__}: {exc}"
             raise
         finally:
+            end = time.monotonic()
+            done = (usage or {}).get("completion_tokens") or tokens
+            if first_token and done > 1:
+                LIVE.update(tps=round((done - 1) / max(0.05, end - first_token), 1), tokens=done, model=self.model, at=end)
+            LIVE["streaming"] = False
             elapsed = round(time.monotonic() - started, 1)
             text = "".join(content)
             diagnostic.write_text(json.dumps({"label": label, "model": self.model, "thinking": self.thinking, "structured": schema is not None, "finish_reason": finish, "reasoning_characters": reasoning, "elapsed_seconds": elapsed, "error": error, "prompt": prompt[:4000], "response": text}, ensure_ascii=False, indent=2), encoding="utf-8")
