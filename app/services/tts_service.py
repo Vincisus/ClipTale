@@ -311,7 +311,7 @@ class TTSService:
                 engine, _, name = fallback.partition(":")
         if engine == "kokoro":
             if not kokoro_ready():
-                raise RuntimeError("Voce Kokoro non installata: esegui installa_disegni.bat")
+                raise RuntimeError("Voce Kokoro non installata: scaricala da Impostazioni › Componenti scaricabili")
             if on_progress:
                 on_progress(f"Voce locale {KOKORO_VOICES.get(name, name)}: sintesi di {len(items)} beat…")
             return await asyncio.to_thread(_kokoro_synth, name, items, self.wpm)

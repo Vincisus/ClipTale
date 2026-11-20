@@ -17,3 +17,14 @@ prova_voci/
 build/
 ClipTale.exe
 projects/_queue.json
+
+# solo sul PC di chi sviluppa: non fanno parte dell'app pubblicata
+tests/
+legacy/
+config/
+bootstrap_web.py
+installa_disegni.bat
+installa_voci.bat
+projects/
+.taste-skill/
+docs/media/_raw/

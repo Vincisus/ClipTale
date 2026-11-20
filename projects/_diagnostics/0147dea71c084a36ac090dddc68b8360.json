@@ -1,9 +1,0 @@
-{
-  "model": "huihui-qwen3.6-35b-a3b-abliterated-mtp",
-  "response": "",
-  "finish_reason": "length",
-  "reasoning_characters": 17133,
-  "elapsed_seconds": 296.48,
-  "error": "RuntimeError: Limite token raggiunto: risposta incompleta, non utilizzata.",
-  "structured": true
-}
