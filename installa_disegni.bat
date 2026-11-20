@@ -19,12 +19,11 @@ echo Scarico il modello di disegno (circa 2 GB)...
 if errorlevel 1 (
     echo Download del modello non riuscito: verra ritentato al primo video.
 )
-echo Scarico la voce italiana locale Paola (circa 63 MB)...
-".venv\Scripts\python.exe" -c "from app.services.tts_service import download_piper_voice; download_piper_voice()"
 echo Scarico la voce naturale locale Kokoro (circa 340 MB)...
 ".venv\Scripts\python.exe" -c "from app.services.tts_service import download_kokoro; download_kokoro()"
 echo Scarico IP-Adapter per copiare lo stile dei riferimenti (circa 2,6 GB)...
 ".venv\Scripts\python.exe" -c "from app.services.sd_worker import ensure_models; ensure_models(ip_adapter=True)"
 echo.
+echo Per le voci realistiche (Chatterbox) esegui anche installa_voci.bat.
 echo Fatto. Riavvia l'app con Avvia.bat.
 pause

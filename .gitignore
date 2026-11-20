@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-voice/
 venv/
 .env
 projects/*/
@@ -12,3 +13,4 @@ Thumbs.db
 models/
 secrets/
 style_refs/
+prova_voci/
