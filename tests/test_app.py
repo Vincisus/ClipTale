@@ -729,3 +729,16 @@ def test_ai_providers_choice_payload_and_retry(tmp_path, monkeypatch):
     assert adapted["additionalProperties"] is False and adapted["required"] == ["beats"]
     assert "minItems" not in adapted["properties"]["beats"] and adapted["properties"]["beats"]["items"]["additionalProperties"] is False
     assert schema["properties"]["beats"]["minItems"] == 3  # l'originale resta intatto
+
+
+def test_unsloth_waits_for_free_gpu(monkeypatch):
+    from types import SimpleNamespace
+    from app.services import illustration_service as ils
+    readings = iter([1200, 1500, 6200])
+    monkeypatch.setattr(ils, "_free_vram_mb", lambda: next(readings))
+    logs = []
+    ok = asyncio.run(ils.wait_for_manual_gpu(SimpleNamespace(provider="unsloth"), lambda m, lvl: logs.append((lvl, m)), every=0))
+    assert ok and logs[0][0] == "warn" and "Unsloth Studio" in logs[0][1] and logs[-1][0] == "ok"
+    monkeypatch.setattr(ils, "_free_vram_mb", lambda: 100)
+    logs.clear()
+    assert asyncio.run(ils.wait_for_manual_gpu(SimpleNamespace(provider="lmstudio"), lambda m, lvl: logs.append(m))) and not logs

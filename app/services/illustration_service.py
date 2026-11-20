@@ -357,6 +357,45 @@ def _run_lms(*args, timeout=300):
         return False
 
 
+MANUAL_GPU = {"unsloth": "Unsloth Studio"}  # motori locali che l'app non può mettere in pausa da sola
+
+
+def _free_vram_mb():
+    """Memoria video libera in MB (nvidia-smi), o None se non si può leggere."""
+    flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=10, creationflags=flags).stdout
+        return int(out.strip().splitlines()[0])
+    except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
+        return None
+
+
+async def wait_for_manual_gpu(llm, log, need_mb=5000, timeout=900, every=5):
+    """Con un motore che l'app non sa scaricare (Unsloth), aspetta che l'utente liberi la scheda video.
+    Restituisce True se la memoria è libera (o non si può misurare), False se il tempo è scaduto."""
+    name = MANUAL_GPU.get(getattr(llm, "provider", ""))
+    if not name:
+        return True
+    free = await asyncio.to_thread(_free_vram_mb)
+    if free is None or free >= need_mb:
+        return True
+    log(f"Scarica il modello in {name} (Unload) per liberare la scheda video: l'app non può farlo da sola. "
+        f"Aspetto che si liberi la memoria ({free} MB liberi, ne servono {need_mb})…", "warn")
+    waited = 0
+    while waited < timeout:
+        await asyncio.sleep(every)
+        waited += every
+        free = await asyncio.to_thread(_free_vram_mb)
+        if free is None or free >= need_mb:
+            log(f"Memoria video libera ({free} MB): continuo", "ok")
+            return True
+        if waited % 60 == 0:
+            log(f"Sto ancora aspettando: scarica il modello in {name} ({free} MB liberi su {need_mb} necessari)", "warn")
+    log(f"Memoria video ancora occupata dopo {timeout // 60} minuti: provo lo stesso, potrebbe non bastare", "warn")
+    return False
+
+
 async def free_gpu(llm):
     """Libera la scheda video dal motore AI locale. Restituisce gli id da ricaricare dopo (solo LM Studio:
     Ollama ricarica da solo il modello alla richiesta successiva; i motori cloud non usano la GPU)."""
