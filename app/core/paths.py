@@ -3,7 +3,8 @@
 - Versione di sviluppo (cartella del progetto): tutto accanto al codice, come sempre (projects/, models/, secrets/…).
 - Versione installata (C:\\Program Files\\ClipTale, riconosciuta dal file installed.json messo dall'installer):
   il codice resta in sola lettura; ambienti Python, modelli e chiavi vanno in %LOCALAPPDATA%\\ClipTale,
-  i video dell'utente in Video\\ClipTale.
+  i progetti (file di lavoro) in %LOCALAPPDATA%\\ClipTale\\projects. I video finiti si esportano in ordine
+  in Video\\ClipTale, o nella cartella scelta in Impostazioni (app/core/exporter.py).
 CLIPTALE_DATA e CLIPTALE_PROJECTS cambiano queste cartelle (utile per i test).
 """
 import ctypes
@@ -14,7 +15,7 @@ CODE = Path(__file__).resolve().parents[2]
 INSTALLED = (CODE / "installed.json").is_file()
 
 
-def _known_folder(csidl, fallback):
+def known_folder(csidl, fallback):
     """Cartella speciale di Windows (Video, Documenti…), anche se l'utente l'ha spostata o è su OneDrive."""
     try:
         buf = ctypes.create_unicode_buffer(260)
@@ -36,9 +37,7 @@ def _data():
 def _projects():
     if os.getenv("CLIPTALE_PROJECTS"):
         return Path(os.environ["CLIPTALE_PROJECTS"])
-    if INSTALLED and not os.getenv("CLIPTALE_DATA"):
-        return _known_folder(14, "Videos") / "ClipTale"  # CSIDL_MYVIDEO
-    return DATA / "projects"
+    return DATA / "projects"  # file di lavoro; i video finiti si esportano in ordine (app/core/exporter.py)
 
 
 DATA = _data()

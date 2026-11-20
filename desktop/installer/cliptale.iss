@@ -77,8 +77,8 @@ Type: filesandordirs; Name: "{app}\app"
 Source: "{#Stage}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\ClipTale"; Filename: "{app}\ClipTale.exe"; WorkingDir: "{app}"; Comment: "ClipTale"
-Name: "{autodesktop}\ClipTale"; Filename: "{app}\ClipTale.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autoprograms}\ClipTale"; Filename: "{app}\ClipTale.exe"; WorkingDir: "{app}"; Comment: "ClipTale"; AppUserModelID: "ClipTale.Desktop"
+Name: "{autodesktop}\ClipTale"; Filename: "{app}\ClipTale.exe"; WorkingDir: "{app}"; Tasks: desktopicon; AppUserModelID: "ClipTale.Desktop"
 
 [Run]
 Filename: "{app}\ClipTale.exe"; Description: "{cm:LaunchProgram,ClipTale}"; Flags: nowait postinstall skipifsilent runasoriginaluser

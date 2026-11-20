@@ -410,6 +410,25 @@
     .help-in li span { color: var(--ink-2); font-size: 14px; }
     .help-in .req { font-size: 14px; color: var(--ink-2); padding: 12px 16px; background: var(--bg); border-radius: var(--r); border: 1px solid var(--line); }
 
+    /* ---------------------------------------------------------------- pannello dei progetti */
+    .drawer-back { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.5); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+    .drawer {
+      position: fixed; top: 0; bottom: 0; left: 0; z-index: 41; width: min(380px, 92vw); display: flex; flex-direction: column; gap: 12px;
+      padding: 20px 16px; background: var(--surface); border-right: 1px solid var(--line-2); box-shadow: 24px 0 60px rgba(0,0,0,.5);
+      transform: translateX(-104%); transition: transform .25s cubic-bezier(.2,.8,.2,1); visibility: hidden;
+    }
+    body.drawer-open .drawer { transform: none; visibility: visible; }
+    body.drawer-open .drawer-back { opacity: 1; pointer-events: auto; }
+    .drawer-head { display: flex; align-items: center; gap: 8px; }
+    .drawer-head h2 { font-size: 18px; font-weight: 600; flex: 1; }
+    .drawer-close { width: 36px; height: 36px; padding: 0; justify-content: center; }
+    .drawer-search { position: relative; }
+    .drawer-search svg { position: absolute; left: 12px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .drawer-search input { width: 100%; padding-left: 36px; }
+    .drawer .project-list { flex: 1; overflow-y: auto; margin: 0 -8px; padding: 0 8px; }
+    .drawer .project-item { border-color: transparent; }
+    .export-path { font-family: ui-monospace, Consolas, monospace; font-size: 13px; padding: 10px 12px; border-radius: var(--r-sm); background: var(--bg); border: 1px solid var(--line); word-break: break-all; }
+
     /* ---------------------------------------------------------------- primo avvio e componenti */
     dialog.setup { width: min(620px, calc(100vw - 32px)); }
     .comp-list { display: flex; flex-direction: column; gap: 8px; }
@@ -581,6 +600,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
         <span class="step-text">Pubblica</span><span class="nav-check hidden" id="sub-publish" aria-label="pubblicato">✓</span>
       </button>
+      <button type="button" class="step nav-projects" id="btn-projects" aria-haspopup="dialog" aria-controls="projects-drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <span class="step-text">Progetti</span><span class="nav-badge hidden" id="sub-projects"></span>
+      </button>
       <button type="button" class="step" role="tab" id="tab-queue" data-step="queue" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
         <span class="step-text">Coda</span><span class="nav-badge hidden" id="sub-queue"></span>
@@ -734,11 +757,6 @@
       </section>
 
 
-      <!-- Home: progetti -->
-      <section class="panel" id="panel-projects" aria-label="I tuoi progetti">
-        <div class="side-head"><h2 class="sec-title">I tuoi progetti</h2><span id="project-count" class="label"></span></div>
-        <ul id="project-list" class="project-grid"></ul>
-      </section>
 
       <!-- Studio: avanzamento a fasi -->
       <section class="panel hidden" id="panel-progress" aria-label="Avanzamento">
@@ -835,7 +853,7 @@
         </div>
 
         <div class="card" id="outputs-card">
-          <h3>File pronti</h3>
+          <div class="pub-head"><h3>File pronti</h3><button type="button" id="btn-export-project" class="btn btn-sm hidden">Apri la cartella dei video</button></div>
           <div id="outputs" class="outputs"></div>
         </div>
       </section>
@@ -922,6 +940,17 @@
             <span class="field-label">Cartelle</span>
             <div class="actions"><button type="button" id="btn-open-projects" class="btn btn-sm">Apri la cartella dei progetti</button></div>
           </div>
+        </div>
+        <div class="card">
+          <h3>Dove vanno i video finiti</h3>
+          <p class="hint">A fine video ClipTale li copia qui, in ordine: una cartella per progetto, dentro una per lingua con TikTok e Shorts, Video YouTube, Copertine e i testi social.</p>
+          <div class="export-path" id="export-dir">…</div>
+          <div class="actions">
+            <button type="button" id="btn-export-pick" class="btn btn-sm">Scegli cartella…</button>
+            <button type="button" id="btn-export-open" class="btn btn-sm btn-ghost">Apri</button>
+            <button type="button" id="btn-export-reset" class="btn btn-sm btn-ghost hidden">Torna a Video\ClipTale</button>
+          </div>
+          <label class="check"><input type="checkbox" id="auto-export" checked /> <span>Esporta da solo a fine video</span></label>
         </div>
         <div class="card">
           <h3>Componenti scaricabili</h3>
@@ -1131,6 +1160,26 @@
       </div>
     </div>
   </dialog>
+
+  <!-- Progetti: pannello laterale -->
+  <div class="drawer-back" id="drawer-back"></div>
+  <aside class="drawer" id="projects-drawer" aria-label="I tuoi progetti" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>I tuoi progetti</h2><span id="project-count" class="label"></span>
+      <button type="button" class="btn btn-ghost drawer-close" id="btn-drawer-close" aria-label="Chiudi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input type="search" id="project-search" placeholder="Cerca un progetto" aria-label="Cerca un progetto" autocomplete="off" />
+    </div>
+    <button type="button" class="btn btn-primary" id="btn-drawer-new">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      Nuovo video
+    </button>
+    <ul id="project-list" class="project-list"></ul>
+  </aside>
 
   <!-- Primo avvio / componenti -->
   <dialog class="help setup" id="setup-dialog" aria-labelledby="setup-title">
@@ -1758,12 +1807,21 @@
 
     function renderProjectList() {
       const list = $("project-list");
-      $("project-count").textContent = state.projects.length ? String(state.projects.length) : "";
-      if (!state.projects.length) {
+      const n = state.projects.length;
+      $("project-count").textContent = n ? String(n) : "";
+      $("sub-projects").textContent = n;
+      $("sub-projects").classList.toggle("hidden", !n);
+      if (!n) {
         list.innerHTML = `<li class="side-empty">Ancora nessun progetto. Il primo video comparirà qui.</li>`;
         return;
       }
-      list.innerHTML = state.projects.map((p) => {
+      const q = $("project-search").value.trim().toLowerCase();
+      const shown = q ? state.projects.filter((p) => `${p.title} ${p.topic || ""}`.toLowerCase().includes(q)) : state.projects;
+      if (!shown.length) {
+        list.innerHTML = `<li class="side-empty">Nessun progetto trovato.</li>`;
+        return;
+      }
+      list.innerHTML = shown.map((p) => {
         const [cls, label] = projectStatus(p);
         return `<li><button type="button" class="project-item${p.id === state.projectId ? " active" : ""}" data-id="${esc(p.id)}" aria-current="${p.id === state.projectId}">
           <span class="t">${esc(String(p.title).slice(0, 90))}</span>
@@ -1771,9 +1829,28 @@
         </button></li>`;
       }).join("");
       list.querySelectorAll(".project-item").forEach((b) => b.addEventListener("click", () => {
+        closeDrawer();
         if (b.dataset.id !== state.projectId) openProject(b.dataset.id, { autoStep: true });
       }));
     }
+    function openDrawer() {
+      document.body.classList.add("drawer-open");
+      $("projects-drawer").setAttribute("aria-hidden", "false");
+      loadProjects();
+      setTimeout(() => $("project-search").focus(), 60);
+    }
+    function closeDrawer() {
+      if (!document.body.classList.contains("drawer-open")) return;
+      document.body.classList.remove("drawer-open");
+      $("projects-drawer").setAttribute("aria-hidden", "true");
+      $("btn-projects").focus();
+    }
+    $("btn-projects").addEventListener("click", openDrawer);
+    $("btn-drawer-close").addEventListener("click", closeDrawer);
+    $("drawer-back").addEventListener("click", closeDrawer);
+    $("btn-drawer-new").addEventListener("click", () => { closeDrawer(); newProject(); });
+    $("project-search").addEventListener("input", renderProjectList);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDrawer(); });
 
     function bestStep(p) {
       if (!p) return "idea";
@@ -1826,7 +1903,7 @@
 
     // ------------------------------------------------------------ passi
     const SCREENS = {
-      idea: ["panel-idea", "panel-projects"],
+      idea: ["panel-idea"],
       script: ["panel-progress", "panel-script", "panel-video"],
       publish: ["panel-publish"],
       queue: ["panel-queue"],
@@ -1838,7 +1915,7 @@
       if (!SCREENS[step]) step = "idea";
       const changed = state.step !== step;
       state.step = step;
-      document.querySelectorAll(".nav .step").forEach((t) => {
+      document.querySelectorAll(".nav .step[data-step]").forEach((t) => {
         const on = t.dataset.step === step;
         t.setAttribute("aria-selected", String(on));
         t.tabIndex = on ? 0 : -1;
@@ -1973,6 +2050,7 @@
       $("btn-publish").disabled = busy || !(p && p.has_video);
       $("btn-pub-shorts").disabled = $("btn-pub-ytall").disabled = busy || !(state.publish?.shorts?.length);
       $("btn-render").disabled = busy || !state.beats.length;
+      $("btn-export-project").classList.toggle("hidden", !(p && p.has_video));
       $("btn-regenerate").disabled = busy;
       $("btn-delete").disabled = busy;
       $("jobbar").classList.toggle("hidden", !busy);
@@ -2219,6 +2297,9 @@
       if (job.project_id && job.project_id !== state.projectId) {
         loadProjects().then(() => openProject(job.project_id));
       }
+      // passo dopo da solo: si crea → Studio, dove si seguono le fasi; si pubblica → Pubblica
+      if (["auto", "render", "generate"].includes(job.kind)) setStep("script");
+      else if (job.kind === "publish") setStep("publish");
       renderAll();
       clearInterval(state.pollTimer);
       state.pollTimer = setInterval(pollJob, 1500);
@@ -2254,7 +2335,8 @@
         checkHealth();
         if (ok) {
           toast({ render: "Video pronto", auto: "Tutto pronto", publish: "Pubblicazione completata" }[job.kind] || "Copione pronto");
-          setStep({ render: "video", auto: "video", publish: "publish" }[job.kind] || "script");
+          // video pronto → Pubblica, con il video nell'anteprima; copione pronto → Studio per rileggerlo
+          setStep({ render: "publish", auto: "publish", publish: "publish" }[job.kind] || "script");
           const full = (state.project?.outputs?.prefix || "") + "render/full_video.mp4";
           if (["render", "auto"].includes(job.kind) && state.project?.outputs?.files.includes(full)) {
             showVideo(`/api/projects/${pid}/file/${full}?v=${Date.now()}`);
@@ -2406,6 +2488,32 @@
 
     $("btn-to-video").addEventListener("click", () => $("panel-video").scrollIntoView({ behavior: "smooth", block: "start" }));
     document.querySelectorAll("[data-goto-screen]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); setStep(a.dataset.gotoScreen); }));
+    async function loadSettings() {
+      try { state.settings = await api("/api/settings"); } catch { return; }
+      const st = state.settings;
+      $("export-dir").textContent = st.export_dir;
+      $("btn-export-reset").classList.toggle("hidden", st.export_default);
+      $("auto-export").checked = st.auto_export;
+    }
+    async function saveSettings(changes) {
+      try {
+        state.settings = await api("/api/settings", { method: "POST", body: JSON.stringify(changes) });
+        await loadSettings();
+        return true;
+      } catch (e) { toast(e.message); return false; }
+    }
+    $("btn-export-pick").addEventListener("click", async () => {
+      let path = null;
+      try { path = (await api("/api/settings/pick-folder", { method: "POST" })).path; }
+      catch { path = prompt("Percorso della cartella (es. D:\\Video\\ClipTale)", state.settings?.export_dir || ""); }  // nel browser non c'è la finestra di Windows
+      if (path && await saveSettings({ export_dir: path })) toast("Cartella dei video cambiata");
+    });
+    $("btn-export-open").addEventListener("click", () => api("/api/open-export-folder", { method: "POST" }).catch((e) => toast(e.message)));
+    $("btn-export-reset").addEventListener("click", () => saveSettings({ export_dir: "" }).then((ok) => ok && toast("Di nuovo in Video\\ClipTale")));
+    $("auto-export").addEventListener("change", (e) => saveSettings({ auto_export: e.target.checked }));
+    $("btn-export-project").addEventListener("click", () => {
+      if (state.projectId) api(`/api/open-export-folder?project_id=${encodeURIComponent(state.projectId)}`, { method: "POST" }).catch((e) => toast(e.message));
+    });
     $("btn-open-projects").addEventListener("click", async () => {
       try { await api("/api/open-projects-folder", { method: "POST" }); } catch (e) { toast(e.message); }
     });
@@ -2643,7 +2751,7 @@
     $("btn-voice-preview").addEventListener("click", () => playPreview($("voice-select").value, state.langMain, $("btn-voice-preview")));
 
     // passi: clic e frecce
-    const tabs = [...document.querySelectorAll(".nav .step")];
+    const tabs = [...document.querySelectorAll(".nav .step[data-step]")];
     tabs.forEach((t, i) => {
       t.addEventListener("click", () => setStep(t.dataset.step));
       t.addEventListener("keydown", (e) => {
@@ -2693,7 +2801,8 @@
       log("system", "ClipTale: avvio…");
       startI18nObserver();
       await setUILang(initialUILang());
-      $("ui-lang").addEventListener("change", (e) => setUILang(e.target.value));
+      $("ui-lang").addEventListener("change", (e) => { setUILang(e.target.value); saveSettings({ ui_lang: e.target.value }); });
+      loadSettings();
       loadStoredLangs();
       await loadAI();
       loadQueue();
