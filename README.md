@@ -3,14 +3,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Vincisus/TiktokFactory/releases/latest"><img src="https://img.shields.io/github/v/release/Vincisus/TiktokFactory?label=ultima%20versione&color=ff7a00&labelColor=0a0a0a&style=for-the-badge" alt="Ultima versione"></a>
+  <a href="https://github.com/Vincisus/ClipTale/releases/latest"><img src="https://img.shields.io/github/v/release/Vincisus/ClipTale?label=ultima%20versione&color=ff7a00&labelColor=0a0a0a&style=for-the-badge" alt="Ultima versione"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0a0a0a?style=for-the-badge&labelColor=0a0a0a" alt="Windows 10 e 11">
   <img src="https://img.shields.io/badge/prezzo-gratis-0a0a0a?style=for-the-badge&labelColor=ff7a00" alt="Gratis">
   <a href="https://paypal.me/dammilpizzo"><img src="https://img.shields.io/badge/sostieni-PayPal-0a0a0a?style=for-the-badge&logo=paypal&logoColor=white&labelColor=ff7a00" alt="Sostieni ClipTale con PayPal"></a>
 </p>
 
 <h3 align="center">
-  <a href="https://github.com/Vincisus/TiktokFactory/releases/latest">⬇&nbsp; Scarica ClipTale per Windows</a>
+  <a href="https://github.com/Vincisus/ClipTale/releases/latest">⬇&nbsp; Scarica ClipTale per Windows</a>
 </h3>
 
 <p align="center">
@@ -29,7 +29,7 @@
 
 ## Installa ClipTale in 6 passi
 
-**1. Scarica l'installer.** Apri la pagina [**Ultima versione**](https://github.com/Vincisus/TiktokFactory/releases/latest) e, sotto *Assets*, clicca **`ClipTale-Setup-x.y.z.exe`** (circa 23 MB).
+**1. Scarica l'installer.** Apri la pagina [**Ultima versione**](https://github.com/Vincisus/ClipTale/releases/latest) e, sotto *Assets*, clicca **`ClipTale-Setup-x.y.z.exe`** (circa 23 MB).
 
 **2. Avvialo.** Windows può mostrare *«PC protetto da Windows»*, perché l'installer non ha una firma a pagamento. Clicca **Ulteriori informazioni** e poi **Esegui comunque**. Accetta il permesso di amministratore: ClipTale va in `C:\Program Files\ClipTale`.
 
