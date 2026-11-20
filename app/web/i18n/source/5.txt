@@ -1,0 +1,13 @@
+# pannello dei progetti e cartella dei video finiti
+Progetti ¦ Projects ¦ Proyectos ¦ Projets ¦ Projekte
+Cerca un progetto ¦ Search a project ¦ Buscar un proyecto ¦ Rechercher un projet ¦ Projekt suchen
+Chiudi ¦ Close ¦ Cerrar ¦ Fermer ¦ Schließen
+Nessun progetto trovato. ¦ No project found. ¦ No se encontró ningún proyecto. ¦ Aucun projet trouvé. ¦ Kein Projekt gefunden.
+Dove vanno i video finiti ¦ Where finished videos go ¦ Dónde van los vídeos terminados ¦ Où vont les vidéos terminées ¦ Wohin fertige Videos kommen
+A fine video ClipTale li copia qui, in ordine: una cartella per progetto, dentro una per lingua con TikTok e Shorts, Video YouTube, Copertine e i testi social. ¦ When a video is done, ClipTale copies it here, neatly: one folder per project, inside one per language with TikTok and Shorts, YouTube video, Covers and the social texts. ¦ Al terminar un vídeo, ClipTale lo copia aquí, en orden: una carpeta por proyecto y dentro una por idioma con TikTok y Shorts, Vídeo YouTube, Portadas y los textos sociales. ¦ À la fin d'une vidéo, ClipTale la copie ici, bien rangée : un dossier par projet, et dedans un par langue avec TikTok et Shorts, Vidéo YouTube, Couvertures et les textes sociaux. ¦ Wenn ein Video fertig ist, kopiert ClipTale es geordnet hierher: ein Ordner pro Projekt, darin einer pro Sprache mit TikTok und Shorts, YouTube-Video, Cover und den Social-Media-Texten.
+Scegli cartella… ¦ Choose folder… ¦ Elegir carpeta… ¦ Choisir un dossier… ¦ Ordner wählen…
+Torna a Video\ClipTale ¦ Back to Videos\ClipTale ¦ Volver a Vídeos\ClipTale ¦ Revenir à Vidéos\ClipTale ¦ Zurück zu Videos\ClipTale
+Esporta da solo a fine video ¦ Export automatically when a video is done ¦ Exportar solo al terminar el vídeo ¦ Exporter automatiquement à la fin de la vidéo ¦ Automatisch exportieren, wenn ein Video fertig ist
+Apri la cartella dei video ¦ Open the videos folder ¦ Abrir la carpeta de vídeos ¦ Ouvrir le dossier des vidéos ¦ Videoordner öffnen
+Cartella dei video cambiata ¦ Videos folder changed ¦ Carpeta de vídeos cambiada ¦ Dossier des vidéos modifié ¦ Videoordner geändert
+Di nuovo in Video\ClipTale ¦ Back in Videos\ClipTale ¦ De nuevo en Vídeos\ClipTale ¦ De nouveau dans Vidéos\ClipTale ¦ Wieder in Videos\ClipTale

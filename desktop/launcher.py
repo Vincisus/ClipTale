@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 from app.core import paths  # noqa: E402
 
 paths.DATA.mkdir(parents=True, exist_ok=True)
+sys.argv[0] = str(Path(__file__).resolve())  # pywebview cerca i file a partire da qui: dopo il chdir un percorso relativo non vale più
 os.chdir(paths.DATA)  # installata: il codice è in sola lettura, si lavora nella cartella dei dati
 PORT = int(os.getenv("CLIPTALE_PORT", "8000"))
 URL = f"http://127.0.0.1:{PORT}"
@@ -90,19 +91,12 @@ class App:
         self.error = False
 
     # -------------------------------------------------------------- finestra
-    def set_window_icon(self):
-        """Icona arancione sulla finestra e nella barra delle applicazioni (Win32: WM_SETICON)."""
-        import ctypes
-        if not ICO.is_file():
-            return
-        user32 = ctypes.windll.user32
-        hwnd = user32.FindWindowW(None, "ClipTale")
-        if not hwnd:
-            return
-        for kind, size in ((1, 256), (0, 32)):  # ICON_BIG, ICON_SMALL
-            h = user32.LoadImageW(None, str(ICO), 1, size if kind else 16, size if kind else 16, 0x10)  # IMAGE_ICON, LR_LOADFROMFILE
-            if h:
-                user32.SendMessageW(hwnd, 0x80, kind, h)  # WM_SETICON
+    def pick_folder(self, start=None):
+        """Finestra di Windows per scegliere una cartella; None se l'utente annulla."""
+        import webview
+        self.show()
+        res = self.window.create_file_dialog(webview.FileDialog.FOLDER, directory=start or "")
+        return res[0] if res else None
 
     def show(self, project_id=None):
         if not self.window:
@@ -247,13 +241,13 @@ class App:
             pass
         self.server = start_server()
         desktop.HOOKS["show"] = lambda pid=None: self.show(pid)
+        desktop.HOOKS["pick_folder"] = self.pick_folder
         desktop.HOOKS["quit"] = lambda: self.quit(force=True)  # aggiornamento: l'installer prende il posto dell'app
         self.window = webview.create_window("ClipTale", URL, width=1400, height=880, min_size=(1000, 680), background_color="#0a0a0a")
         self.window.events.closing += self.on_closing
-        self.window.events.shown += self.set_window_icon
         self.build_tray()
         threading.Thread(target=self.watch, name="watch", daemon=True).start()
-        webview.start(private_mode=False, storage_path=str(DATA / "webview"))  # ritorna quando la finestra viene distrutta
+        webview.start(private_mode=False, storage_path=str(DATA / "webview"), icon=str(ICO))  # icona arancione anche nella barra delle app  # ritorna quando la finestra viene distrutta
         self.quitting = True
         if self.icon:
             self.icon.stop()

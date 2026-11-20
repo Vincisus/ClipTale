@@ -812,3 +812,31 @@ def test_components_refuse_empty_choice():
     from app.core import components
     with pytest.raises(ValueError):
         components.install(["nulla"])
+
+
+def test_export_names_are_windows_safe():
+    from app.core.exporter import safe_name
+    assert safe_name('Lei: "il piano"? / sì') == "Lei il piano sì"
+    assert safe_name("CON") == "_CON"
+    long = safe_name("parola " * 30, 40)
+    assert len(long) <= 40 and not long.endswith(" ") and long.endswith("parola")
+
+
+def test_export_tree(tmp_path, monkeypatch):
+    import json
+    from app.core import exporter, settings
+    proj = tmp_path / "p1"
+    (proj / "render" / "tiktok").mkdir(parents=True)
+    (proj / "render" / "covers").mkdir()
+    (proj / "brief.json").write_text(json.dumps({"languages": ["it"]}), encoding="utf-8")
+    (proj / "concept.json").write_text(json.dumps({"title": "La mia storia"}), encoding="utf-8")
+    (proj / "metadata.json").write_text(json.dumps({"youtube_title": "Titolo YT"}), encoding="utf-8")
+    for f in ("render/full_video.mp4", "render/tiktok/part_01.mp4", "render/tiktok/part_02.mp4", "render/covers/youtube.jpg"):
+        (proj / f).write_bytes(b"x")
+    monkeypatch.setattr(settings, "export_dir", lambda: tmp_path / "out")
+    monkeypatch.setattr(settings, "get", lambda: {"ui_lang": "it", "auto_export": True})
+    target = exporter.export_project(proj)
+    names = sorted(p.relative_to(target).as_posix() for p in target.rglob("*.*") if p.name != ".cliptale")
+    assert target.name == "La mia storia"
+    assert {"Italiano/TikTok e Shorts/Parte 1.mp4", "Italiano/TikTok e Shorts/Parte 2.mp4",
+            "Italiano/Video YouTube/Titolo YT.mp4", "Italiano/Copertine/YouTube.jpg"} <= set(names)

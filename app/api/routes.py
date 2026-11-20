@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app.core import components, jobs, languages, projects, updates, video_queue
+from app.core import components, exporter, jobs, languages, projects, settings, updates, video_queue
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
 from app.services import ai_providers, eleven_service, illustration_service, publish_service, tts_service
@@ -328,6 +328,7 @@ async def render(project_id: str, payload: RenderRequest, request: Request):
     async def worker(job):
         await render_project(folder, job, payload.voice, payload.wpm, payload.cut_seconds, payload.silence_ms, payload.visuals, payload.model, payload.style,
                              payload.music, payload.sfx, voices=payload.voices)
+        await auto_export(folder, job)
 
     job = jobs.start("render", project_id, worker)
     return {"job_id": job.id, "project_id": project_id}
@@ -359,6 +360,67 @@ async def cancel_job(job_id: str, request: Request):
 @router.get("/config")
 async def config():
     return {"lmstudio_url": os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")}
+
+
+# ------------------------------------------------------------------ impostazioni ed esportazione
+async def auto_export(folder, job):
+    """A video finito: copia ordinata in <cartella scelta>/<progetto>/<lingua>/… Un errore qui non rovina il video."""
+    if not settings.get()["auto_export"]:
+        return
+    try:
+        await asyncio.to_thread(exporter.export_project, folder, lambda m: job.log(m, module="export"))
+    except OSError as exc:
+        job.log(f"Esportazione non riuscita ({exc}): il video resta nel progetto. Controlla la cartella in Impostazioni.", module="export", level="warn")
+
+
+class SettingsRequest(BaseModel):
+    export_dir: Optional[str] = Field(default=None, max_length=500)
+    auto_export: Optional[bool] = None
+    ui_lang: Optional[Literal["it", "en", "es", "fr", "de"]] = None
+
+
+@router.get("/settings")
+async def get_settings():
+    return settings.get()
+
+
+@router.post("/settings")
+async def set_settings(payload: SettingsRequest, request: Request):
+    same_origin(request)
+    if payload.export_dir:  # vuoto = di nuovo la cartella predefinita
+        target = Path(payload.export_dir).expanduser()
+        if not target.is_absolute():
+            raise HTTPException(400, "Scegli una cartella completa, per esempio D:\\Video")
+        try:
+            target.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise HTTPException(400, f"Non posso usare quella cartella: {exc}") from exc
+    return settings.update(**payload.model_dump())
+
+
+@router.post("/settings/pick-folder")
+async def pick_folder(request: Request):
+    """Finestra di Windows per scegliere la cartella (solo nell'app desktop). path=None se l'utente annulla."""
+    same_origin(request)
+    from app.core import desktop
+    fn = desktop.HOOKS.get("pick_folder")
+    if not fn:
+        raise HTTPException(404, "La scelta con la finestra di Windows c'è solo nell'app: scrivi il percorso a mano.")
+    path = await asyncio.to_thread(fn, settings.get()["export_dir"])
+    return {"path": path}
+
+
+@router.post("/open-export-folder")
+async def open_export_folder(request: Request, project_id: Optional[str] = None):
+    """Apre la cartella dei video esportati (quella di un progetto, esportandolo prima se serve)."""
+    same_origin(request)
+    target = settings.export_dir()
+    if project_id:
+        target = await asyncio.to_thread(exporter.export_project, projects.folder(project_id)) or target
+    target.mkdir(parents=True, exist_ok=True)
+    if hasattr(os, "startfile"):
+        os.startfile(str(target))  # noqa: S606 - cartella scelta dall'utente
+    return {"ok": True, "path": str(target)}
 
 
 # ------------------------------------------------------------------ componenti e aggiornamenti
@@ -469,6 +531,7 @@ def start_auto(payload):
         job.data["activity"] = None
         await render_project(folder, jobs.Stage(job, 40, render_end), payload.voice, payload.wpm, payload.cut_seconds,
                              payload.silence_ms, payload.visuals, llm.model, payload.style, payload.music, payload.sfx, voices=payload.voices)
+        await auto_export(folder, job)
         if publish:
             for k, code in enumerate(codes):
                 stage = jobs.Stage(job, 95 + 5 * k / len(codes), 95 + 5 * (k + 1) / len(codes))
