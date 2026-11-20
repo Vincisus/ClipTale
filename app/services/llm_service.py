@@ -45,14 +45,35 @@ class LLMError(RuntimeError):
     pass
 
 
+def spec_needs_key(provider):
+    from app.services import ai_providers
+    return bool(ai_providers.PROVIDERS.get(provider, {}).get("key"))
+
+
 class LLMService:
-    def __init__(self, model=None, transport=None):
+    """Client per il motore AI scelto (vedi ai_providers): LM Studio, Ollama, OpenAI, Gemini (formato OpenAI) o Claude (SDK)."""
+
+    def __init__(self, model=None, transport=None, provider=None):
+        from app.services import ai_providers
         load_dotenv()
-        self.base_url = os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1").rstrip("/")
-        if urlparse(self.base_url).hostname not in ("127.0.0.1", "localhost", "::1"):
-            raise ValueError("Sono consentiti solo server LLM locali (127.0.0.1 / localhost).")
-        self.api_key = os.getenv("LMSTUDIO_API_KEY", "lm-studio")
-        self.model = (model or os.getenv("LMSTUDIO_MODEL", "")).strip().strip("'\"")
+        config = ai_providers.load()
+        self.provider = provider or config["provider"]
+        spec = ai_providers.PROVIDERS[self.provider]
+        if self.provider == "lmstudio":
+            self.base_url = os.getenv("LMSTUDIO_BASE_URL", spec["base"]).rstrip("/")
+            self.api_key = os.getenv("LMSTUDIO_API_KEY", "lm-studio")
+            default_model = os.getenv("LMSTUDIO_MODEL", "")
+        else:
+            env_base = {"ollama": "OLLAMA_BASE_URL", "unsloth": "UNSLOTH_BASE_URL"}.get(self.provider)
+            self.base_url = (os.getenv(env_base, spec["base"]) if env_base else spec.get("base", "")).rstrip("/")
+            self.api_key = config["keys"].get(self.provider, "ollama" if self.provider == "ollama" else "")
+            default_model = config["models"].get(self.provider) or spec.get("default_model", "")
+        host = urlparse(self.base_url).hostname if self.base_url else "api.anthropic.com"
+        if host not in ("127.0.0.1", "localhost", "::1") and host not in ai_providers.CLOUD_HOSTS:
+            raise ValueError("Sono consentiti solo server locali (127.0.0.1 / localhost) o i servizi cloud previsti.")
+        self.label = spec["label"]
+        self.local = bool(spec.get("local"))
+        self.model = (model or default_model).strip().strip("'\"")
         self.thinking = os.getenv("LMSTUDIO_THINKING", "off").strip().lower() not in ("off", "0", "false", "no")
         self.max_tokens = env_int("LMSTUDIO_MAX_TOKENS", 12000)
         self.idle_timeout = env_int("LMSTUDIO_IDLE_TIMEOUT", 300)
@@ -67,8 +88,30 @@ class LLMService:
         return self.base_url[:-3] if self.base_url.endswith("/v1") else self.base_url
 
     async def list_models(self):
-        """Modelli esposti da LM Studio, con stato di caricamento se disponibile."""
+        """Modelli del motore scelto, con lo stato di caricamento quando il motore lo dice (LM Studio, Ollama)."""
+        if self.provider == "anthropic":
+            from app.services import anthropic_provider
+            if not self.api_key:
+                raise LLMError("manca la chiave API di Claude")
+            return await anthropic_provider.list_models(self.api_key)
+        if spec_needs_key(self.provider) and not self.api_key:
+            raise LLMError(f"manca la chiave API di {self.label}")
         headers = {"Authorization": f"Bearer {self.api_key}"}
+        if self.provider == "ollama":
+            async with httpx.AsyncClient(timeout=8, transport=self.transport) as client:
+                tags = (await client.get(self.server_root + "/api/tags")).json().get("models", [])
+                try:
+                    running = {m["name"] for m in (await client.get(self.server_root + "/api/ps")).json().get("models", [])}
+                except (httpx.HTTPError, ValueError, KeyError):
+                    running = set()
+            return [{"id": m["name"], "loaded": m["name"] in running, "type": "llm", "context": None} for m in tags if "embed" not in m["name"]]
+        if not self.local:
+            async with httpx.AsyncClient(timeout=15, transport=self.transport) as client:
+                r = await client.get(self.base_url + "/models", headers=headers)
+                r.raise_for_status()
+            skip = ("embed", "tts", "whisper", "dall-e", "image", "audio", "realtime", "transcribe", "moderation", "search", "imagen", "veo", "aqa")
+            ids = [m["id"].removeprefix("models/") for m in r.json().get("data", [])]
+            return [{"id": i, "loaded": None, "type": "llm", "context": None} for i in sorted(ids) if not any(k in i for k in skip)]
         async with httpx.AsyncClient(timeout=8, transport=self.transport) as client:
             try:
                 response = await client.get(self.server_root + "/api/v0/models", headers=headers)
@@ -93,12 +136,14 @@ class LLMService:
             "max_tokens": max_tokens,
             "stream": True,
         }
-        if not self.thinking:
+        if self.provider == "openai":  # i modelli recenti di OpenAI vogliono max_completion_tokens
+            payload["max_completion_tokens"] = payload.pop("max_tokens")
+        if self.provider == "lmstudio" and not self.thinking:
             # LM Studio: unico parametro che spegne davvero il ragionamento dei Qwen3.x
             # (chat_template_kwargs, "/no_think" e reasoning_effort="low" vengono ignorati: verificato).
             payload["reasoning_effort"] = "none"
         if schema is not None:
-            payload["response_format"] = {"type": "json_schema", "json_schema": {"name": "risposta", "strict": True, "schema": schema}}
+            payload["response_format"] = {"type": "json_schema", "json_schema": {"name": "risposta", "strict": self.provider == "lmstudio", "schema": schema}}
         return payload
 
     def _activity(self, text):
@@ -110,10 +155,28 @@ class LLMService:
 
     async def chat(self, prompt, system, temperature=0.8, schema=None, max_tokens=None, label="LLM"):
         """Una chiamata in streaming. Restituisce (content, finish_reason)."""
+        if self.provider == "anthropic":
+            from app.services import anthropic_provider
+            if not self.api_key:
+                raise LLMError("Manca la chiave API di Claude: aggiungila nella scelta del motore AI.")
+            return await anthropic_provider.chat(self, prompt, system, schema, max_tokens, label)
         if not self.model:
-            raise LLMError("Nessun modello configurato: imposta LMSTUDIO_MODEL nel file .env o scegli un modello nella pagina.")
+            raise LLMError("Nessun modello scelto: scegline uno nella pagina (Modello che scrive).")
+        try:
+            return await self._chat_once(prompt, system, temperature, schema, max_tokens, label)
+        except LLMError as exc:
+            # alcuni modelli cloud accettano solo la temperatura predefinita: si riprova senza
+            if not self.local and "HTTP 400" in str(exc) and ("temperature" in str(exc) or "top_p" in str(exc)):
+                self._no_sampling = True
+                return await self._chat_once(prompt, system, temperature, schema, max_tokens, label)
+            raise
+
+    async def _chat_once(self, prompt, system, temperature, schema, max_tokens, label):
         messages = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
         payload = self._payload(messages, temperature, max_tokens or self.max_tokens, schema)
+        if getattr(self, "_no_sampling", False):
+            payload.pop("temperature", None)
+            payload.pop("top_p", None)
         self.diagnostic_dir.mkdir(parents=True, exist_ok=True)
         diagnostic = self.diagnostic_dir / f"{time.strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}.json"
         content, reasoning, finish, error = [], 0, None, None
@@ -127,7 +190,7 @@ class LLMService:
                     async with client.stream("POST", self.base_url + "/chat/completions", headers={"Authorization": f"Bearer {self.api_key}"}, json=payload) as response:
                         if response.is_error:
                             body = (await response.aread()).decode(errors="replace")
-                            raise LLMError(f"LM Studio HTTP {response.status_code}: {body[:600]}")
+                            raise LLMError(f"{self.label} HTTP {response.status_code}: {body[:600]}")
                         async for line in response.aiter_lines():
                             if not line.startswith("data:"):
                                 continue
@@ -162,10 +225,11 @@ class LLMService:
                                 self._activity(f"{label}: {phase} · {now - started:.0f}s")
         except (TimeoutError, httpx.TimeoutException) as exc:
             error = "Tempo scaduto: il modello non ha risposto in tempo"
-            raise LLMError(f"{error}. Controlla LM Studio. Diagnostica: {diagnostic}") from exc
+            raise LLMError(f"{error}. Controlla {self.label}. Diagnostica: {diagnostic}") from exc
         except httpx.ConnectError as exc:
-            error = "LM Studio non raggiungibile"
-            raise LLMError(f"{error} su {self.base_url}: avvia il server locale in LM Studio.") from exc
+            error = f"{self.label} non raggiungibile"
+            hint = "avvia il server locale" if self.local else "controlla la connessione a Internet"
+            raise LLMError(f"{error} su {self.base_url}: {hint}.") from exc
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
             raise

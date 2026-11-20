@@ -88,22 +88,6 @@ def load_pipeline(ip_refs=None, ip_scale=None):
     return pipe, ("cuda" if cuda else "cpu"), embeds
 
 
-def pencil(img):
-    """Effetto schizzo a matita: scala di grigi + 'color dodge' col negativo sfocato, grana e carta calda."""
-    import numpy as np
-    from PIL import Image, ImageEnhance, ImageFilter, ImageOps
-
-    gray = ImageOps.grayscale(img)
-    blur = ImageOps.invert(gray).filter(ImageFilter.GaussianBlur(9))
-    a = np.asarray(gray, dtype=np.float32)
-    b = np.asarray(blur, dtype=np.float32)
-    sketch = Image.fromarray(np.clip(a * 255.0 / np.maximum(1.0, 255.0 - b), 0, 255).astype("uint8"))
-    sketch = np.asarray(ImageEnhance.Contrast(sketch).enhance(1.5), dtype=np.float32)
-    sketch = np.clip(sketch + np.random.default_rng(0).normal(0, 7, sketch.shape), 0, 255)
-    paper = np.stack([sketch * 0.98 + 4, sketch * 0.95 + 6, sketch * 0.88 + 10], -1)
-    return Image.fromarray(paper.clip(0, 255).astype("uint8"))
-
-
 def main(job_path):
     import torch
 
@@ -126,8 +110,6 @@ def main(job_path):
             width=int(job.get("width", 576)), height=int(job.get("height", 1024)),
             num_inference_steps=int(job.get("steps", 6)), guidance_scale=float(job.get("guidance", 1.5)), generator=gen,
         ).images[0]
-        if item.get("post") == "pencil":
-            image = pencil(image)
         out = Path(item["out"])
         out.parent.mkdir(parents=True, exist_ok=True)
         tmp = out.with_suffix(".tmp.png")

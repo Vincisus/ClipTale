@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from app.core import jobs, languages, projects
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
-from app.services import eleven_service, illustration_service, publish_service, tts_service
+from app.services import ai_providers, eleven_service, illustration_service, publish_service, tts_service
 from app.services.llm_service import LLMService
 from app.services.video_service import ffmpeg_exe
 
@@ -30,12 +30,16 @@ def same_origin(request: Request):
 @router.get("/health")
 async def health():
     llm = LLMService()
-    info = {"model": llm.model, "thinking": llm.thinking, "ffmpeg": bool(ffmpeg_exe()), "edge_tts": tts_service.EDGE_AVAILABLE, "lmstudio": False, "model_loaded": None}
+    # "lmstudio" resta il nome del campo per compatibilità: vuol dire "il motore AI scelto risponde"
+    info = {"model": llm.model, "thinking": llm.thinking, "ffmpeg": bool(ffmpeg_exe()), "edge_tts": tts_service.EDGE_AVAILABLE, "lmstudio": False,
+            "model_loaded": None, "provider": llm.provider, "provider_label": llm.label, "provider_local": llm.local}
     try:
         models = await llm.list_models()
         info["lmstudio"] = True
         match = next((m for m in models if m["id"] == llm.model), None)
-        info["model_loaded"] = match["loaded"] if match else False
+        info["model_loaded"] = (match["loaded"] if match else False) if llm.local else None
+        if not llm.model and models:
+            info["model"] = models[0]["id"]
     except Exception as exc:
         info["lmstudio_error"] = str(exc)
     info["busy"] = jobs.active().data if jobs.active() else None
@@ -46,9 +50,34 @@ async def health():
 async def models():
     llm = LLMService()
     try:
-        return {"default": llm.model, "models": await llm.list_models()}
+        return {"default": llm.model, "provider": llm.provider, "models": await llm.list_models()}
     except Exception as exc:
-        raise HTTPException(502, f"LM Studio non raggiungibile su {llm.base_url}: avvia il server locale ({exc})")
+        raise HTTPException(502, f"{llm.label} non risponde: {exc}")
+
+
+@router.get("/ai")
+async def ai_status():
+    return ai_providers.public_status()
+
+
+class AIChoice(BaseModel):
+    provider: Literal["lmstudio", "ollama", "unsloth", "openai", "anthropic", "gemini"]
+    key: Optional[str] = Field(default=None, max_length=300, pattern=r"^[A-Za-z0-9_\-.]*$")
+
+
+@router.post("/ai")
+async def ai_choose(payload: AIChoice, request: Request):
+    """Sceglie il motore AI (e salva la sua chiave, se è cloud), poi prova subito a collegarsi."""
+    same_origin(request)
+    ai_providers.set_provider(payload.provider, payload.key)
+    status = ai_providers.public_status()
+    llm = LLMService()
+    try:
+        found = await llm.list_models()
+        status.update(ok=True, models=len(found))
+    except Exception as exc:
+        status.update(ok=False, error=str(exc)[:300])
+    return status
 
 
 @router.get("/voices")
@@ -205,7 +234,8 @@ def prepare_brief(payload):
         raise HTTPException(409, "Un lavoro e gia in corso: attendi o annullalo.")
     llm = LLMService(model=payload.model or None)
     if not llm.model:
-        raise HTTPException(400, "Seleziona un modello LM Studio.")
+        raise HTTPException(400, f"Seleziona un modello di {llm.label}.")
+    ai_providers.remember_model(llm.provider, llm.model)
     if payload.project_id:  # ripresa / rigenerazione di un progetto esistente
         folder = projects.folder(payload.project_id)
         brief = projects.load_json(folder / "brief.json", {}) or {}

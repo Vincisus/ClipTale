@@ -140,6 +140,7 @@ async def render_project(folder, job, voice, wpm, cut_seconds, silence_ms, visua
     voices: {lingua: voce}; voice è la voce della lingua principale (compatibilità con le chiamate di prima).
     """
     folder = Path(folder)
+    style = illustration_service.normalize_style(style)
     brief = load_json(folder / "brief.json", {}) or {}
     all_langs = languages.of_brief(brief)
     main = all_langs[0]
