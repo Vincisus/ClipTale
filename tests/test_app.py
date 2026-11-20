@@ -179,17 +179,18 @@ def test_scene_prompts_per_moment_with_stickers():
 
 
 def test_build_items_shots_and_cache_paths(tmp_path):
-    from app.services.illustration_service import NEGATIVE, STYLES, build_items
+    from app.services.illustration_service import NEGATIVE, STYLES, build_items, normalize_style
 
+    assert sorted(STYLES) == ["anim", "cartoon"] and normalize_style("sketch") == "cartoon" and normalize_style("anim") == "anim"
     moments = [[("a", 4.0)], [("b", 7.0), ("c", 8.0)]]
     shots = [["a kitchen"], ["a garage", "close-up on a phone"]]
-    items, per_beat = build_items([{}, {}], moments, shots, "sketch", tmp_path, 100)
+    items, per_beat = build_items([{}, {}], moments, shots, "cartoon", tmp_path, 100)
     assert [len(s) for s in per_beat] == [1, 2] and per_beat[1][1][2] == 8.0
-    assert len(items) == 3 and all(i["prompt"].startswith(STYLES["sketch"]["prompt"]) for i in items)
-    assert items[0]["post"] == "pencil" and items[0]["negative"] == NEGATIVE
+    assert len(items) == 3 and all(i["prompt"].startswith(STYLES["cartoon"]["prompt"]) for i in items)
+    assert items[0]["post"] is None and items[0]["negative"] == NEGATIVE
     assert "close-up on a phone" in items[2]["prompt"] and "close-up on the face" not in items[2]["prompt"]
     assert len({i["out"] for i in items}) == 3 and len({i["seed"] for i in items}) == 3
-    again, _ = build_items([{}, {}], moments, shots, "sketch", tmp_path, 100)
+    again, _ = build_items([{}, {}], moments, shots, "cartoon", tmp_path, 100)
     assert [i["out"] for i in again] == [i["out"] for i in items]  # stessa scena = stesso file in cache
 
 
@@ -690,3 +691,41 @@ def test_chatterbox_job_and_fallback(tmp_path, monkeypatch):
     asyncio.run(tts.synthesize_many([("Ciao.", tmp_path / "b2")], msgs.append))
     assert used == ["it-IT-ElsaNeural"] and tts.voice == "edge:it-IT-ElsaNeural"
     assert any("CUDA out of memory" in m for m in msgs)
+
+
+def test_ai_providers_choice_payload_and_retry(tmp_path, monkeypatch):
+    from app.services import ai_providers, anthropic_provider
+    monkeypatch.setattr(ai_providers, "FILE", tmp_path / "ai.json")
+    assert ai_providers.current() == "lmstudio"
+    ai_providers.set_provider("ollama")
+    llm = LLMService(model="qwen3")
+    assert llm.provider == "ollama" and llm.base_url.endswith(":11434/v1") and llm.local
+    assert "reasoning_effort" not in llm._payload([], 0.5, 100, None)  # solo LM Studio usa reasoning_effort
+    ai_providers.set_provider("openai", "sk-test")
+    status = ai_providers.public_status()
+    assert status["current"] == "openai" and next(p for p in status["providers"] if p["id"] == "openai")["has_key"]
+    assert "sk-test" not in json.dumps(status)  # la chiave non va mai alla pagina
+    calls = []
+
+    def handler(req):
+        body = json.loads(req.content)
+        calls.append(body)
+        assert req.headers["authorization"] == "Bearer sk-test" and req.url.host == "api.openai.com"
+        if "temperature" in body:
+            return httpx.Response(400, json={"error": {"message": "Unsupported value: 'temperature' does not support 0.8"}})
+        sse = 'data: {"choices":[{"delta":{"content":"{\\"ok\\": 1}"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n'
+        return httpx.Response(200, text=sse, headers={"content-type": "text/event-stream"})
+    llm = LLMService(model="gpt-test", transport=httpx.MockTransport(handler))
+    llm.diagnostic_dir = tmp_path / "diag"
+    assert asyncio.run(llm.generate_json("dammi json", {"type": "object"})) == {"ok": 1}
+    assert "max_completion_tokens" in calls[0] and "max_tokens" not in calls[0]
+    assert "temperature" in calls[0] and "temperature" not in calls[-1]  # secondo tentativo senza temperatura
+    ai_providers.set_provider("anthropic", "sk-ant-test")
+    llm = LLMService()
+    assert llm.provider == "anthropic" and llm.model == "claude-opus-5-5" and not llm.local
+    schema = {"type": "object", "properties": {"beats": {"type": "array", "minItems": 3, "maxItems": 3,
+              "items": {"type": "object", "properties": {"text": {"type": "string"}}}}}}
+    adapted = anthropic_provider.adapt_schema(schema)
+    assert adapted["additionalProperties"] is False and adapted["required"] == ["beats"]
+    assert "minItems" not in adapted["properties"]["beats"] and adapted["properties"]["beats"]["items"]["additionalProperties"] is False
+    assert schema["properties"]["beats"]["minItems"] == 3  # l'originale resta intatto

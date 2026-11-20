@@ -25,8 +25,8 @@ MAX_SHOTS_PER_BEAT = 40
 WIDTH, HEIGHT = 576, 1024  # 9:16, poi ingrandite a 1080x1920 con i movimenti di camera
 
 # Lo stile va all'inizio del prompt: CLIP legge solo 77 token e taglia la coda.
-# Lo schizzo a matita nasce come disegno a inchiostro e poi passa nel filtro "pencil" di sd_worker:
-# il modello da solo, chiedendo "pencil sketch", produce foto in bianco e nero.
+# Due stili: "anim" (cartone animato con personaggi che parlano) e "cartoon" (mostrato come "Illustrazione":
+# una scena disegnata per ogni momento). I progetti fatti con gli stili tolti (reel, schizzo, fumetto) usano "cartoon".
 STYLE_REFS = ROOT / "style_refs"  # immagini di riferimento per lo "Stile reel" (non vanno su Git)
 
 STYLES = {
@@ -39,29 +39,16 @@ STYLES = {
         "size": (512, 768),
         "animated": True,
     },
-    "reel": {
-        "label": "Stile reel",
-        "prompt": "flat 2d cartoon, simple round white head, minimal face, thick black outlines, warm beige palette, cozy illustrated background",
-        "post": None,
-        "refs": True,  # lo stile arriva dalle immagini in style_refs/ (IP-Adapter + InstantStyle)
-        "size": (512, 768),  # più vicino al formato di addestramento di SD 1.5: niente figure doppie; poi ritagliata in 9:16
-    },
     "cartoon": {
-        "label": "Cartoon",
+        "label": "Illustrazione",
         "prompt": "flat 2d cartoon illustration, cozy warm beige and orange palette, thick black outlines, simple round face, big expressive eyes, clean cel shading, detailed cozy illustrated background",
         "post": None,
     },
-    "sketch": {
-        "label": "Schizzo a matita",
-        "prompt": "comic book art, inked lineart, cel shading, clean line drawing, graphic novel illustration",
-        "post": "pencil",
-    },
-    "comic": {
-        "label": "Fumetto",
-        "prompt": "comic book art, inked lineart, cel shading, halftone dots, noir colors, graphic novel illustration",
-        "post": None,
-    },
 }
+
+
+def normalize_style(style):
+    return style if style in STYLES else "cartoon"
 NEGATIVE = ("two people stacked, duplicate person, multiple heads, photo, photograph, photorealistic, realistic, 3d render, anime, smooth skin, text, letters, words, caption, watermark, signature, logo, "
             "blurry, lowres, jpeg artifacts, deformed, disfigured, extra limbs, extra fingers, bad hands, cropped head, nsfw, nude")
 BG_NEGATIVE = ("person, people, man, woman, character, face, head, body, crowd, text, letters, watermark, logo, photo, "
@@ -371,7 +358,20 @@ def _run_lms(*args, timeout=300):
 
 
 async def free_gpu(llm):
-    """Scarica i modelli di LM Studio dalla GPU. Restituisce gli id da ricaricare dopo."""
+    """Libera la scheda video dal motore AI locale. Restituisce gli id da ricaricare dopo (solo LM Studio:
+    Ollama ricarica da solo il modello alla richiesta successiva; i motori cloud non usano la GPU)."""
+    provider = getattr(llm, "provider", "lmstudio")
+    if provider == "ollama":
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=20) as client:
+                for m in (await client.get(llm.server_root + "/api/ps")).json().get("models", []):
+                    await client.post(llm.server_root + "/api/generate", json={"model": m["name"], "keep_alive": 0})
+        except Exception:
+            pass
+        return []
+    if provider != "lmstudio":
+        return []
     loaded = []
     try:
         loaded = [m["id"] for m in await llm.list_models() if m.get("loaded")]

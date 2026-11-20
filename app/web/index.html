@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="page-type" content="software" />
   <meta name="site-kind" content="software" />
-  <meta name="description" content="Studio locale per creare video verticali 9:16: dall'idea al copione con LM Studio, poi voce, sottotitoli e clip TikTok." />
+  <meta name="description" content="Studio locale per creare video verticali 9:16: dall'idea al copione con la tua AI, poi voce, sottotitoli e clip TikTok." />
   <meta name="theme-color" content="#0b0b0d" />
   <title>TiktokFactory Studio</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e11d48'/%3E%3Cpath d='M12 9.5v13l11-6.5z' fill='white'/%3E%3C/svg%3E" />
@@ -13,10 +13,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
-    /* Un solo sistema: 90-95% neutro, un accento (il rosso del pulsante principale), una scala di spazi 4-8-12-16-24-32-48. */
+    /* Un solo sistema: nero e arancione. 90-95% neutro scuro, un accento arancione (pulsante principale, avanzamento, focus), spazi 4-8-12-16-24-32-48. */
     :root {
       color-scheme: dark;
-      --bg: #0b0b0d;
+      --bg: #0a0a0a;
       --surface: #131316;
       --surface-2: #1a1a1f;
       --surface-3: #222228;
@@ -25,9 +25,10 @@
       --ink: #f2f2f3;
       --ink-2: #c4c4cb;
       --muted: #8e8e98;
-      --accent: #e11d48;
-      --accent-hover: #f43f5e;
-      --accent-soft: rgba(225, 29, 72, 0.14);
+      --accent: #ff7a00;
+      --accent-hover: #ff9533;
+      --accent-soft: rgba(255, 122, 0, 0.14);
+      --on-accent: #0a0a0a; /* testo sull'arancione: nero (il bianco non si legge abbastanza) */
       --ok: #34d399;
       --warn: #fbbf24;
       --err: #f87171;
@@ -70,7 +71,7 @@
     .btn:active:not(:disabled) { transform: translateY(0) scale(.98); }
     .btn:disabled { opacity: .45; cursor: not-allowed; }
     .btn svg { width: 16px; height: 16px; flex: none; }
-    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
     .btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
     .btn-lg { min-height: 48px; padding: 0 24px; font-size: 15px; }
     .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-2); }
@@ -449,15 +450,15 @@
   </style>
 </head>
 <body>
-  <!-- Interfaccia di lavoro (software): sistema neutro scuro, un accento rosso solo sul pulsante principale e sul focus; tre passi guidati. -->
+  <!-- Interfaccia di lavoro (software): sistema nero e arancione: l'arancione solo su pulsante principale, avanzamento e focus; tre passi guidati. -->
   <header class="top">
     <a class="skip-link" href="#main">Vai al contenuto</a>
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2.5 1v10L11 6z" fill="#fff"/></svg></span>
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2.5 1v10L11 6z" fill="#0a0a0a"/></svg></span>
       <span>TiktokFactory <small>Studio</small></span>
     </div>
     <div class="top-right">
-      <span class="chip" id="llm-chip" title=""><span id="llm-dot" class="dot"></span><span id="llm-pill">LM Studio: verifica…</span></span>
+      <span class="chip" id="llm-chip" title=""><span id="llm-dot" class="dot"></span><span id="llm-pill">Motore AI: verifica…</span></span>
       <span class="chip ff" id="ff-chip"><span id="ff-dot" class="dot"></span><span id="ff-pill">FFmpeg</span></span>
       <button type="button" class="btn btn-ghost btn-sm" id="btn-help" aria-haspopup="dialog">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
@@ -469,7 +470,7 @@
   <div id="jobbar" class="jobbar hidden" role="status" aria-live="polite">
     <span class="spinner" aria-hidden="true"></span>
     <div class="jobbar-text"><b id="job-title">Lavoro in corso</b><span id="activity">Avvio…</span></div>
-    <span id="job-tps" class="jobbar-tps hidden" title="Velocità del modello locale in LM Studio (token al secondo)"></span>
+    <span id="job-tps" class="jobbar-tps hidden" title="Velocità del motore AI (token al secondo)"></span>
     <span id="job-pct" class="jobbar-pct">0%</span>
     <button type="button" id="btn-cancel" class="btn btn-sm btn-danger">Annulla lavoro</button>
     <div class="jobbar-track"><div id="progress-fill" class="jobbar-fill"></div></div>
@@ -515,7 +516,7 @@
         <div class="panel-head">
           <div>
             <h2>Di cosa parla il video?</h2>
-            <p>Scrivi l'idea in una riga e premi <b>Crea tutto</b>: la tua AI locale scrive la storia, la voce la legge, ogni scena viene disegnata e ottieni il video lungo per YouTube e le clip per TikTok, tagliate sui momenti di massima tensione.</p>
+            <p>Scrivi l'idea in una riga e premi <b>Crea</b>: la tua AI scrive la storia, la voce la legge, ogni scena viene disegnata e ottieni il video lungo per YouTube e le clip per TikTok, tagliate sui momenti di massima tensione.</p>
           </div>
         </div>
 
@@ -552,11 +553,21 @@
           </div>
           <p class="hint" id="parts-hint">Ogni parte diventa una clip separata di circa 1 min.</p>
 
-          <div class="field">
-            <label for="llm-select">Modello che scrive</label>
-            <select id="llm-select"><option value="">caricamento…</option></select>
-            <span class="hint">Il pallino ● indica i modelli già caricati in LM Studio.</span>
+          <div class="field-row">
+            <div class="field">
+              <label for="ai-provider">Motore AI che scrive</label>
+              <select id="ai-provider"><option value="">caricamento…</option></select>
+            </div>
+            <div class="field">
+              <label for="llm-select">Modello</label>
+              <select id="llm-select"><option value="">caricamento…</option></select>
+            </div>
           </div>
+          <div class="voice-row hidden" id="ai-key-row">
+            <input type="password" id="ai-key" placeholder="Chiave API" autocomplete="off" spellcheck="false" aria-label="Chiave API del motore AI" style="flex:1;min-width:0" />
+            <button type="button" id="btn-ai-save" class="btn">Salva e prova</button>
+          </div>
+          <span class="hint" id="ai-hint">Il pallino ● indica i modelli già caricati sul PC.</span>
 
           <div class="field" id="lang-field">
             <label for="lang-main">Lingua della storia</label>
@@ -613,14 +624,10 @@
           <div class="actions">
             <button type="button" id="btn-auto" class="btn btn-primary btn-lg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-              <span>Crea tutto</span>
-            </button>
-            <button type="button" id="btn-generate" class="btn btn-lg">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-              <span id="btn-generate-label">Solo il copione</span>
+              <span id="btn-auto-label">Crea</span>
             </button>
           </div>
-          <span class="hint" id="generate-hint">Crea tutto usa la voce scelta qui sopra e lo stile dei disegni scelto al passo 3.</span>
+          <span class="hint" id="generate-hint">Crea usa le lingue e le voci scelte qui sopra e lo stile dei disegni scelto al passo 3.</span>
 
           <details class="more" id="manage" hidden>
             <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Gestisci progetto</summary>
@@ -682,12 +689,9 @@
 
           <div class="field">
             <span class="field-label" id="style-label">Stile dei disegni</span>
-            <div class="options two-two" id="style-group" role="group" aria-labelledby="style-label">
+            <div class="options" id="style-group" role="group" aria-labelledby="style-label">
               <button type="button" class="opt" data-style="anim" aria-pressed="true"><b>Cartone animato</b><span>Personaggi animati che parlano, sfondi nello stile del tuo esempio</span></button>
-              <button type="button" class="opt" data-style="reel" aria-pressed="false"><b>Stile reel</b><span>Illustrazioni ferme nello stile delle immagini in style_refs/</span></button>
-              <button type="button" class="opt" data-style="cartoon" aria-pressed="false"><b>Cartoon</b><span>Contorni neri, colori pieni, stile fumetto web</span></button>
-              <button type="button" class="opt" data-style="sketch" aria-pressed="false"><b>Schizzo a matita</b><span>Tratto a matita su carta, bianco e nero</span></button>
-              <button type="button" class="opt" data-style="comic" aria-pressed="false"><b>Fumetto</b><span>Inchiostro, retino, toni scuri</span></button>
+              <button type="button" class="opt" data-style="cartoon" aria-pressed="false"><b>Illustrazione</b><span>Una scena disegnata per ogni momento, con zoom lento: contorni neri e colori pieni</span></button>
             </div>
             <div id="ill-box" class="lock-note">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
@@ -705,16 +709,8 @@
           </div>
 
           <details class="more">
-            <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Impostazioni avanzate</summary>
+            <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>Musica ed effetti</summary>
             <div class="more-body">
-              <div class="field">
-                <label for="wpm-range">Velocità del parlato <span id="wpm-val" class="val">165 WPM</span></label>
-                <input type="range" id="wpm-range" min="110" max="210" value="165" />
-              </div>
-              <div class="field">
-                <label for="cut-range">Durata massima di un sottotitolo <span id="cut-val" class="val">2.2s</span></label>
-                <input type="range" id="cut-range" min="1.0" max="5.0" step="0.2" value="2.2" />
-              </div>
               <div class="field">
                 <label for="music-range">Musica di sottofondo <span id="music-val" class="val">25%</span></label>
                 <input type="range" id="music-range" min="0" max="60" step="5" value="25" />
@@ -722,11 +718,6 @@
               </div>
               <label class="check"><input type="checkbox" id="sfx-check" checked /> <span>Effetti sonori (cambi di scena, etichette, colpo di scena finale)</span></label>
               <label class="check"><input type="checkbox" id="no-visuals" /> <span>Niente disegni: solo sfondo scuro e sottotitoli (più veloce)</span></label>
-              <div class="field">
-                <label for="silence-range">Taglio dei silenzi <span id="silence-val" class="val">120ms</span></label>
-                <input type="range" id="silence-range" min="0" max="500" step="10" value="120" />
-                <span class="hint">Le pause a inizio e fine di ogni blocco più lunghe di questo valore vengono tagliate.</span>
-              </div>
             </div>
           </details>
 
@@ -912,13 +903,28 @@
     <div class="help-in">
       <h2 id="help-title">Come funziona</h2>
       <ol>
-        <li><span class="step-num">1</span><div><b>Scrivi l'idea e premi Crea tutto</b><span>La tua AI locale scrive la storia, la voce locale la legge, ogni scena viene disegnata e il video è pronto, senza altri passaggi.</span></div></li>
+        <li><span class="step-num">1</span><div><b>Scrivi l'idea e premi Crea</b><span>La tua AI scrive la storia, la voce locale la legge, ogni scena viene disegnata e il video è pronto, senza altri passaggi.</span></div></li>
         <li><span class="step-num">2</span><div><b>Copione (facoltativo)</b><span>Puoi rileggere e correggere ogni blocco e poi rifare il video.</span></div></li>
         <li><span class="step-num">3</span><div><b>Video</b><span>Voce, stile dei disegni e ritmo. Ottieni il video lungo, una clip TikTok per parte e i sottotitoli .srt.</span></div></li>
-        <li><span class="step-num">4</span><div><b>Pubblica</b><span>Collega YouTube e TikTok una volta, poi carichi con un clic o in automatico alla fine di Crea tutto.</span></div></li>
+        <li><span class="step-num">4</span><div><b>Pubblica</b><span>Collega YouTube e TikTok una volta, poi carichi con un clic o in automatico alla fine di Crea.</span></div></li>
       </ol>
-      <p class="req">Prima di iniziare apri LM Studio, carica il modello e avvia il server locale sulla porta 1234 (Developer → Start server). Se un lavoro si interrompe, riapri il progetto e premi Riprendi il copione.</p>
+      <p class="req">Prima di iniziare apri il tuo motore AI: LM Studio (server locale, porta 1234) o Ollama, oppure scegli un servizio cloud e inserisci la sua chiave. Se un lavoro si interrompe, riapri il progetto e premi Riprendi.</p>
       <form method="dialog" class="actions"><button class="btn btn-primary" value="close">Ho capito</button></form>
+    </div>
+  </dialog>
+
+  <!-- Avviso: nessun motore AI -->
+  <dialog class="help" id="ai-dialog" aria-labelledby="ai-dialog-title">
+    <div class="help-in">
+      <h2 id="ai-dialog-title">Nessun motore AI risponde</h2>
+      <p id="ai-dialog-text">ClipTale usa un motore AI per scrivere le storie.</p>
+      <p class="req" id="ai-dialog-help"></p>
+      <p class="hint" id="ai-dialog-status">Ricontrollo da solo ogni 5 secondi.</p>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="ai-retry">Riprova</button>
+        <button type="button" class="btn" id="ai-change">Cambia motore</button>
+        <button type="button" class="btn btn-ghost" id="ai-later">Continua senza</button>
+      </div>
     </div>
   </dialog>
 
@@ -946,6 +952,8 @@
       style: "cartoon",
       illustrations: null,
       engine: "pc",
+      pace: { wpm: 165, cut: 2.2 },
+      aiDismissed: false,
       langMain: "it",
       langExtra: [],
       lang: null,
@@ -961,7 +969,9 @@
     const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const words = (t) => String(t || "").trim().split(/\s+/).filter(Boolean).length;
     const fmtTime = (sec) => `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
-    const wpm = () => Number($("wpm-range").value);
+    const SILENCE_MS = 120;
+    const PACES = { "165": 2.2, "148": 2.8, "132": 3.5 };  // parole al minuto -> durata massima di un sottotitolo
+    const wpm = () => state.pace.wpm;
     const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
 
     async function api(path, options = {}) {
@@ -1007,10 +1017,12 @@
         state.health = h;
         state.healthError = false;
         const pill = $("llm-pill");
-        if (!h.lmstudio) { pill.textContent = "LM Studio spento"; setDot("llm-dot", "err"); }
+        const name = h.provider_label || "Motore AI";
+        if (!h.lmstudio) { pill.textContent = `${name} non risponde`; setDot("llm-dot", "err"); }
         else if (h.model_loaded === false) { pill.textContent = `${h.model || "?"} non caricato`; setDot("llm-dot", "warn"); }
-        else { pill.textContent = `${h.model}${h.thinking ? " · thinking" : ""}`; setDot("llm-dot", "ok"); }
-        $("llm-chip").title = h.lmstudio_error || (h.lmstudio ? "LM Studio connesso" : "");
+        else { pill.textContent = `${h.provider_local ? "" : name + " · "}${h.model || "pronto"}${h.thinking ? " · thinking" : ""}`; setDot("llm-dot", "ok"); }
+        $("llm-chip").title = h.lmstudio_error || (h.lmstudio ? `${name} collegato` : "");
+        aiDialog(h);
         $("ff-pill").textContent = h.ffmpeg ? "FFmpeg pronto" : "FFmpeg mancante";
         setDot("ff-dot", h.ffmpeg ? "ok" : "err");
         if (state.job) setDot("llm-dot", "busy");
@@ -1028,15 +1040,74 @@
       const sel = $("llm-select");
       try {
         const data = await api("/api/models");
-        sel.innerHTML = data.models.map((m) => `<option value="${esc(m.id)}">${esc(m.id)}${m.loaded ? " ●" : ""}</option>`).join("") || `<option value="">nessun modello in LM Studio</option>`;
+        sel.innerHTML = data.models.map((m) => `<option value="${esc(m.id)}">${esc(m.id)}${m.loaded ? " ●" : ""}</option>`).join("") || `<option value="">nessun modello trovato</option>`;
         const saved = localGet("model");
         const pick = [saved, data.default].find((v) => v && data.models.some((m) => m.id === v)) || data.models.find((m) => m.loaded)?.id;
         if (pick) sel.value = pick;
       } catch (e) {
-        sel.innerHTML = `<option value="">LM Studio non raggiungibile</option>`;
+        sel.innerHTML = `<option value="">motore AI non raggiungibile</option>`;
         log("llm_service.py", e.message, "error");
       }
     }
+
+    // ------------------------------------------------------------ motore AI e avviso all'avvio
+    async function loadAI() {
+      try { state.ai = await api("/api/ai"); } catch { return; }
+      const sel = $("ai-provider");
+      sel.innerHTML = state.ai.providers.map((p) => `<option value="${esc(p.id)}">${esc(p.label)}${p.local ? "" : " (cloud)"}</option>`).join("");
+      sel.value = state.ai.current;
+      aiHint();
+    }
+    function aiInfo(id) { return (state.ai?.providers || []).find((p) => p.id === id); }
+    function aiHint(extra) {
+      const p = aiInfo($("ai-provider").value);
+      if (!p) return;
+      $("ai-key-row").classList.toggle("hidden", !p.needs_key);
+      $("ai-key").placeholder = p.has_key ? "Chiave salvata · incollane una nuova per cambiarla" : `Chiave API di ${p.label}`;
+      $("ai-hint").textContent = extra || (p.local ? `${p.help} Il pallino ● indica i modelli già caricati.` : p.help);
+    }
+    async function chooseAI(provider, key) {
+      try {
+        const res = await api("/api/ai", { method: "POST", body: JSON.stringify(key === undefined ? { provider } : { provider, key }) });
+        state.ai = res;
+        aiHint(res.ok ? `${aiInfo(provider).label} collegato: ${res.models} modelli disponibili.` : `${aiInfo(provider).label} non risponde: ${res.error || ""}`);
+        if (res.ok) toast(`${aiInfo(provider).label} collegato`);
+        await Promise.all([loadModels(), checkHealth()]);
+      } catch (e) { toast(e.message); }
+    }
+    $("ai-provider").addEventListener("change", (e) => {
+      const p = aiInfo(e.target.value);
+      aiHint();
+      if (!p.needs_key || p.has_key) chooseAI(p.id);
+      else $("ai-key").focus();
+    });
+    $("btn-ai-save").addEventListener("click", () => {
+      const key = $("ai-key").value.trim();
+      if (!key && !aiInfo($("ai-provider").value)?.has_key) { $("ai-key").focus(); return; }
+      $("ai-key").value = "";
+      chooseAI($("ai-provider").value, key || undefined);
+    });
+
+    let aiTimer = null;
+    function aiDialog(h) {
+      const dlg = $("ai-dialog");
+      if (h.lmstudio) {
+        if (dlg.open) { dlg.close(); toast(`${h.provider_label} collegato`); loadModels(); }
+        clearInterval(aiTimer); aiTimer = null;
+        return;
+      }
+      if (state.aiDismissed || state.job) return;
+      const p = aiInfo(h.provider) || {};
+      $("ai-dialog-text").textContent = p.local
+        ? `${h.provider_label} non risponde. Aprilo prima di usare ClipTale, oppure scegli un altro motore.`
+        : `${h.provider_label} non risponde${h.lmstudio_error ? " (" + h.lmstudio_error + ")" : ""}. Controlla la chiave e la connessione, oppure scegli un altro motore.`;
+      $("ai-dialog-help").textContent = p.help || "";
+      if (!dlg.open) dlg.showModal();
+      if (!aiTimer) aiTimer = setInterval(checkHealth, 5000);
+    }
+    $("ai-retry").addEventListener("click", () => { $("ai-dialog-status").textContent = "Controllo…"; checkHealth().then(() => { $("ai-dialog-status").textContent = "Ricontrollo da solo ogni 5 secondi."; }); });
+    $("ai-change").addEventListener("click", () => { state.aiDismissed = true; $("ai-dialog").close(); setStep("idea"); $("ai-provider").focus(); $("ai-provider").scrollIntoView({ behavior: "smooth", block: "center" }); });
+    $("ai-later").addEventListener("click", () => { state.aiDismissed = true; $("ai-dialog").close(); clearInterval(aiTimer); aiTimer = null; });
 
     async function loadVoices() {
       try {
@@ -1204,7 +1275,7 @@
         ? "Voce neurale online: il testo viene inviato a Microsoft. Senza Internet si usa la voce locale."
         : v === "auto" ? "Sceglie da sola una voce maschile o femminile in base a chi racconta la storia (voci realistiche locali, se installate)."
         : v.startsWith("kokoro:") ? "Voce naturale locale (Kokoro): gira sul tuo PC, nessun dato esce."
-        : v.startsWith("chatterbox:") ? "Voce realistica locale (Chatterbox): gira sulla tua scheda video, nessun dato esce. Mentre parla, LM Studio viene messo in pausa."
+        : v.startsWith("chatterbox:") ? "Voce realistica locale (Chatterbox): gira sulla tua scheda video, nessun dato esce. Mentre parla, il motore AI locale viene messo in pausa."
         : "Voce locale.";
     }
 
@@ -1365,9 +1436,9 @@
       else if (state.job && state.job.kind === "publish") html = "<b>Sto pubblicando.</b> Il caricamento può richiedere qualche minuto.";
       else if (state.job && state.job.kind === "render") html = "<b>Sto creando il video.</b> Voce, disegni e clip arrivano tra poco: puoi seguire i dettagli nel registro in basso.";
       else if (state.job) html = "<b>Il modello sta scrivendo il copione.</b> I blocchi di testo compaiono al passo 2 appena finisce.";
-      else if (state.health && !state.health.lmstudio && !(p && p.has_script)) { kind = "warn"; html = "<b>LM Studio è spento.</b> Aprilo, carica il modello e avvia il server locale (porta 1234). Questa pagina si aggiorna da sola."; }
-      else if (!p) html = "<b>Scrivi un'idea</b> in una riga e premi <b>Crea tutto</b>: ci pensa la tua AI locale.";
-      else if (p.has_plan && !state.beats.length) { kind = "warn"; html = "<b>Copione interrotto.</b> La struttura è salvata: premi <b>Riprendi il copione</b> al passo 1."; }
+      else if (state.health && !state.health.lmstudio && !(p && p.has_script)) { kind = "warn"; html = `<b>${esc(state.health.provider_label || "Il motore AI")} non risponde.</b> Aprilo o scegli un altro motore al passo 1. Questa pagina si aggiorna da sola.`; }
+      else if (!p) html = "<b>Scrivi un'idea</b> in una riga e premi <b>Crea</b>: ci pensa la tua AI.";
+      else if (p.has_plan && !state.beats.length) { kind = "warn"; html = "<b>Copione interrotto.</b> La struttura è salvata: premi <b>Riprendi</b> al passo 1."; }
       else if (!state.beats.length) html = "<b>Questo progetto non ha ancora un copione.</b> Premi <b>Scrivi il copione</b> al passo 1.";
       else if (!p.has_video) html = "<b>Copione pronto.</b> Rileggilo al passo 2, poi crea il video al passo 3.";
       else html = "<b>Video pronto.</b> Lo trovi nell'anteprima: scarica i file al passo 3 o pubblicali al passo 4.";
@@ -1392,11 +1463,13 @@
       }
       $("btn-to-video").classList.toggle("hidden", !state.beats.length);
 
-      const scriptReady = has && p && p.has_script;
-      $("btn-generate-label").textContent = has && p && p.has_plan && !p.has_script ? "Riprendi il copione" : scriptReady ? "Copione già pronto" : "Solo il copione";
-      $("btn-generate").disabled = busy || scriptReady;
-      $("btn-auto").disabled = busy || !!(has && p && p.has_plan);
-      $("generate-hint").textContent = has && p && p.has_plan ? "Questo progetto ha già una storia: continua dai passi 2 e 3, oppure premi Nuovo video." : "Crea tutto usa la voce scelta qui sopra e lo stile dei disegni scelto al passo 3.";
+      const resumable = has && p && !p.has_video;
+      $("btn-auto-label").textContent = resumable ? (p.has_script ? "Crea il video" : "Riprendi") : "Crea";
+      $("btn-auto").disabled = busy || !!(has && p && p.has_video);
+      $("generate-hint").textContent = has && p && p.has_video
+        ? "Questo video è già pronto: correggi il copione e premi Crea il video al passo 3, oppure Riscrivi da zero, oppure Nuovo video."
+        : resumable ? "Riprende da dove si era fermato: storia, voce, disegni e video."
+        : "Crea usa le lingue e le voci scelte qui sopra e lo stile dei disegni scelto al passo 3.";
       $("btn-publish").disabled = busy || !(p && p.has_video);
       $("btn-pub-shorts").disabled = $("btn-pub-ytall").disabled = busy || !(state.publish?.shorts?.length);
       $("btn-render").disabled = busy || !state.beats.length;
@@ -1452,7 +1525,7 @@
         const p = state.project;
         let msg = "<b>Ancora nessun copione</b><p>Scrivi la tua idea al passo 1 e premi Scrivi il copione. Qui potrai correggere ogni frase prima di creare il video.</p><button type=\"button\" class=\"btn\" data-goto=\"idea\">Vai al passo 1</button>";
         if (state.job && state.job.kind === "generate") msg = "<b>Il modello sta scrivendo…</b><p>Segui l'avanzamento nella barra in alto. I blocchi compaiono qui al termine.</p>";
-        else if (p && p.has_plan) msg = "<b>Copione incompleto</b><p>La struttura è salvata: premi Riprendi il copione per continuare da dove si era fermato.</p><button type=\"button\" class=\"btn\" data-goto=\"idea\">Vai al passo 1</button>";
+        else if (p && p.has_plan) msg = "<b>Copione incompleto</b><p>La struttura è salvata: premi Riprendi al passo 1 per continuare da dove si era fermato.</p><button type=\"button\" class=\"btn\" data-goto=\"idea\">Vai al passo 1</button>";
         list.innerHTML = `<div class="empty">${msg}</div>`;
         list.querySelectorAll("[data-goto]").forEach((b) => b.addEventListener("click", () => setStep(b.dataset.goto)));
         updateMetrics();
@@ -1695,53 +1768,42 @@
     }
 
     // ------------------------------------------------------------ azioni
-    $("btn-generate").addEventListener("click", async () => {
-      const model = $("llm-select").value;
-      if (!model) { log("llm_service.py", "Seleziona un modello LM Studio (il server LM Studio deve essere avviato).", "error"); toast("Scegli prima un modello"); $("llm-select").focus(); return; }
-      const topic = $("topic-input").value.trim();
-      if (!state.projectId && !topic) { toast("Scrivi prima un'idea"); $("topic-input").focus(); return; }
-      if (state.health && state.health.model_loaded === false && model === state.health.model) log("llm_service.py", "Il modello non risulta caricato: LM Studio proverà a caricarlo (può richiedere un minuto).", "warn");
+    function autoPayload(extra = {}) {
+      return {
+        topic: $("topic-input").value.trim(), format: state.format, model: $("llm-select").value,
+        languages: selectedLangs(), voices: voicesMap(),
+        duration_minutes: Number($("duration-range").value), parts: Number($("parts-range").value), wpm: wpm(),
+        voice: $("voice-select").value || null, visuals: $("no-visuals").checked ? "none" : "ai", style: state.style,
+        music: Number($("music-range").value) / 100, sfx: $("sfx-check").checked,
+        cut_seconds: state.pace.cut, silence_ms: SILENCE_MS,
+        publish_youtube: $("auto-yt").checked, youtube_privacy: state.ytPrivacy,
+        publish_tiktok: $("auto-tt").checked, tiktok_mode: state.ttMode,
+        ...extra,
+      };
+    }
+    async function startAuto(extra, what) {
+      if (!$("llm-select").value) { toast("Scegli prima un modello"); $("llm-select").focus(); return; }
       try {
-        const res = await api("/api/generate", { method: "POST", body: JSON.stringify({
-          topic, format: state.format, model, project_id: state.projectId, languages: selectedLangs(),
-          duration_minutes: Number($("duration-range").value), parts: Number($("parts-range").value), wpm: wpm(),
-        }) });
-        log("llm_service.py", `Generazione avviata con ${model}`);
-        await loadProjects();
-        await openProject(res.project_id);
-        attachJob({ id: res.job_id, project_id: res.project_id, kind: "generate" });
-      } catch (e) { log("llm_service.py", e.message, "error"); toast(e.message); }
-    });
-
-    $("btn-auto").addEventListener("click", async () => {
-      const model = $("llm-select").value;
-      if (!model) { toast("Scegli prima un modello"); $("llm-select").focus(); return; }
-      const topic = $("topic-input").value.trim();
-      if (!topic) { toast("Scrivi prima un'idea"); $("topic-input").focus(); return; }
-      try {
-        const res = await api("/api/auto", { method: "POST", body: JSON.stringify({
-          topic, format: state.format, model, languages: selectedLangs(), voices: voicesMap(),
-          duration_minutes: Number($("duration-range").value), parts: Number($("parts-range").value), wpm: wpm(),
-          voice: $("voice-select").value || null, visuals: $("no-visuals").checked ? "none" : "ai", style: state.style,
-          music: Number($("music-range").value) / 100, sfx: $("sfx-check").checked,
-          cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
-          publish_youtube: $("auto-yt").checked, youtube_privacy: state.ytPrivacy,
-          publish_tiktok: $("auto-tt").checked, tiktok_mode: state.ttMode,
-        }) });
-        log("auto", `Creazione automatica avviata con ${model}`);
+        const res = await api("/api/auto", { method: "POST", body: JSON.stringify(autoPayload(extra)) });
+        log("auto", `${what} con ${$("llm-select").value}`);
         await loadProjects();
         await openProject(res.project_id);
         attachJob({ id: res.job_id, project_id: res.project_id, kind: "auto" });
       } catch (e) { log("auto", e.message, "error"); toast(e.message); }
+    }
+    $("btn-auto").addEventListener("click", async () => {
+      const p = state.project;
+      if (state.projectId && p && !p.has_video) {  // progetto interrotto o senza video: riprende da dove era arrivato
+        await flushSave();
+        return startAuto({ project_id: state.projectId }, "Ripresa del progetto");
+      }
+      if (!$("topic-input").value.trim()) { toast("Scrivi prima un'idea"); $("topic-input").focus(); return; }
+      return startAuto({ project_id: null }, "Creazione avviata");
     });
 
     $("btn-regenerate").addEventListener("click", async () => {
-      if (!state.projectId || !confirm("Riscrivere concept, struttura e testo da zero? Il copione attuale verrà sostituito.")) return;
-      try {
-        const res = await api("/api/generate", { method: "POST", body: JSON.stringify({ project_id: state.projectId, restart: true, model: $("llm-select").value, wpm: wpm(), languages: selectedLangs() }) });
-        await openProject(res.project_id);
-        attachJob({ id: res.job_id, project_id: res.project_id, kind: "generate" });
-      } catch (e) { log("llm_service.py", e.message, "error"); toast(e.message); }
+      if (!state.projectId || !confirm("Riscrivere la storia da zero e rifare il video? Copione e video attuali verranno sostituiti.")) return;
+      return startAuto({ project_id: state.projectId, restart: true }, "Riscrittura da zero");
     });
 
     $("btn-render").addEventListener("click", async () => {
@@ -1752,12 +1814,12 @@
         const visuals = $("no-visuals").checked ? "none" : "ai";
         const res = await api(`/api/projects/${state.projectId}/render`, { method: "POST", body: JSON.stringify({
           voice: voice || null, voices: voicesMap(), languages: selectedLangs(),
-          wpm: wpm(), cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
+          wpm: wpm(), cut_seconds: state.pace.cut, silence_ms: SILENCE_MS,
           visuals, style: state.style, model: $("llm-select").value || null,
           music: Number($("music-range").value) / 100, sfx: $("sfx-check").checked,
         }) });
         hideVideo();
-        log("tts_engine", `Render avviato (${selectedLangs().map((c) => LANG_NAMES[c]).join(", ")}): ${wpm()} WPM, taglio silenzi > ${$("silence-range").value}ms`);
+        log("tts_engine", `Render avviato (${selectedLangs().map((c) => LANG_NAMES[c]).join(", ")}): ritmo ${wpm()} parole al minuto`);
         attachJob({ id: res.job_id, project_id: state.projectId, kind: "render" });
       } catch (e) { log("compositor", e.message, "error"); toast(e.message); }
     });
@@ -1796,7 +1858,7 @@
       const payload = {
         project_id: state.projectId, topic: $("topic-input").value, format: state.format,
         llm: $("llm-select").value, voice: $("voice-select").value, wpm: wpm(),
-        cut_seconds: Number($("cut-range").value), silence_ms: Number($("silence-range").value),
+        cut_seconds: state.pace.cut, silence_ms: SILENCE_MS,
         concept: state.project?.concept || null, beats: state.beats, metadata: state.project?.metadata || null,
       };
       navigator.clipboard?.writeText(JSON.stringify(payload, null, 2));
@@ -1817,28 +1879,25 @@
       $("parts-hint").textContent = parts === 1
         ? "Un solo video, senza divisione in parti."
         : `Ogni parte diventa una clip separata di circa ${per < 60 ? Math.round(per) + " s" : (Math.round(per / 6) / 10).toString().replace(".", ",") + " min"}.`;
-      $("wpm-val").textContent = `${wpm()} WPM`;
-      $("cut-val").textContent = `${Number($("cut-range").value).toFixed(1)}s`;
-      $("silence-val").textContent = `${$("silence-range").value}ms`;
-      if (!state.project?.has_script) $("generate-hint").textContent = `Circa ${3 + parts} chiamate al modello, di solito pochi minuti.`;
+      if (!state.projectId) $("generate-hint").textContent = `Circa ${3 + parts} chiamate al modello, di solito pochi minuti.`;
     }
     function setFormat(f) {
       state.format = f;
       document.querySelectorAll("#format-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.format === f)));
     }
     function syncPace() {
-      const w = String(wpm()), c = Number($("cut-range").value);
-      document.querySelectorAll("#pace-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.wpm === w && Number(b.dataset.cut) === c)));
+      document.querySelectorAll("#pace-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.wpm) === state.pace.wpm)));
     }
-    ["duration-range", "parts-range", "cut-range", "silence-range"].forEach((id) => $(id).addEventListener("input", () => { syncLabels(); syncPace(); }));
-    $("wpm-range").addEventListener("input", () => { syncLabels(); syncPace(); updateMetrics(); renderSteps(); localSet("wpm", wpm()); });
+    function setPace(w) {
+      const key = String(w);
+      state.pace = { wpm: PACES[key] ? Number(key) : 165, cut: PACES[key] || 2.2 };
+      syncPace();
+    }
+    ["duration-range", "parts-range"].forEach((id) => $(id).addEventListener("input", syncLabels));
     document.querySelectorAll("#format-group .opt").forEach((b) => b.addEventListener("click", () => setFormat(b.dataset.format)));
     document.querySelectorAll("#pace-group .opt").forEach((btn) => btn.addEventListener("click", () => {
-      $("wpm-range").value = btn.dataset.wpm;
-      $("cut-range").value = btn.dataset.cut;
+      setPace(btn.dataset.wpm);
       localSet("wpm", btn.dataset.wpm);
-      syncLabels();
-      syncPace();
       updateMetrics();
       renderSteps();
       log("story_brain.py", `Ritmo ${btn.querySelector("b").textContent} (${btn.dataset.wpm} WPM, sottotitoli ${btn.dataset.cut}s).`);
@@ -1994,6 +2053,7 @@
 
     // illustrazioni
     function setStyle(v) {
+      v = ["anim", "cartoon"].includes(v) ? v : "cartoon";
       state.style = v;
       localSet("style3", v);
       document.querySelectorAll("#style-group .opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.style === v)));
@@ -2004,7 +2064,7 @@
       $("ill-text").innerHTML = !st ? "Stato del disegnatore non disponibile."
         : !st.available ? "<b>Disegnatore non installato.</b> Chiudi l'app ed esegui <b>installa_disegni.bat</b> (circa 6 GB, una volta sola). Fino ad allora i video hanno uno sfondo scuro."
         : !st.models_ready ? "Disegnatore installato. Al primo video scarica il modello di disegno (circa 2 GB), poi lavora senza Internet."
-        : "Ogni scena viene disegnata sul tuo PC con Stable Diffusion. Durante il disegno LM Studio viene messo in pausa e poi ricaricato.";
+        : "Ogni scena viene disegnata sul tuo PC con Stable Diffusion. Durante il disegno il motore AI locale viene messo in pausa e poi ricaricato.";
       $("ill-box").classList.toggle("warn", !!st && !st.available);
     }
     document.querySelectorAll("#style-group .opt").forEach((b) => b.addEventListener("click", () => setStyle(b.dataset.style)));
@@ -2085,13 +2145,12 @@
 
     // ------------------------------------------------------------ avvio
     (async function init() {
-      const savedWpm = localGet("wpm");
-      if (savedWpm) $("wpm-range").value = savedWpm;
+      setPace(localGet("wpm") || 165);
       syncLabels();
-      syncPace();
       setStep("idea");
       log("system", "TiktokFactory Studio: connessione al server locale…");
       loadStoredLangs();
+      await loadAI();
       await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus(), loadPublishStatus(), loadEleven()]);
       setEngine(localGet("engine") || "pc");
       setStyle(localGet("style3") || state.illustrations?.default_style || "anim");
@@ -2104,7 +2163,7 @@
         await openProject(exists ? last : "", { autoStep: true });
       }
       if (!localGet("seen_help")) { localSet("seen_help", "1"); if (!state.projects.length) $("help-dialog").showModal(); }
-      log("system", state.health?.lmstudio ? "Pronto. Modello e voci caricati." : "LM Studio non risponde: avvialo e attiva il server locale (porta 1234).", state.health?.lmstudio ? true : "warn");
+      log("system", state.health?.lmstudio ? "Pronto. Modello e voci caricati." : `${state.health?.provider_label || "Il motore AI"} non risponde: aprilo o scegline un altro al passo 1.`, state.health?.lmstudio ? true : "warn");
       setInterval(() => { if (!state.job) checkHealth(); }, 20000);
     })();
   </script>
