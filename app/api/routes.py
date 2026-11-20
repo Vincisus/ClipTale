@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app.core import jobs, languages, projects
+from app.core import jobs, languages, projects, video_queue
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
 from app.services import ai_providers, eleven_service, illustration_service, publish_service, tts_service
@@ -379,8 +379,14 @@ class AutoRequest(GenerateRequest):
 
 @router.post("/auto")
 async def auto(payload: AutoRequest, request: Request):
-    """Dall'idea al video finito in un solo lavoro: copione (LM Studio) -> voce -> disegni -> video -> pubblicazione facoltativa."""
+    """Dall'idea al video finito in un solo lavoro: copione -> voce -> disegni -> video -> pubblicazione facoltativa."""
     same_origin(request)
+    job, folder = start_auto(payload)
+    return {"job_id": job.id, "project_id": folder.name}
+
+
+def start_auto(payload):
+    """Avvia la creazione completa (usato dal pulsante Crea e dalla coda). Restituisce (job, cartella)."""
     if not ffmpeg_exe():
         raise HTTPException(400, "FFmpeg non disponibile")
     folder, brief, llm = prepare_brief(payload)
@@ -413,8 +419,70 @@ async def auto(payload: AutoRequest, request: Request):
                     youtube={"privacy": payload.youtube_privacy} if payload.publish_youtube else None,
                     tiktok={"mode": payload.tiktok_mode} if payload.publish_tiktok else None)
 
-    job = jobs.start("auto", folder.name, worker)
-    return {"job_id": job.id, "project_id": folder.name}
+    return jobs.start("auto", folder.name, worker), folder
+
+
+# ------------------------------------------------------------------ app desktop
+class ShowRequest(BaseModel):
+    project_id: Optional[str] = Field(default=None, max_length=80)
+
+
+@router.post("/app/show")
+async def app_show(payload: ShowRequest, request: Request):
+    """Una seconda copia di ClipTale chiede alla prima di mostrare la sua finestra invece di aprirne un'altra."""
+    same_origin(request)
+    from app.core import desktop
+    if not desktop.show(payload.project_id):
+        raise HTTPException(404, "Nessuna finestra di ClipTale aperta")
+    return {"ok": True}
+
+
+# ------------------------------------------------------------------ coda di video
+@router.get("/queue")
+async def queue_status():
+    return video_queue.status()
+
+
+@router.post("/queue")
+async def queue_add(payload: AutoRequest, request: Request):
+    """Mette un'idea in coda: verrà creata quando i lavori prima di lei sono finiti."""
+    same_origin(request)
+    if not payload.topic.strip():
+        raise HTTPException(400, "Scrivi un'idea da mettere in coda.")
+    data = payload.model_dump()
+    data["project_id"] = None
+    data["restart"] = False
+    return {"item": {k: v for k, v in video_queue.add(data).items() if k != "payload"}, **video_queue.status()}
+
+
+@router.delete("/queue/{item_id}")
+async def queue_remove(item_id: str, request: Request):
+    same_origin(request)
+    if not video_queue.remove(item_id):
+        raise HTTPException(404, "Idea non trovata in coda")
+    return video_queue.status()
+
+
+class QueueMove(BaseModel):
+    index: int = Field(ge=0, le=500)
+
+
+@router.post("/queue/{item_id}/move")
+async def queue_move(item_id: str, payload: QueueMove, request: Request):
+    same_origin(request)
+    video_queue.move(item_id, payload.index)
+    return video_queue.status()
+
+
+class QueuePause(BaseModel):
+    paused: bool
+
+
+@router.post("/queue/pause")
+async def queue_pause(payload: QueuePause, request: Request):
+    same_origin(request)
+    video_queue.set_paused(payload.paused)
+    return video_queue.status()
 
 
 # ------------------------------------------------------------------ pubblicazione
@@ -459,13 +527,13 @@ async def publish_callback(platform: Literal["youtube", "tiktok"], code: str = "
     except Exception as exc:
         return HTMLResponse(_page(str(exc), ok=False), status_code=400)
     name = "YouTube" if platform == "youtube" else "TikTok"
-    return HTMLResponse(_page(f"{name} collegato. Puoi chiudere questa scheda e tornare a TiktokFactory.", ok=True))
+    return HTMLResponse(_page(f"{name} collegato. Puoi chiudere questa scheda e tornare a ClipTale.", ok=True))
 
 
 def _page(message, ok):
     from html import escape
     color = "#34d399" if ok else "#f87171"
-    return (f"<!doctype html><meta charset='utf-8'><title>TiktokFactory</title><body style='font-family:system-ui;background:#0b0b0d;"
+    return (f"<!doctype html><meta charset='utf-8'><title>ClipTale</title><body style='font-family:system-ui;background:#0b0b0d;"
             f"color:#f2f2f3;display:grid;place-items:center;height:100vh;margin:0'><p style='max-width:520px;font-size:18px;"
             f"border:1px solid {color};padding:24px;border-radius:12px'>{escape(message)}</p>"
             + ("<script>try{window.opener&&window.opener.postMessage('tf-connected','*')}catch(e){};setTimeout(()=>window.close(),1500)</script>" if ok else ""))

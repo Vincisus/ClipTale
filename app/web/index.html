@@ -7,7 +7,7 @@
   <meta name="site-kind" content="software" />
   <meta name="description" content="Studio locale per creare video verticali 9:16: dall'idea al copione con la tua AI, poi voce, sottotitoli e clip TikTok." />
   <meta name="theme-color" content="#0b0b0d" />
-  <title>TiktokFactory Studio</title>
+  <title>ClipTale</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e11d48'/%3E%3Cpath d='M12 9.5v13l11-6.5z' fill='white'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -233,6 +233,14 @@
     .lock-note svg { width: 18px; height: 18px; flex: none; margin-top: 2px; }
     .lock-note.warn { border-color: rgba(251, 191, 36, .35); }
     .options.two-two { grid-template-columns: 1fr 1fr; }
+    .queue-box { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: var(--r); background: var(--bg); border: 1px solid var(--line); }
+    .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .queue-head b { font-size: 14px; font-weight: 600; }
+    .queue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+    .queue-list li { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 4px 4px 4px 12px; border-radius: 8px; background: var(--surface-2); font-size: 14px; }
+    .queue-list .n { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+    .queue-list .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .queue-list .m { font-size: 12px; color: var(--muted); white-space: nowrap; }
     .lang-chips { display: flex; flex-wrap: wrap; gap: 8px; }
     .lang-chip, .lang-tab {
       min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent;
@@ -455,7 +463,7 @@
     <a class="skip-link" href="#main">Vai al contenuto</a>
     <div class="brand">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 12 12"><path d="M2.5 1v10L11 6z" fill="#0a0a0a"/></svg></span>
-      <span>TiktokFactory <small>Studio</small></span>
+      <span>ClipTale</span>
     </div>
     <div class="top-right">
       <span class="chip" id="llm-chip" title=""><span id="llm-dot" class="dot"></span><span id="llm-pill">Motore AI: verifica…</span></span>
@@ -630,6 +638,15 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
               <span id="btn-auto-label">Crea</span>
             </button>
+            <button type="button" id="btn-queue-add" class="btn btn-lg">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h7M3 6h.01M3 12h.01M3 18h.01M19 15v6M16 18h6"/></svg>
+              <span>Aggiungi alla coda</span>
+            </button>
+          </div>
+          <div id="queue-box" class="queue-box hidden" aria-live="polite">
+            <div class="queue-head"><b id="queue-title">In coda</b><button type="button" id="btn-queue-pause" class="btn btn-sm btn-ghost">Metti in pausa</button></div>
+            <ol id="queue-list" class="queue-list"></ol>
+            <span class="hint" id="queue-hint">ClipTale le crea una dopo l'altra, anche a finestra chiusa.</span>
           </div>
           <span class="hint" id="generate-hint">Crea usa le lingue e le voci scelte qui sopra e lo stile dei disegni scelto al passo 3.</span>
 
@@ -1436,7 +1453,7 @@
       const el = $("next-hint");
       const p = state.project;
       let kind = "", html;
-      if (state.healthError) { kind = "err"; html = "<b>Il server di TiktokFactory non risponde.</b> Riavvialo con Avvia.bat."; }
+      if (state.healthError) { kind = "err"; html = "<b>Il motore di ClipTale non risponde.</b> Chiudi ClipTale dall'icona nella barra (Esci) e riaprilo."; }
       else if (state.job && state.job.kind === "auto") html = "<b>Sto creando tutto in automatico.</b> Storia, voce, disegni e video: puoi seguire ogni passo nella barra in alto e nel registro.";
       else if (state.job && state.job.kind === "publish") html = "<b>Sto pubblicando.</b> Il caricamento può richiedere qualche minuto.";
       else if (state.job && state.job.kind === "render") html = "<b>Sto creando il video.</b> Voce, disegni e clip arrivano tra poco: puoi seguire i dettagli nel registro in basso.";
@@ -1806,6 +1823,40 @@
       return startAuto({ project_id: null }, "Creazione avviata");
     });
 
+    // ------------------------------------------------------------ coda di video
+    async function loadQueue(data) {
+      try { state.queue = data || await api("/api/queue"); } catch { return; }
+      const q = state.queue;
+      $("queue-box").classList.toggle("hidden", !q.items.length);
+      $("queue-title").textContent = q.items.length ? `In coda: ${q.items.length} ${q.items.length === 1 ? "video" : "video"}${q.paused ? " · in pausa" : ""}` : "In coda";
+      $("btn-queue-pause").textContent = q.paused ? "Riprendi" : "Metti in pausa";
+      $("queue-hint").textContent = q.last_error || (q.paused ? "La coda è in pausa: premi Riprendi per continuare." : "ClipTale le crea una dopo l'altra, anche a finestra chiusa.");
+      $("queue-list").innerHTML = q.items.map((it, i) => `<li><span class="n">${i + 1}</span><span class="t" title="${esc(it.title)}">${esc(it.title)}</span>
+        <span class="m">${esc((it.languages || []).map((c) => c.toUpperCase()).join(" · "))}${it.duration ? " · " + esc(it.duration) + " min" : ""}</span>
+        <button type="button" class="beat-del" data-q-del="${esc(it.id)}" aria-label="Togli dalla coda: ${esc(it.title)}" title="Togli dalla coda">${ICON_TRASH}</button></li>`).join("");
+      $("queue-list").querySelectorAll("[data-q-del]").forEach((b) => b.addEventListener("click", async () => {
+        try { loadQueue(await api(`/api/queue/${b.dataset.qDel}`, { method: "DELETE" })); } catch (e) { toast(e.message); }
+      }));
+    }
+    $("btn-queue-add").addEventListener("click", async () => {
+      const topic = $("topic-input").value.trim();
+      if (!topic || (state.projectId && state.project?.has_plan)) {
+        if (state.projectId && state.project?.has_plan) { toast("Per mettere in coda un'idea nuova premi prima Nuovo video"); return; }
+        toast("Scrivi prima un'idea"); $("topic-input").focus(); return;
+      }
+      if (!$("llm-select").value) { toast("Scegli prima un modello"); $("llm-select").focus(); return; }
+      try {
+        const res = await api("/api/queue", { method: "POST", body: JSON.stringify(autoPayload({ project_id: null })) });
+        loadQueue(res);
+        toast(res.paused ? "Aggiunta alla coda (in pausa: premi Riprendi per farla partire)"
+          : state.job ? "Aggiunta alla coda: partirà dopo il video in corso" : "Aggiunta alla coda: parte tra pochi secondi");
+        $("topic-input").value = "";
+      } catch (e) { toast(e.message); }
+    });
+    $("btn-queue-pause").addEventListener("click", async () => {
+      try { loadQueue(await api("/api/queue/pause", { method: "POST", body: JSON.stringify({ paused: !state.queue?.paused }) })); } catch (e) { toast(e.message); }
+    });
+
     $("btn-regenerate").addEventListener("click", async () => {
       if (!state.projectId || !confirm("Riscrivere la storia da zero e rifare il video? Copione e video attuali verranno sostituiti.")) return;
       return startAuto({ project_id: state.projectId, restart: true }, "Riscrittura da zero");
@@ -2153,9 +2204,10 @@
       setPace(localGet("wpm") || 165);
       syncLabels();
       setStep("idea");
-      log("system", "TiktokFactory Studio: connessione al server locale…");
+      log("system", "ClipTale: avvio…");
       loadStoredLangs();
       await loadAI();
+      loadQueue();
       await Promise.all([checkHealth(), loadModels(), loadVoices(), loadIllustrationStatus(), loadPublishStatus(), loadEleven()]);
       setEngine(localGet("engine") || "pc");
       setStyle(localGet("style3") || state.illustrations?.default_style || "anim");
@@ -2169,7 +2221,7 @@
       }
       if (!localGet("seen_help")) { localSet("seen_help", "1"); if (!state.projects.length) $("help-dialog").showModal(); }
       log("system", state.health?.lmstudio ? "Pronto. Modello e voci caricati." : `${state.health?.provider_label || "Il motore AI"} non risponde: aprilo o scegline un altro al passo 1.`, state.health?.lmstudio ? true : "warn");
-      setInterval(() => { if (!state.job) checkHealth(); }, 20000);
+      setInterval(() => { if (!state.job) checkHealth(); loadQueue(); }, 8000);
     })();
   </script>
 </body>

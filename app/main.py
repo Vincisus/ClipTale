@@ -1,5 +1,7 @@
-"""TiktokFactory Studio: server locale FastAPI + interfaccia web in app/web/index.html."""
+"""ClipTale: server locale FastAPI + interfaccia web in app/web/index.html (aperta nella finestra dell'app o nel browser)."""
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,7 +15,15 @@ load_dotenv()
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 WEB = Path(__file__).parent / "web"
-app = FastAPI(title="TiktokFactory Studio", version="2.0.0")
+@asynccontextmanager
+async def lifespan(_app):
+    from app.core import video_queue
+    task = asyncio.create_task(video_queue.run_forever())  # la coda di video lavora finché il server è acceso
+    yield
+    task.cancel()
+
+
+app = FastAPI(title="ClipTale", version="3.0.0", lifespan=lifespan)
 app.include_router(router)
 app.mount("/static", StaticFiles(directory=WEB, html=True), name="static")
 
