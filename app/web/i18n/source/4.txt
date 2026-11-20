@@ -1,0 +1,14 @@
+# barra delle lingue, voci dal server, frasi composte
+Lingua ¦ Language ¦ Idioma ¦ Langue ¦ Sprache
+{0} · principale ¦ {0} · main ¦ {0} · principal ¦ {0} · principale ¦ {0} · Hauptsprache
+Pubblicato: {0} ¦ Published: {0} ¦ Publicado: {0} ¦ Publié : {0} ¦ Veröffentlicht: {0}
+Automatica: maschile o femminile in base a chi racconta ¦ Automatic: male or female depending on the narrator ¦ Automática: masculina o femenina según quién narra ¦ Automatique : masculine ou féminine selon le narrateur ¦ Automatisch: männlich oder weiblich je nach Erzähler
+{0} ({1}, realistica) ¦ {0} ({1}, realistic) ¦ {0} ({1}, realista) ¦ {0} ({1}, réaliste) ¦ {0} ({1}, realistisch)
+{0} ({1}, naturale locale) ¦ {0} ({1}, natural, local) ¦ {0} ({1}, natural local) ¦ {0} ({1}, naturelle locale) ¦ {0} ({1}, natürlich, lokal)
+{0} ({1}, neurale) ¦ {0} ({1}, neural) ¦ {0} ({1}, neuronal) ¦ {0} ({1}, neuronale) ¦ {0} ({1}, neuronal)
+{0} (tua voce, realistica) ¦ {0} (your voice, realistic) ¦ {0} (tu voz, realista) ¦ {0} (ta voix, réaliste) ¦ {0} (deine Stimme, realistisch)
+{0} · serve piano a pagamento ¦ {0} · paid plan required ¦ {0} · requiere plan de pago ¦ {0} · forfait payant requis ¦ {0} · kostenpflichtiger Tarif nötig
+salva la chiave ElevenLabs per vedere le voci ¦ save the ElevenLabs key to see the voices ¦ guarda la clave de ElevenLabs para ver las voces ¦ enregistre la clé ElevenLabs pour voir les voix ¦ speichere den ElevenLabs-Schlüssel, um die Stimmen zu sehen
+nessuna voce per questa lingua ¦ no voice for this language ¦ ninguna voz para este idioma ¦ aucune voix pour cette langue ¦ keine Stimme für diese Sprache
+Voce del PC · {0} ¦ PC voice · {0} ¦ Voz del PC · {0} ¦ Voix du PC · {0} ¦ PC-Stimme · {0}
+In coda: {0} video ¦ Queued: {0} videos ¦ En cola: {0} vídeos ¦ En file : {0} vidéos ¦ In der Warteschlange: {0} Videos

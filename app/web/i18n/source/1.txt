@@ -1,0 +1,128 @@
+# it ¦ en ¦ es ¦ fr ¦ de   ({0}, {1}… = parti variabili, nello stesso ordine in ogni lingua)
+(circa 6 GB, una volta sola). Fino ad allora i video hanno uno sfondo scuro. ¦ (about 6 GB, once). Until then videos have a dark background. ¦ (unos 6 GB, una sola vez). Hasta entonces los vídeos tienen un fondo oscuro. ¦ (environ 6 Go, une seule fois). D'ici là, les vidéos ont un fond sombre. ¦ (ca. 6 GB, nur einmal). Bis dahin haben die Videos einen dunklen Hintergrund.
+, crea un progetto e attiva ¦ , create a project and enable ¦ , crea un proyecto y activa ¦ , crée un projet et active ¦ , erstelle ein Projekt und aktiviere
+, crea un'app di tipo ¦ , create an app of type ¦ , crea una app de tipo ¦ , crée une app de type ¦ , erstelle eine App vom Typ
+, oppure crea un nuovo video. ¦ , or create a new video. ¦ , o crea un vídeo nuevo. ¦ , ou crée une nouvelle vidéo. ¦ , oder erstelle ein neues Video.
+00:00 · 0 parole ¦ 00:00 · 0 words ¦ 00:00 · 0 palabras ¦ 00:00 · 0 mots ¦ 00:00 · 0 Wörter
+132 parole/min, più calmo ¦ 132 words/min, calmer ¦ 132 palabras/min, más tranquilo ¦ 132 mots/min, plus calme ¦ 132 Wörter/Min., ruhiger
+148 parole/min ¦ 148 words/min ¦ 148 palabras/min ¦ 148 mots/min ¦ 148 Wörter/Min.
+165 parole/min, stile TikTok ¦ 165 words/min, TikTok style ¦ 165 palabras/min, estilo TikTok ¦ 165 mots/min, style TikTok ¦ 165 Wörter/Min., TikTok-Stil
+2-5 parole che fanno cliccare, es. LA CASA ERA MIA ¦ 2-5 clickable words, e.g. THE HOUSE WAS MINE ¦ 2-5 palabras que inviten a hacer clic, p. ej. LA CASA ERA MÍA ¦ 2 à 5 mots qui donnent envie de cliquer, ex. LA MAISON ÉTAIT À MOI ¦ 2-5 Wörter, die zum Klicken animieren, z. B. DAS HAUS GEHÖRTE MIR
+: ci pensa la tua AI. ¦ : your AI takes care of it. ¦ : tu IA se encarga. ¦ : ton IA s'en occupe. ¦ : deine KI erledigt das.
+: la tua AI scrive la storia, la voce la legge, ogni scena viene disegnata e ottieni il video lungo per YouTube e le clip per TikTok, tagliate sui momenti di massima tensione. ¦ : your AI writes the story, the voice reads it, every scene is drawn and you get the long video for YouTube and the TikTok clips, cut at the most suspenseful moments. ¦ : tu IA escribe la historia, la voz la lee, cada escena se dibuja y obtienes el vídeo largo para YouTube y los clips para TikTok, cortados en los momentos de máxima tensión. ¦ : ton IA écrit l'histoire, la voix la lit, chaque scène est dessinée et tu obtiens la vidéo longue pour YouTube et les clips pour TikTok, coupés aux moments de plus forte tension. ¦ : deine KI schreibt die Geschichte, die Stimme liest sie, jede Szene wird gezeichnet und du bekommst das lange Video für YouTube und die TikTok-Clips, geschnitten an den spannendsten Stellen.
+: si apre la cartella delle clip e TikTok Studio, e la didascalia è già copiata. Trascina il video, incolla (Ctrl+V) e pubblica. ¦ : the clips folder and TikTok Studio open, and the caption is already copied. Drag the video, paste (Ctrl+V) and publish. ¦ : se abren la carpeta de los clips y TikTok Studio, y el texto ya está copiado. Arrastra el vídeo, pega (Ctrl+V) y publica. ¦ : le dossier des clips et TikTok Studio s'ouvrent, et la légende est déjà copiée. Glisse la vidéo, colle (Ctrl+V) et publie. ¦ : der Clip-Ordner und TikTok Studio öffnen sich, die Beschreibung ist schon kopiert. Video hineinziehen, einfügen (Strg+V) und veröffentlichen.
+Account collegato ¦ Account connected ¦ Cuenta conectada ¦ Compte connecté ¦ Konto verbunden
+Aggiungi alla coda ¦ Add to queue ¦ Añadir a la cola ¦ Ajouter à la file ¦ Zur Warteschlange
+Aggiungi blocco ¦ Add block ¦ Añadir bloque ¦ Ajouter un bloc ¦ Block hinzufügen
+Aggiungi il tuo account TikTok tra i tester dell'app (sandbox) o invia l'app in revisione. ¦ Add your TikTok account as an app tester (sandbox) or submit the app for review. ¦ Añade tu cuenta de TikTok como tester de la app (sandbox) o envía la app a revisión. ¦ Ajoute ton compte TikTok aux testeurs de l'app (sandbox) ou soumets l'app à la revue. ¦ Füge dein TikTok-Konto als Tester der App hinzu (Sandbox) oder reiche die App zur Prüfung ein.
+Aggiunta alla coda (in pausa: premi Riprendi per farla partire) ¦ Added to the queue (paused: press Resume to start it) ¦ Añadida a la cola (en pausa: pulsa Reanudar para iniciarla) ¦ Ajoutée à la file (en pause : appuie sur Reprendre pour la lancer) ¦ Zur Warteschlange hinzugefügt (pausiert: zum Starten auf Fortsetzen drücken)
+Aggiunta alla coda: parte tra pochi secondi ¦ Added to the queue: starts in a few seconds ¦ Añadida a la cola: empieza en unos segundos ¦ Ajoutée à la file : démarre dans quelques secondes ¦ Zur Warteschlange hinzugefügt: startet in wenigen Sekunden
+Aggiunta alla coda: partirà dopo il video in corso ¦ Added to the queue: starts after the current video ¦ Añadida a la cola: empezará después del vídeo en curso ¦ Ajoutée à la file : démarrera après la vidéo en cours ¦ Zur Warteschlange hinzugefügt: startet nach dem aktuellen Video
+Aggiunto blocco {0} alla parte {1}. ¦ Block {0} added to part {1}. ¦ Bloque {0} añadido a la parte {1}. ¦ Bloc {0} ajouté à la partie {1}. ¦ Block {0} zu Teil {1} hinzugefügt.
+Al termine pubblica anche ¦ When finished, also publish ¦ Al terminar, publicar también ¦ À la fin, publier aussi ¦ Am Ende auch veröffentlichen
+Ancora nessun copione ¦ No script yet ¦ Aún no hay guion ¦ Pas encore de script ¦ Noch kein Skript
+Ancora nessun progetto. Il primo video comparirà qui. ¦ No projects yet. Your first video will appear here. ¦ Aún no hay proyectos. Tu primer vídeo aparecerá aquí. ¦ Pas encore de projet. Ta première vidéo apparaîtra ici. ¦ Noch keine Projekte. Dein erstes Video erscheint hier.
+Annulla lavoro ¦ Cancel job ¦ Cancelar trabajo ¦ Annuler la tâche ¦ Auftrag abbrechen
+Annullamento in corso… ¦ Cancelling… ¦ Cancelando… ¦ Annulation… ¦ Wird abgebrochen…
+Annullamento richiesto… ¦ Cancellation requested… ¦ Cancelación solicitada… ¦ Annulation demandée… ¦ Abbruch angefordert…
+Anteprima ¦ Preview ¦ Vista previa ¦ Aperçu ¦ Vorschau
+Anteprima 9:16 ¦ 9:16 preview ¦ Vista previa 9:16 ¦ Aperçu 9:16 ¦ 9:16-Vorschau
+Anteprima non disponibile per questa voce ¦ Preview not available for this voice ¦ Vista previa no disponible para esta voz ¦ Aperçu indisponible pour cette voix ¦ Vorschau für diese Stimme nicht verfügbar
+App desktop ¦ Desktop app ¦ App de escritorio ¦ App de bureau ¦ Desktop-App
+Apri ¦ Open ¦ Abrir ¦ Ouvrir ¦ Öffnen
+Apri la cartella dei progetti ¦ Open the projects folder ¦ Abrir la carpeta de proyectos ¦ Ouvrir le dossier des projets ¦ Projektordner öffnen
+Apri la cartella delle clip ¦ Open the clips folder ¦ Abrir la carpeta de clips ¦ Ouvrir le dossier des clips ¦ Clip-Ordner öffnen
+Apri un progetto con il video pronto. ¦ Open a project with a finished video. ¦ Abre un proyecto con el vídeo listo. ¦ Ouvre un projet avec la vidéo prête. ¦ Öffne ein Projekt mit fertigem Video.
+Apri un progetto dalla Home o creane uno nuovo. ¦ Open a project from Home or create a new one. ¦ Abre un proyecto desde Inicio o crea uno nuevo. ¦ Ouvre un projet depuis l'accueil ou crée-en un nouveau. ¦ Öffne ein Projekt auf der Startseite oder erstelle ein neues.
+Aprilo o scegli un altro motore in Impostazioni. Questa pagina si aggiorna da sola. ¦ Open it or choose another engine in Settings. This page updates by itself. ¦ Ábrelo o elige otro motor en Ajustes. Esta página se actualiza sola. ¦ Ouvre-le ou choisis un autre moteur dans les Paramètres. Cette page se met à jour toute seule. ¦ Öffne es oder wähle in den Einstellungen eine andere Engine. Diese Seite aktualisiert sich selbst.
+Ascolta ¦ Listen ¦ Escuchar ¦ Écouter ¦ Anhören
+Ascolta la voce scelta ¦ Listen to the chosen voice ¦ Escuchar la voz elegida ¦ Écouter la voix choisie ¦ Gewählte Stimme anhören
+Avanzamento ¦ Progress ¦ Progreso ¦ Progression ¦ Fortschritt
+Avvio… ¦ Starting… ¦ Iniciando… ¦ Démarrage… ¦ Startet…
+Bilanciato ¦ Balanced ¦ Equilibrado ¦ Équilibré ¦ Ausgewogen
+Blocco {0} eliminato. ¦ Block {0} deleted. ¦ Bloque {0} eliminado. ¦ Bloc {0} supprimé. ¦ Block {0} gelöscht.
+Bozze nell'app ¦ Drafts in the app ¦ Borradores en la app ¦ Brouillons dans l'app ¦ Entwürfe in der App
+Cambia i testi dell'app. La lingua dei video si sceglie in Home. ¦ Changes the app's text. The video language is chosen in Home. ¦ Cambia los textos de la app. El idioma de los vídeos se elige en Inicio. ¦ Change les textes de l'app. La langue des vidéos se choisit dans l'accueil. ¦ Ändert die Texte der App. Die Videosprache wählst du auf der Startseite.
+Cambia in Home ¦ Change in Home ¦ Cambiar en Inicio ¦ Modifier dans l'accueil ¦ Auf der Startseite ändern
+Cambia motore ¦ Change engine ¦ Cambiar motor ¦ Changer de moteur ¦ Engine wechseln
+Carica ¦ Upload ¦ Subir ¦ Publier ¦ Hochladen
+Carica anche la copertina 16:9 (serve un canale verificato con il telefono) ¦ Also upload the 16:9 thumbnail (needs a phone-verified channel) ¦ Subir también la miniatura 16:9 (requiere un canal verificado por teléfono) ¦ Publier aussi la miniature 16:9 (chaîne vérifiée par téléphone requise) ¦ Auch das 16:9-Thumbnail hochladen (erfordert einen per Telefon verifizierten Kanal)
+Carica clip {0} su TikTok ¦ Upload clip {0} to TikTok ¦ Subir el clip {0} a TikTok ¦ Publier le clip {0} sur TikTok ¦ Clip {0} auf TikTok hochladen
+Carica solo gli Shorts ¦ Upload Shorts only ¦ Subir solo los Shorts ¦ Publier seulement les Shorts ¦ Nur die Shorts hochladen
+Caricamento assistito (consigliato). ¦ Assisted upload (recommended). ¦ Subida asistida (recomendada). ¦ Publication assistée (recommandée). ¦ Unterstützter Upload (empfohlen).
+Caricare{0} {1}? ¦ Upload{0} {1}? ¦ ¿Subir{0} {1}? ¦ Publier{0} {1} ? ¦ {1}{0} hochladen?
+Cartella delle clip non trovata: crea prima il video ¦ Clips folder not found: create the video first ¦ Carpeta de clips no encontrada: crea primero el vídeo ¦ Dossier des clips introuvable : crée d'abord la vidéo ¦ Clip-Ordner nicht gefunden: erstelle zuerst das Video
+Cartelle ¦ Folders ¦ Carpetas ¦ Dossiers ¦ Ordner
+Cartone animato ¦ Cartoon ¦ Dibujos animados ¦ Dessin animé ¦ Zeichentrick
+Chiave API ¦ API key ¦ Clave API ¦ Clé API ¦ API-Schlüssel
+Chiave API ElevenLabs ¦ ElevenLabs API key ¦ Clave API de ElevenLabs ¦ Clé API ElevenLabs ¦ ElevenLabs-API-Schlüssel
+Chiave API del motore AI ¦ AI engine API key ¦ Clave API del motor de IA ¦ Clé API du moteur d'IA ¦ API-Schlüssel der KI-Engine
+Chiave API di {0} ¦ {0} API key ¦ Clave API de {0} ¦ Clé API de {0} ¦ API-Schlüssel für {0}
+Chiave non valida ¦ Invalid key ¦ Clave no válida ¦ Clé non valide ¦ Ungültiger Schlüssel
+Chiave salvata ma ElevenLabs non risponde ({0}). Controlla la chiave o la connessione. ¦ Key saved but ElevenLabs isn't responding ({0}). Check the key or your connection. ¦ Clave guardada pero ElevenLabs no responde ({0}). Revisa la clave o la conexión. ¦ Clé enregistrée mais ElevenLabs ne répond pas ({0}). Vérifie la clé ou la connexion. ¦ Schlüssel gespeichert, aber ElevenLabs antwortet nicht ({0}). Prüfe den Schlüssel oder die Verbindung.
+Chiave salvata · incollane una nuova per cambiarla ¦ Key saved · paste a new one to change it ¦ Clave guardada · pega una nueva para cambiarla ¦ Clé enregistrée · colle-en une nouvelle pour la changer ¦ Schlüssel gespeichert · füge einen neuen ein, um ihn zu ändern
+Chiave salvata, ma ElevenLabs non risponde ¦ Key saved, but ElevenLabs isn't responding ¦ Clave guardada, pero ElevenLabs no responde ¦ Clé enregistrée, mais ElevenLabs ne répond pas ¦ Schlüssel gespeichert, aber ElevenLabs antwortet nicht
+Chiudi ClipTale dall'icona nella barra (Esci) e riaprilo. ¦ Close ClipTale from the tray icon (Quit) and open it again. ¦ Cierra ClipTale desde el icono de la barra (Salir) y vuelve a abrirlo. ¦ Ferme ClipTale depuis l'icône de la barre (Quitter) et rouvre-le. ¦ Schließe ClipTale über das Symbol in der Taskleiste (Beenden) und öffne es erneut.
+Chiudi l'app ed esegui ¦ Close the app and run ¦ Cierra la app y ejecuta ¦ Ferme l'app et lance ¦ Schließe die App und starte
+Circa {0} chiamate al modello, di solito pochi minuti. ¦ About {0} model calls, usually a few minutes. ¦ Unas {0} llamadas al modelo, normalmente pocos minutos. ¦ Environ {0} appels au modèle, généralement quelques minutes. ¦ Etwa {0} Modellaufrufe, meist wenige Minuten.
+Clicca un blocco del copione per vederlo qui. ¦ Click a script block to see it here. ¦ Haz clic en un bloque del guion para verlo aquí. ¦ Clique sur un bloc du script pour le voir ici. ¦ Klicke auf einen Skriptblock, um ihn hier zu sehen.
+Clip TikTok, parte {0} ¦ TikTok clip, part {0} ¦ Clip de TikTok, parte {0} ¦ Clip TikTok, partie {0} ¦ TikTok-Clip, Teil {0}
+Clip {0} · {1} ¦ Clip {0} · {1} ¦ Clip {0} · {1} ¦ Clip {0} · {1} ¦ Clip {0} · {1}
+ClipTale le crea una dopo l'altra, anche a finestra chiusa. ¦ ClipTale makes them one after another, even with the window closed. ¦ ClipTale los crea uno tras otro, incluso con la ventana cerrada. ¦ ClipTale les crée l'une après l'autre, même fenêtre fermée. ¦ ClipTale erstellt sie nacheinander, auch bei geschlossenem Fenster.
+ClipTale non può mettere in pausa Unsloth Studio: quando la storia è scritta, il lavoro si ferma e aspetta che tu scarichi il modello in Unsloth (Unload). Poi voce e disegni partono da soli. Sulle schede da 8 GB è indispensabile. ¦ ClipTale can't pause Unsloth Studio: once the story is written, the job stops and waits for you to unload the model in Unsloth (Unload). Then voice and drawings start by themselves. Essential on 8 GB cards. ¦ ClipTale no puede pausar Unsloth Studio: cuando la historia está escrita, el trabajo se detiene y espera a que descargues el modelo en Unsloth (Unload). Luego la voz y los dibujos empiezan solos. Imprescindible en tarjetas de 8 GB. ¦ ClipTale ne peut pas mettre Unsloth Studio en pause : une fois l'histoire écrite, la tâche s'arrête et attend que tu décharges le modèle dans Unsloth (Unload). Ensuite la voix et les dessins démarrent tout seuls. Indispensable sur les cartes de 8 Go. ¦ ClipTale kann Unsloth Studio nicht pausieren: Sobald die Geschichte geschrieben ist, hält der Auftrag an und wartet, bis du das Modell in Unsloth entlädst (Unload). Danach starten Stimme und Zeichnungen von selbst. Bei 8-GB-Karten unverzichtbar.
+ClipTale usa un motore AI per scrivere le storie. ¦ ClipTale uses an AI engine to write the stories. ¦ ClipTale usa un motor de IA para escribir las historias. ¦ ClipTale utilise un moteur d'IA pour écrire les histoires. ¦ ClipTale nutzt eine KI-Engine, um die Geschichten zu schreiben.
+ClipTale: avvio… ¦ ClipTale: starting… ¦ ClipTale: iniciando… ¦ ClipTale : démarrage… ¦ ClipTale: startet…
+Coda ¦ Queue ¦ Cola ¦ File ¦ Warteschlange
+Coda di video ¦ Video queue ¦ Cola de vídeos ¦ File de vidéos ¦ Video-Warteschlange
+Collega TikTok ¦ Connect TikTok ¦ Conectar TikTok ¦ Connecter TikTok ¦ TikTok verbinden
+Collega YouTube ¦ Connect YouTube ¦ Conectar YouTube ¦ Connecter YouTube ¦ YouTube verbinden
+Collega YouTube e TikTok una volta, poi carichi video, Shorts e clip con un clic, lingua per lingua. ¦ Connect YouTube and TikTok once, then upload videos, Shorts and clips in one click, language by language. ¦ Conecta YouTube y TikTok una vez y luego sube vídeos, Shorts y clips con un clic, idioma por idioma. ¦ Connecte YouTube et TikTok une fois, puis publie vidéos, Shorts et clips en un clic, langue par langue. ¦ Verbinde YouTube und TikTok einmal und lade dann Videos, Shorts und Clips mit einem Klick hoch, Sprache für Sprache.
+Collega prima TikTok ¦ Connect TikTok first ¦ Conecta primero TikTok ¦ Connecte d'abord TikTok ¦ Verbinde zuerst TikTok
+Collega prima YouTube ¦ Connect YouTube first ¦ Conecta primero YouTube ¦ Connecte d'abord YouTube ¦ Verbinde zuerst YouTube
+Collegato (piano {0}). Caratteri rimasti questo mese: {1} su {2}, circa {3} minuti di voce. ¦ Connected ({0} plan). Characters left this month: {1} of {2}, about {3} minutes of voice. ¦ Conectado (plan {0}). Caracteres restantes este mes: {1} de {2}, unos {3} minutos de voz. ¦ Connecté (forfait {0}). Caractères restants ce mois-ci : {1} sur {2}, environ {3} minutes de voix. ¦ Verbunden (Tarif {0}). Verbleibende Zeichen diesen Monat: {1} von {2}, etwa {3} Minuten Stimme.
+Collegato{0} ¦ Connected{0} ¦ Conectado{0} ¦ Connecté{0} ¦ Verbunden{0}
+Come Redirect URI inserisci ¦ As Redirect URI enter ¦ Como Redirect URI introduce ¦ Comme Redirect URI saisis ¦ Als Redirect-URI gib ein
+Come funziona ¦ How it works ¦ Cómo funciona ¦ Comment ça marche ¦ So funktioniert's
+Come pubblicare ¦ How to publish ¦ Cómo publicar ¦ Comment publier ¦ Wie veröffentlichen
+Con Unsloth la scheda video va liberata a mano. ¦ With Unsloth, the graphics card must be freed manually. ¦ Con Unsloth, la tarjeta gráfica se libera a mano. ¦ Avec Unsloth, la carte graphique doit être libérée à la main. ¦ Mit Unsloth muss die Grafikkarte manuell freigegeben werden.
+Configura (una volta sola) ¦ Set up (once) ¦ Configurar (una sola vez) ¦ Configurer (une seule fois) ¦ Einrichten (nur einmal)
+Configura (una volta sola, circa 5 minuti) ¦ Set up (once, about 5 minutes) ¦ Configurar (una sola vez, unos 5 minutos) ¦ Configurer (une seule fois, environ 5 minutes) ¦ Einrichten (nur einmal, ca. 5 Minuten)
+Connessione al server locale… ¦ Connecting to the local server… ¦ Conectando con el servidor local… ¦ Connexion au serveur local… ¦ Verbindung zum lokalen Server…
+Continua senza ¦ Continue without ¦ Continuar sin ¦ Continuer sans ¦ Ohne fortfahren
+Controllo… ¦ Checking… ¦ Comprobando… ¦ Vérification… ¦ Prüfe…
+Copertine ¦ Thumbnails ¦ Miniaturas ¦ Miniatures ¦ Thumbnails
+Copertine aggiornate ¦ Thumbnails updated ¦ Miniaturas actualizadas ¦ Miniatures mises à jour ¦ Thumbnails aktualisiert
+Copertine non create: ¦ Thumbnails not created: ¦ Miniaturas no creadas: ¦ Miniatures non créées : ¦ Thumbnails nicht erstellt:
+Copia JSON ¦ Copy JSON ¦ Copiar JSON ¦ Copier le JSON ¦ JSON kopieren
+Copia didascalia ¦ Copy caption ¦ Copiar texto ¦ Copier la légende ¦ Beschreibung kopieren
+Copia qui sotto Client ID e Client secret, salva e premi ¦ Copy the Client ID and Client secret below, save and press ¦ Copia abajo el Client ID y el Client secret, guarda y pulsa ¦ Copie ci-dessous le Client ID et le Client secret, enregistre et appuie sur ¦ Kopiere unten Client ID und Client secret, speichere und drücke
+Copia qui sotto Client key e Client secret, salva e premi ¦ Copy the Client key and Client secret below, save and press ¦ Copia abajo el Client key y el Client secret, guarda y pulsa ¦ Copie ci-dessous le Client key et le Client secret, enregistre et appuie sur ¦ Kopiere unten Client key und Client secret, speichere und drücke
+Copiato negli appunti ¦ Copied to clipboard ¦ Copiado al portapapeles ¦ Copié dans le presse-papiers ¦ In die Zwischenablage kopiert
+Copiato negli appunti: ¦ Copied to clipboard: ¦ Copiado al portapapeles: ¦ Copié dans le presse-papiers : ¦ In die Zwischenablage kopiert:
+Copione ¦ Script ¦ Guion ¦ Script ¦ Skript
+Copione incompleto ¦ Incomplete script ¦ Guion incompleto ¦ Script incomplet ¦ Unvollständiges Skript
+Copione interrotto. ¦ Script interrupted. ¦ Guion interrumpido. ¦ Script interrompu. ¦ Skript unterbrochen.
+Copione pronto ¦ Script ready ¦ Guion listo ¦ Script prêt ¦ Skript fertig
+Copione pronto. ¦ Script ready. ¦ Guion listo. ¦ Script prêt. ¦ Skript fertig.
+Correggi il copione, cambia ritmo o stile e premi Crea il video per rifarlo. ¦ Fix the script, change pace or style and press Create the video to remake it. ¦ Corrige el guion, cambia el ritmo o el estilo y pulsa Crear el vídeo para rehacerlo. ¦ Corrige le script, change le rythme ou le style et appuie sur Créer la vidéo pour la refaire. ¦ Korrigiere das Skript, ändere Tempo oder Stil und drücke Video erstellen, um es neu zu machen.
+Cosa si vede ¦ What we see ¦ Qué se ve ¦ Ce qu'on voit ¦ Was man sieht
+Crea ¦ Create ¦ Crear ¦ Créer ¦ Erstellen
+Crea il video ¦ Create the video ¦ Crear el vídeo ¦ Créer la vidéo ¦ Video erstellen
+Crea il video anche in ¦ Also create the video in ¦ Crear el vídeo también en ¦ Créer aussi la vidéo en ¦ Video auch erstellen auf
+Crea il video in {0}. Formato 1080×1920, 30 fps, H.264. ¦ Creates the video in {0}. 1080×1920, 30 fps, H.264. ¦ Crea el vídeo en {0}. 1080×1920, 30 fps, H.264. ¦ Crée la vidéo en {0}. 1080×1920, 30 i/s, H.264. ¦ Erstellt das Video auf {0}. 1080×1920, 30 fps, H.264.
+Crea usa le lingue, le voci e lo stile scelti qui sopra; ritmo e musica si regolano in Studio. ¦ Create uses the languages, voices and style chosen above; pace and music are set in Studio. ¦ Crear usa los idiomas, las voces y el estilo elegidos arriba; el ritmo y la música se ajustan en Studio. ¦ Créer utilise les langues, voix et style choisis ci-dessus ; rythme et musique se règlent dans Studio. ¦ Erstellen nutzt die oben gewählten Sprachen, Stimmen und den Stil; Tempo und Musik stellst du im Studio ein.
+Create insieme al video ¦ Made together with the video ¦ Creadas junto con el vídeo ¦ Créées avec la vidéo ¦ Zusammen mit dem Video erstellt
+Creato {0} ¦ Created {0} ¦ Creado {0} ¦ Créé {0} ¦ Erstellt {0}
+Creazione automatica ¦ Automatic creation ¦ Creación automática ¦ Création automatique ¦ Automatische Erstellung
+Creazione avviata ¦ Creation started ¦ Creación iniciada ¦ Création lancée ¦ Erstellung gestartet
+Creazione del video ¦ Creating the video ¦ Creando el vídeo ¦ Création de la vidéo ¦ Video wird erstellt
+Creazione in corso: puoi chiudere la finestra, ClipTale continua nella barra. ¦ In progress: you can close the window, ClipTale keeps going in the tray. ¦ En curso: puedes cerrar la ventana, ClipTale sigue en la barra. ¦ En cours : tu peux fermer la fenêtre, ClipTale continue dans la barre. ¦ Läuft: Du kannst das Fenster schließen, ClipTale arbeitet in der Taskleiste weiter.
+Credenziali non valide ¦ Invalid credentials ¦ Credenciales no válidas ¦ Identifiants non valides ¦ Ungültige Zugangsdaten
+Credenziali salvate: ora premi Collega ¦ Credentials saved: now press Connect ¦ Credenciales guardadas: ahora pulsa Conectar ¦ Identifiants enregistrés : appuie maintenant sur Connecter ¦ Zugangsdaten gespeichert: jetzt auf Verbinden drücken
+Da collegare ¦ To connect ¦ Por conectar ¦ À connecter ¦ Zu verbinden
+Da configurare ¦ To set up ¦ Por configurar ¦ À configurer ¦ Einzurichten
+Da pubblicare ¦ To publish ¦ Por publicar ¦ À publier ¦ Zu veröffentlichen
+Da riprendere ¦ To resume ¦ Por reanudar ¦ À reprendre ¦ Fortzusetzen
+Da scrivere ¦ To write ¦ Por escribir ¦ À écrire ¦ Zu schreiben
+Da tradurre ¦ To translate ¦ Por traducir ¦ À traduire ¦ Zu übersetzen
+Descrizione (con i capitoli delle parti) ¦ Description (with part chapters) ¦ Descripción (con los capítulos de las partes) ¦ Description (avec les chapitres des parties) ¦ Beschreibung (mit Kapiteln der Teile)
