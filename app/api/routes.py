@@ -550,6 +550,16 @@ class ShowRequest(BaseModel):
     project_id: Optional[str] = Field(default=None, max_length=80)
 
 
+@router.post("/support")
+async def support(request: Request):
+    """Apre nel browser la pagina per le donazioni (indirizzo fisso, deciso qui e non dalla pagina)."""
+    same_origin(request)
+    import webbrowser
+    from app.core.desktop import SUPPORT_URL
+    webbrowser.open(SUPPORT_URL)
+    return {"ok": True}
+
+
 @router.post("/app/show")
 async def app_show(payload: ShowRequest, request: Request):
     """Una seconda copia di ClipTale chiede alla prima di mostrare la sua finestra invece di aprirne un'altra."""

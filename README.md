@@ -6,6 +6,7 @@
   <a href="https://github.com/Vincisus/TiktokFactory/releases/latest"><img src="https://img.shields.io/github/v/release/Vincisus/TiktokFactory?label=ultima%20versione&color=ff7a00&labelColor=0a0a0a&style=for-the-badge" alt="Ultima versione"></a>
   <img src="https://img.shields.io/badge/Windows-10%20%C2%B7%2011-0a0a0a?style=for-the-badge&labelColor=0a0a0a" alt="Windows 10 e 11">
   <img src="https://img.shields.io/badge/prezzo-gratis-0a0a0a?style=for-the-badge&labelColor=ff7a00" alt="Gratis">
+  <a href="https://paypal.me/dammilpizzo"><img src="https://img.shields.io/badge/sostieni-PayPal-0a0a0a?style=for-the-badge&logo=paypal&logoColor=white&labelColor=ff7a00" alt="Sostieni ClipTale con PayPal"></a>
 </p>
 
 <h3 align="center">
@@ -190,6 +191,16 @@ python desktop\build_i18n.py             # lingue dell'interfaccia da app\web\i1
 ```
 
 Per pubblicare una versione: alza `VERSION` in `app/core/desktop.py`, costruisci l'installer e allegalo a una nuova release `vX.Y.Z`. Le app installate la trovano da sole.
+
+<br>
+
+## Sostieni ClipTale
+
+ClipTale è gratis e resta gratis. Se ti fa risparmiare ore di lavoro, puoi offrire un caffè a chi lo sviluppa: aiuta a pagare il tempo per le prossime versioni.
+
+<p align="center">
+  <a href="https://paypal.me/dammilpizzo"><img src="https://img.shields.io/badge/Offrimi%20un%20caff%C3%A8-PayPal-0a0a0a?style=for-the-badge&logo=paypal&logoColor=white&labelColor=ff7a00" alt="Offrimi un caffè con PayPal" height="44"></a>
+</p>
 
 <br>
 

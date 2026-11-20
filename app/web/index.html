@@ -966,6 +966,11 @@
             <button type="button" id="btn-update-install" class="btn btn-sm btn-primary hidden">Aggiorna adesso</button>
           </div>
         </div>
+        <div class="card">
+          <h3>Sostieni ClipTale</h3>
+          <p class="hint">ClipTale è gratis. Se ti fa risparmiare tempo, puoi offrire un caffè a chi lo sviluppa con PayPal.</p>
+          <div class="actions"><button type="button" id="btn-support" class="btn btn-sm">Offrimi un caffè</button></div>
+        </div>
       </section>
       <!-- 4. Pubblica -->
       <section class="panel hidden" id="panel-publish" aria-label="Pubblica">
@@ -2514,6 +2519,7 @@
     $("btn-export-project").addEventListener("click", () => {
       if (state.projectId) api(`/api/open-export-folder?project_id=${encodeURIComponent(state.projectId)}`, { method: "POST" }).catch((e) => toast(e.message));
     });
+    $("btn-support").addEventListener("click", () => api("/api/support", { method: "POST" }).catch((e) => toast(e.message)));
     $("btn-open-projects").addEventListener("click", async () => {
       try { await api("/api/open-projects-folder", { method: "POST" }); } catch (e) { toast(e.message); }
     });

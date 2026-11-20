@@ -3,6 +3,7 @@
 Il launcher (desktop/launcher.py) registra qui le sue funzioni; se il server gira da solo (Avvia.bat, test) restano vuote.
 """
 VERSION = "0.6.1"
+SUPPORT_URL = "https://paypal.me/dammilpizzo"  # donazioni: "Sostieni ClipTale" in Impostazioni
 HOOKS = {"show": None, "quit": None}
 
 
