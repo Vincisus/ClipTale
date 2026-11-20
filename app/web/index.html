@@ -568,6 +568,10 @@
             <button type="button" id="btn-ai-save" class="btn">Salva e prova</button>
           </div>
           <span class="hint" id="ai-hint">Il pallino ● indica i modelli già caricati sul PC.</span>
+          <div id="ai-gpu-note" class="lock-note warn hidden" role="note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            <span><b>Con Unsloth la scheda video va liberata a mano.</b> ClipTale non può mettere in pausa Unsloth Studio: quando la storia è scritta, il lavoro si ferma e aspetta che tu scarichi il modello in Unsloth (Unload). Poi voce e disegni partono da soli. Sulle schede da 8 GB è indispensabile.</span>
+          </div>
 
           <div class="field" id="lang-field">
             <label for="lang-main">Lingua della storia</label>
@@ -1063,6 +1067,7 @@
       const p = aiInfo($("ai-provider").value);
       if (!p) return;
       $("ai-key-row").classList.toggle("hidden", !p.needs_key);
+      $("ai-gpu-note").classList.toggle("hidden", p.id !== "unsloth");
       $("ai-key").placeholder = p.has_key ? "Chiave salvata · incollane una nuova per cambiarla" : `Chiave API di ${p.label}`;
       $("ai-hint").textContent = extra || (p.local ? `${p.help} Il pallino ● indica i modelli già caricati.` : p.help);
     }

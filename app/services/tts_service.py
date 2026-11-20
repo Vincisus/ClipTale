@@ -351,7 +351,9 @@ class TTSService:
         if device == "cuda":
             from app.services import illustration_service
             from app.services.llm_service import LLMService
-            reload_models = await illustration_service.free_gpu(LLMService())
+            engine_llm = LLMService()
+            reload_models = await illustration_service.free_gpu(engine_llm)
+            await illustration_service.wait_for_manual_gpu(engine_llm, lambda m, lvl: on_progress and on_progress(m), need_mb=4000)
             if reload_models and on_progress:
                 on_progress("LM Studio messo in pausa per far posto alla voce realistica (verrà ricaricato)")
         if on_progress:

@@ -48,6 +48,7 @@ async def make_toon(folder, beats, durations, concept, model, log, lang="it"):
     reload_models = []
     if missing:
         reload_models = await illustration_service.free_gpu(llm)
+        await illustration_service.wait_for_manual_gpu(llm, lambda m, lvl: ilog(m, level=lvl))
 
         def on_line(line):
             if line.startswith("PROGRESS"):
@@ -110,6 +111,7 @@ async def make_illustrations(folder, beats, durations, concept, style, model, lo
     reload_models = []
     if missing:
         reload_models = await illustration_service.free_gpu(llm)
+        await illustration_service.wait_for_manual_gpu(llm, lambda m, lvl: ilog(m, level=lvl))
         if reload_models:
             ilog("LM Studio scaricato dalla GPU per far posto al modello di disegno (verrà ricaricato alla fine)")
 
