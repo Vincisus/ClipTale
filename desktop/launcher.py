@@ -16,8 +16,11 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-os.chdir(ROOT)
 sys.path.insert(0, str(ROOT))
+from app.core import paths  # noqa: E402
+
+paths.DATA.mkdir(parents=True, exist_ok=True)
+os.chdir(paths.DATA)  # installata: il codice è in sola lettura, si lavora nella cartella dei dati
 PORT = int(os.getenv("CLIPTALE_PORT", "8000"))
 URL = f"http://127.0.0.1:{PORT}"
 DATA = Path(os.getenv("LOCALAPPDATA", str(ROOT))) / "ClipTale"
@@ -141,17 +144,17 @@ class App:
         self.show(self.job.get("project_id") if self.job else None)
 
     def open_videos(self, *_):
-        folder = ROOT / "projects"
+        folder = paths.PROJECTS
         if self.job and self.job.get("project_id"):
             folder = folder / self.job["project_id"] / "render"
-        os.startfile(str(folder if folder.exists() else ROOT / "projects"))  # noqa: S606 - cartella del programma
+        os.startfile(str(folder if folder.exists() else paths.PROJECTS))  # noqa: S606 - cartella del programma
 
     def toggle_pause(self, *_):
         call("/api/queue/pause", {"paused": not self.queue.get("paused")})
         self.poll_once()
 
-    def quit(self, *_):
-        if self.job:
+    def quit(self, *_, force=False):
+        if self.job and not force:
             self.show()
             ok = self.window.create_confirmation_dialog(
                 "Esci da ClipTale", "C'è un video in lavorazione. Uscendo si interrompe; il lavoro già fatto resta salvato e si può riprendere. Uscire?")
@@ -238,10 +241,13 @@ class App:
         try:
             import ctypes
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
+            # il disinstallatore vede questo segnale e chiede di chiudere ClipTale prima di togliere i file
+            self._mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "ClipTaleRunning")
         except Exception:
             pass
         self.server = start_server()
         desktop.HOOKS["show"] = lambda pid=None: self.show(pid)
+        desktop.HOOKS["quit"] = lambda: self.quit(force=True)  # aggiornamento: l'installer prende il posto dell'app
         self.window = webview.create_window("ClipTale", URL, width=1400, height=880, min_size=(1000, 680), background_color="#0a0a0a")
         self.window.events.closing += self.on_closing
         self.window.events.shown += self.set_window_icon

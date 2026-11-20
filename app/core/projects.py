@@ -7,7 +7,8 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-ROOT = Path("projects")
+from app.core.paths import PROJECTS as ROOT  # cartella dei progetti: vedi app/core/paths.py
+
 ID_RE = re.compile(r"[A-Za-z0-9_-]+")
 
 

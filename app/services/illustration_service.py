@@ -19,7 +19,7 @@ import sys
 import threading
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from app.core.paths import CODE as ROOT, MODELS, STYLE_REFS as _STYLE_REFS
 SHOT_SECONDS = 3.5  # una nuova inquadratura ogni ~3,5 secondi, come nei reel
 MAX_SHOTS_PER_BEAT = 40
 WIDTH, HEIGHT = 576, 1024  # 9:16, poi ingrandite a 1080x1920 con i movimenti di camera
@@ -27,7 +27,7 @@ WIDTH, HEIGHT = 576, 1024  # 9:16, poi ingrandite a 1080x1920 con i movimenti di
 # Lo stile va all'inizio del prompt: CLIP legge solo 77 token e taglia la coda.
 # Due stili: "anim" (cartone animato con personaggi che parlano) e "cartoon" (mostrato come "Illustrazione":
 # una scena disegnata per ogni momento). I progetti fatti con gli stili tolti (reel, schizzo, fumetto) usano "cartoon".
-STYLE_REFS = ROOT / "style_refs"  # immagini di riferimento per lo "Stile reel" (non vanno su Git)
+STYLE_REFS = _STYLE_REFS  # immagini di riferimento per lo "Stile reel" (non vanno su Git)
 
 STYLES = {
     "anim": {
@@ -87,7 +87,7 @@ def available():
 
 
 def models_ready():
-    return (ROOT / "models" / "dreamshaper-8" / "model_index.json").is_file() and (ROOT / "models" / "lcm-lora-sdv1-5" / "pytorch_lora_weights.safetensors").is_file()
+    return (MODELS / "dreamshaper-8" / "model_index.json").is_file() and (MODELS / "lcm-lora-sdv1-5" / "pytorch_lora_weights.safetensors").is_file()
 
 
 def shots_for(duration):

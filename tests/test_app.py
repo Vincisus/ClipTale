@@ -789,3 +789,26 @@ def test_tray_icon_and_texts():
     app.job = {"kind": "auto", "progress": 62, "current_step": "Disegni 34/120"}
     app.llm = {"tps": 31.2, "active": True}
     assert app.status_text() == "Creazione automatica · 62% · Disegni 34/120" and app.speed_text() == "Motore AI: 31.2 tok/s"
+
+
+def test_update_version_compare():
+    from app.core.updates import parse
+    assert parse("v0.10.0") > parse("0.9.3")
+    assert parse("0.5.0") == parse("v0.5.0")
+
+
+def test_paths_follow_cliptale_data(tmp_path):
+    import os
+    import subprocess
+    import sys
+    code = "from app.core import paths; print(paths.DATA, paths.PROJECTS, paths.SECRETS, sep='|')"
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True,
+                         env={**os.environ, "CLIPTALE_DATA": str(tmp_path)}).stdout.strip().split("|")
+    assert out == [str(tmp_path), str(tmp_path / "projects"), str(tmp_path / "secrets")]
+
+
+def test_components_refuse_empty_choice():
+    import pytest
+    from app.core import components
+    with pytest.raises(ValueError):
+        components.install(["nulla"])

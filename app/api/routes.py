@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
-from app.core import jobs, languages, projects, video_queue
+from app.core import components, jobs, languages, projects, updates, video_queue
 from app.core.pipeline import StoryPipeline, script_markdown
 from app.core.render_pipeline import render_project
 from app.services import ai_providers, eleven_service, illustration_service, publish_service, tts_service
@@ -359,6 +359,54 @@ async def cancel_job(job_id: str, request: Request):
 @router.get("/config")
 async def config():
     return {"lmstudio_url": os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")}
+
+
+# ------------------------------------------------------------------ componenti e aggiornamenti
+class ComponentsRequest(BaseModel):
+    items: list[Literal["drawings", "voices", "kokoro"]] = Field(default_factory=list, max_length=3)
+
+
+@router.get("/components")
+async def components_status():
+    return await asyncio.to_thread(components.status)
+
+
+@router.post("/components/install")
+async def components_install(req: ComponentsRequest, request: Request):
+    same_origin(request)
+    try:
+        components.install(req.items)
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"ok": True}
+
+
+@router.post("/components/cancel")
+async def components_cancel(request: Request):
+    same_origin(request)
+    return {"ok": components.cancel()}
+
+
+@router.post("/components/setup-done")
+async def components_setup_done(request: Request):
+    same_origin(request)
+    components.mark_setup_done()
+    return {"ok": True}
+
+
+@router.get("/update")
+async def update_status(force: bool = False):
+    return {**await updates.check(force), "download": updates.download_status()}
+
+
+@router.post("/update/install")
+async def update_install(request: Request):
+    same_origin(request)
+    try:
+        updates.start_update(await updates.check())
+    except RuntimeError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"ok": True}
 
 
 # ------------------------------------------------------------------ illustrazioni
