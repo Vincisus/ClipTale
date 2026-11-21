@@ -27,14 +27,58 @@ def same_origin(request: Request):
 
 
 # ------------------------------------------------------------------ stato
+async def _port_open(base_url, timeout=0.6):
+    """True se sul PC c'è un programma in ascolto su quella porta. Va fatto prima di chiamare il motore:
+    su Windows una connessione a una porta chiusa resta appesa ~2 s per indirizzo e /health diventerebbe lenta."""
+    from urllib.parse import urlparse
+    u = urlparse(base_url)
+    try:
+        _, writer = await asyncio.wait_for(asyncio.open_connection(u.hostname, u.port or 80), timeout)
+        writer.close()
+        return True
+    except (OSError, asyncio.TimeoutError):
+        return False
+
+
+async def _find_local_engine(skip):
+    """Cerca un altro motore locale aperto (LM Studio, Ollama, Unsloth). Restituisce (LLMService, modelli) oppure (None, None)."""
+    candidates = [LLMService(provider=p) for p, spec in ai_providers.PROVIDERS.items() if spec.get("local") and p != skip]
+    opened = await asyncio.gather(*(_port_open(c.base_url) for c in candidates))
+    for cand, is_open in zip(candidates, opened):
+        if not is_open:
+            continue
+        try:
+            return cand, await cand.list_models()
+        except Exception:  # aperto ma non utilizzabile (es. Unsloth senza chiave): si prova il prossimo
+            continue
+    return None, None
+
+
+LOCAL_NAMES = ", ".join(v["label"] for v in ai_providers.PROVIDERS.values() if v.get("local"))
+
+
 @router.get("/health")
 async def health():
     llm = LLMService()
+    switched_from = None
+    chosen_open = (not llm.local) or await _port_open(llm.base_url)
+    if not chosen_open:
+        # il motore scelto è chiuso: se ne è aperto un altro locale si passa a quello da soli
+        found, found_models = (None, None) if jobs.active() else await _find_local_engine(llm.provider)
+        if found:
+            switched_from = llm.label
+            ai_providers.set_provider(found.provider)
+            llm = LLMService()
     # "lmstudio" resta il nome del campo per compatibilità: vuol dire "il motore AI scelto risponde"
     info = {"model": llm.model, "thinking": llm.thinking, "ffmpeg": bool(ffmpeg_exe()), "edge_tts": tts_service.EDGE_AVAILABLE, "lmstudio": False,
-            "model_loaded": None, "provider": llm.provider, "provider_label": llm.label, "provider_local": llm.local}
+            "model_loaded": None, "provider": llm.provider, "provider_label": llm.label, "provider_local": llm.local,
+            "local_engines": LOCAL_NAMES}
+    if switched_from:
+        info["switched_from"] = switched_from
     try:
-        models = await llm.list_models()
+        if not chosen_open and not switched_from:
+            raise ConnectionError(f"nessun motore AI locale aperto ({LOCAL_NAMES})")
+        models = found_models if switched_from else await llm.list_models()
         info["lmstudio"] = True
         match = next((m for m in models if m["id"] == llm.model), None)
         info["model_loaded"] = (match["loaded"] if match else False) if llm.local else None

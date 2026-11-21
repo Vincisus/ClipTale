@@ -55,7 +55,7 @@ def start_server():
     server.install_signal_handlers = lambda: None  # gira in un thread: i segnali li gestisce il programma
     threading.Thread(target=server.run, name="server", daemon=True).start()
     for _ in range(150):
-        if call("/api/health", timeout=2) is not None:
+        if call("/api/health", timeout=10) is not None:  # 10 s: /health interroga anche il motore AI, un ritardo non deve far fallire l avvio
             return server
         time.sleep(0.2)
     raise RuntimeError("Il server di ClipTale non è partito")
@@ -227,7 +227,7 @@ class App:
     def run(self):
         import webview
         from app.core import desktop
-        if call("/api/health", timeout=2) is not None:  # ClipTale è già aperto: mostra quella finestra
+        if call("/api/health", timeout=10) is not None:  # ClipTale è già aperto: mostra quella finestra
             if call("/api/app/show", {}) is None:
                 import webbrowser
                 webbrowser.open(URL)

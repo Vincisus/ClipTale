@@ -1465,6 +1465,10 @@
     let aiTimer = null;
     function aiDialog(h) {
       const dlg = $("ai-dialog");
+      if (h.switched_from) {  // il motore scelto era chiuso ma ne era aperto un altro: il server è passato a quello da solo
+        toast(`${h.switched_from} è chiuso: trovato ${h.provider_label}, ClipTale userà quello`);
+        loadAI(); loadModels();
+      }
       if (h.lmstudio) {
         if (dlg.open) { dlg.close(); toast(`${h.provider_label} collegato`); loadModels(); }
         clearInterval(aiTimer); aiTimer = null;
@@ -1472,10 +1476,11 @@
       }
       if (state.aiDismissed || state.job || $("setup-dialog").open) return;
       const p = aiInfo(h.provider) || {};
+      $("ai-dialog-title").textContent = p.local ? "Apri prima il motore AI" : "Il motore AI non risponde";
       $("ai-dialog-text").textContent = p.local
-        ? `${h.provider_label} non risponde. Aprilo prima di usare ClipTale, oppure scegli un altro motore.`
+        ? `ClipTale non ha trovato nessun motore AI aperto. Apri prima il tuo motore (${h.local_engines || "LM Studio, Ollama o Unsloth Studio"}) e avvia il suo server: ClipTale lo trova e si collega da solo.`
         : `${h.provider_label} non risponde${h.lmstudio_error ? " (" + h.lmstudio_error + ")" : ""}. Controlla la chiave e la connessione, oppure scegli un altro motore.`;
-      $("ai-dialog-help").textContent = p.help || "";
+      $("ai-dialog-help").textContent = p.local ? `Usavi ${h.provider_label}: ${p.help || ""}` : (p.help || "");
       if (!dlg.open) dlg.showModal();
       if (!aiTimer) aiTimer = setInterval(checkHealth, 5000);
     }
